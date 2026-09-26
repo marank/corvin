@@ -1,25 +1,50 @@
 import { api, type Page } from './client'
 
-export interface Customer {
-  id: number
-  name: string
+export interface Address {
+  id: string
+  customer: string
+  label: string
   street: string
   postal_code: string
   city: string
   country: string
+  is_primary: boolean
+}
+
+export interface BankAccount {
+  id: string
+  name: string
+  bank_name: string
+  account_holder: string
+  iban: string
+  bic: string
+  is_active: boolean
+}
+
+export interface Customer {
+  id: string
+  number: string
+  name: string
   email: string
   phone: string
+  website: string
+  vat_id: string
   notes: string
   buyer_reference: string
   rounding_increment_minutes: number | null
+  payment_terms_days: number | null
+  bank_account: string | null
   is_active: boolean
   project_count: number
   uninvoiced_hours: number | null
+  addresses: Address[]
+  primary_address: Address | null
 }
 
 export interface Project {
-  id: number
-  customer: number
+  id: string
+  number: string
+  customer: string
   customer_name: string
   name: string
   description: string
@@ -34,10 +59,13 @@ export interface Project {
 }
 
 export interface Task {
-  id: number
-  project: number | null
+  id: string
+  number: string
+  customer: string | null
+  customer_name: string | null
+  project: string | null
   project_name: string | null
-  visit: number | null
+  visit: string | null
   title: string
   description: string
   due_date: string | null
@@ -46,19 +74,23 @@ export interface Task {
 }
 
 export interface Contact {
-  id: number
-  customer: number
+  id: string
+  customer: string
+  first_name: string
+  last_name: string
   name: string
   role: string
   email: string
   phone: string
+  is_invoice_contact: boolean
 }
 
 export interface Visit {
-  id: number
-  customer: number
+  id: string
+  number: string
+  customer: string
   customer_name: string
-  project: number | null
+  project: string | null
   project_name: string | null
   date: string
   location: string
@@ -68,12 +100,13 @@ export interface Visit {
 }
 
 export interface TimeEntry {
-  id: number
-  project: number
-  project_name: string
+  id: string
+  customer: string
   customer_name: string
-  visit: number | null
-  contract: number | null
+  project: string | null
+  project_name: string | null
+  visit: string | null
+  contract: string | null
   contract_name: string | null
   date: string
   start_time: string
@@ -84,14 +117,14 @@ export interface TimeEntry {
   is_running: boolean
   description: string
   billable: boolean
-  invoice: number | null
+  invoice: string | null
 }
 
 export interface HourlyRate {
-  id: number
-  customer: number | null
+  id: string
+  customer: string | null
   customer_name: string | null
-  project: number | null
+  project: string | null
   project_name: string | null
   amount: number
   valid_from: string
@@ -99,10 +132,11 @@ export interface HourlyRate {
 }
 
 export interface SupportContract {
-  id: number
-  customer: number
+  id: string
+  number: string
+  customer: string
   customer_name: string
-  project: number | null
+  project: string | null
   project_name: string | null
   name: string
   included_hours: number
@@ -114,7 +148,7 @@ export interface SupportContract {
   end_date: string | null
   next_billing_date: string
   active: boolean
-  template: number | null
+  template: string | null
 }
 
 export interface ContractUsage {
@@ -126,8 +160,8 @@ export interface ContractUsage {
 }
 
 export interface LineItem {
-  id: number
-  invoice: number
+  id: string
+  invoice: string
   position: number
   description: string
   quantity: number
@@ -137,21 +171,21 @@ export interface LineItem {
 }
 
 export interface Payment {
-  id: number
-  invoice: number
+  id: string
+  invoice: string
   date: string
   amount: number
   note: string
 }
 
 export interface Invoice {
-  id: number
+  id: string
   number: string
-  customer: number
+  customer: string
   customer_name: string
-  project: number | null
+  project: string | null
   project_name: string | null
-  contract: number | null
+  contract: string | null
   issue_date: string
   due_date: string | null
   status: string
@@ -166,19 +200,37 @@ export interface Invoice {
   remaining: number
   partially_paid: boolean
   sent_at: string | null
-  template: number | null
+  template: string | null
+  bank_account_override: string | null
+  bank_account: BankAccount | null
+  contacts: Contact[]
   items: LineItem[]
   payments: Payment[]
 }
 
+export interface TextBlock {
+  id: string
+  name: string
+  key: string
+  content: string
+}
+
 export interface InvoiceTemplate {
-  id: number
+  id: string
   name: string
   page_size: string
   margin_top: number
   margin_right: number
   margin_bottom: number
   margin_left: number
+  font_size: number
+  primary_font: string
+  secondary_font: string
+  primary_color: string
+  secondary_color: string
+  tertiary_color: string
+  background_color: string
+  text_color: string
   body_html: string
   css: string
   header_html: string
@@ -188,147 +240,221 @@ export interface InvoiceTemplate {
   is_default: boolean
 }
 
+export interface CompanyContact {
+  id: string
+  first_name: string
+  last_name: string
+  name: string
+  role: string
+  email: string
+  phone: string
+}
+
+export interface CompanyImage {
+  id: string
+  kind: 'logo_light' | 'logo_dark' | 'icon_light' | 'icon_dark' | 'additional'
+  key: string
+  name: string
+  image: string
+  url: string
+}
+
 export interface Attachment {
-  id: number
+  id: string
   file: string
   url: string
   name: string
   uploaded_at: string
   content_type: number
-  object_id: number
+  object_id: string
 }
 
 const base = '/api/v1'
 
+export const bankAccountsApi = {
+  list: () => api.get<Page<BankAccount>>(`${base}/bank-accounts/?page_size=200`),
+  create: (d: Partial<BankAccount>) => api.post<BankAccount>(`${base}/bank-accounts/`, d),
+  update: (id: string, d: Partial<BankAccount>) =>
+    api.put<BankAccount>(`${base}/bank-accounts/${id}/`, d),
+  remove: (id: string) => api.delete(`${base}/bank-accounts/${id}/`),
+}
+
 export const customersApi = {
   list: (params = '') => api.get<Page<Customer>>(`${base}/customers/?${params}`),
-  get: (id: number) => api.get<Customer>(`${base}/customers/${id}/`),
+  get: (id: string) => api.get<Customer>(`${base}/customers/${id}/`),
   create: (d: Partial<Customer>) => api.post<Customer>(`${base}/customers/`, d),
-  update: (id: number, d: Partial<Customer>) =>
+  update: (id: string, d: Partial<Customer>) =>
     api.put<Customer>(`${base}/customers/${id}/`, d),
-  remove: (id: number) => api.delete(`${base}/customers/${id}/`),
+  remove: (id: string) => api.delete(`${base}/customers/${id}/`),
+}
+
+export const addressesApi = {
+  list: (customerId: string) =>
+    api.get<Page<Address>>(`${base}/addresses/?customer=${customerId}`),
+  create: (d: Partial<Address>) => api.post<Address>(`${base}/addresses/`, d),
+  update: (id: string, d: Partial<Address>) =>
+    api.put<Address>(`${base}/addresses/${id}/`, d),
+  remove: (id: string) => api.delete(`${base}/addresses/${id}/`),
 }
 
 export const contactsApi = {
-  list: (customerId: number) =>
+  list: (customerId: string) =>
     api.get<Page<Contact>>(`${base}/contacts/?customer=${customerId}`),
   create: (d: Partial<Contact>) => api.post<Contact>(`${base}/contacts/`, d),
-  update: (id: number, d: Partial<Contact>) =>
+  update: (id: string, d: Partial<Contact>) =>
     api.put<Contact>(`${base}/contacts/${id}/`, d),
-  remove: (id: number) => api.delete(`${base}/contacts/${id}/`),
+  remove: (id: string) => api.delete(`${base}/contacts/${id}/`),
 }
 
 export const projectsApi = {
   list: (params = '') => api.get<Page<Project>>(`${base}/projects/?${params}`),
-  get: (id: number) => api.get<Project>(`${base}/projects/${id}/`),
+  get: (id: string) => api.get<Project>(`${base}/projects/${id}/`),
   create: (d: Partial<Project>) => api.post<Project>(`${base}/projects/`, d),
-  update: (id: number, d: Partial<Project>) =>
+  update: (id: string, d: Partial<Project>) =>
     api.put<Project>(`${base}/projects/${id}/`, d),
-  remove: (id: number) => api.delete(`${base}/projects/${id}/`),
+  remove: (id: string) => api.delete(`${base}/projects/${id}/`),
 }
 
 export const tasksApi = {
   list: (params = '') => api.get<Page<Task>>(`${base}/tasks/?${params}`),
   create: (d: Partial<Task>) => api.post<Task>(`${base}/tasks/`, d),
-  update: (id: number, d: Partial<Task>) => api.put<Task>(`${base}/tasks/${id}/`, d),
-  remove: (id: number) => api.delete(`${base}/tasks/${id}/`),
+  update: (id: string, d: Partial<Task>) => api.put<Task>(`${base}/tasks/${id}/`, d),
+  remove: (id: string) => api.delete(`${base}/tasks/${id}/`),
 }
 
 export const visitsApi = {
   list: (params = '') => api.get<Page<Visit>>(`${base}/visits/?${params}`),
-  get: (id: number) => api.get<Visit>(`${base}/visits/${id}/`),
+  get: (id: string) => api.get<Visit>(`${base}/visits/${id}/`),
   create: (d: Partial<Visit>) => api.post<Visit>(`${base}/visits/`, d),
-  update: (id: number, d: Partial<Visit>) =>
+  update: (id: string, d: Partial<Visit>) =>
     api.put<Visit>(`${base}/visits/${id}/`, d),
-  remove: (id: number) => api.delete(`${base}/visits/${id}/`),
+  remove: (id: string) => api.delete(`${base}/visits/${id}/`),
 }
 
 export const timeEntriesApi = {
   list: (params = '') => api.get<Page<TimeEntry>>(`${base}/time-entries/?${params}`),
   create: (d: Record<string, unknown>) => api.post<TimeEntry>(`${base}/time-entries/`, d),
-  update: (id: number, d: Record<string, unknown>) =>
+  update: (id: string, d: Record<string, unknown>) =>
     api.put<TimeEntry>(`${base}/time-entries/${id}/`, d),
-  remove: (id: number) => api.delete(`${base}/time-entries/${id}/`),
+  remove: (id: string) => api.delete(`${base}/time-entries/${id}/`),
 }
 
 export const ratesApi = {
   list: (params = '') => api.get<Page<HourlyRate>>(`${base}/hourly-rates/?${params}`),
   create: (d: Partial<HourlyRate>) => api.post<HourlyRate>(`${base}/hourly-rates/`, d),
-  update: (id: number, d: Partial<HourlyRate>) =>
+  update: (id: string, d: Partial<HourlyRate>) =>
     api.put<HourlyRate>(`${base}/hourly-rates/${id}/`, d),
-  remove: (id: number) => api.delete(`${base}/hourly-rates/${id}/`),
+  remove: (id: string) => api.delete(`${base}/hourly-rates/${id}/`),
 }
 
 export const contractsApi = {
   list: (params = '') =>
     api.get<Page<SupportContract>>(`${base}/support-contracts/?${params}`),
-  get: (id: number) => api.get<SupportContract>(`${base}/support-contracts/${id}/`),
+  get: (id: string) => api.get<SupportContract>(`${base}/support-contracts/${id}/`),
   create: (d: Partial<SupportContract>) =>
     api.post<SupportContract>(`${base}/support-contracts/`, d),
-  update: (id: number, d: Partial<SupportContract>) =>
+  update: (id: string, d: Partial<SupportContract>) =>
     api.put<SupportContract>(`${base}/support-contracts/${id}/`, d),
-  remove: (id: number) => api.delete(`${base}/support-contracts/${id}/`),
-  usage: (id: number) =>
+  remove: (id: string) => api.delete(`${base}/support-contracts/${id}/`),
+  usage: (id: string) =>
     api.get<ContractUsage>(`${base}/support-contracts/${id}/usage/`),
-  runNow: (id: number) =>
+  runNow: (id: string) =>
     api.post<Invoice>(`${base}/support-contracts/${id}/run_now/`),
 }
 
 export const invoicesApi = {
   list: (params = '') => api.get<Page<Invoice>>(`${base}/invoices/?${params}`),
-  get: (id: number) => api.get<Invoice>(`${base}/invoices/${id}/`),
-  update: (id: number, d: Partial<Invoice>) =>
+  get: (id: string) => api.get<Invoice>(`${base}/invoices/${id}/`),
+  update: (id: string, d: Partial<Invoice>) =>
     api.put<Invoice>(`${base}/invoices/${id}/`, d),
-  remove: (id: number) => api.delete(`${base}/invoices/${id}/`),
+  remove: (id: string) => api.delete(`${base}/invoices/${id}/`),
   consolidate: (d: {
-    customer_id: number
-    project_id?: number | null
+    customer_id: string
+    project_id?: string | null
+    bank_account_id?: string | null
+    contact_ids?: string[]
     date_from?: string | null
     date_to?: string | null
     group_by: string
     e_invoice_format?: string
+    extra_lines?: Partial<LineItem>[]
   }) => api.post<Invoice>(`${base}/invoices/consolidate/`, d),
-  finalize: (id: number) => api.post<Invoice>(`${base}/invoices/${id}/finalize/`),
-  markSent: (id: number) => api.post<Invoice>(`${base}/invoices/${id}/mark_sent/`),
-  cancel: (id: number) => api.post<Invoice>(`${base}/invoices/${id}/cancel/`),
-  sendEmail: (id: number, d: { to: string; subject?: string; body?: string }) =>
+  finalize: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/finalize/`),
+  markSent: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/mark_sent/`),
+  cancel: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/cancel/`),
+  sendEmail: (id: string, d: { to: string; subject?: string; body?: string }) =>
     api.post<Invoice>(`${base}/invoices/${id}/send_email/`, d),
-  pdfUrl: (id: number) => `${base}/invoices/${id}/pdf/`,
-  xmlUrl: (id: number) => `${base}/invoices/${id}/xrechnung/`,
-  previewUrl: (id: number) => `${base}/invoices/${id}/preview/`,
+  pdfUrl: (id: string) => `${base}/invoices/${id}/pdf/`,
+  xmlUrl: (id: string) => `${base}/invoices/${id}/xrechnung/`,
+  previewUrl: (id: string) => `${base}/invoices/${id}/preview/`,
 }
 
 export const paymentsApi = {
   create: (d: Partial<Payment>) => api.post<Payment>(`${base}/payments/`, d),
-  remove: (id: number) => api.delete(`${base}/payments/${id}/`),
+  remove: (id: string) => api.delete(`${base}/payments/${id}/`),
+}
+
+export const textBlocksApi = {
+  list: () => api.get<Page<TextBlock>>(`${base}/text-blocks/?page_size=200`),
+  create: (d: Partial<TextBlock>) => api.post<TextBlock>(`${base}/text-blocks/`, d),
+  update: (id: string, d: Partial<TextBlock>) =>
+    api.put<TextBlock>(`${base}/text-blocks/${id}/`, d),
+  remove: (id: string) => api.delete(`${base}/text-blocks/${id}/`),
 }
 
 export const templatesApi = {
   list: () => api.get<Page<InvoiceTemplate>>(`${base}/invoice-templates/`),
-  get: (id: number) => api.get<InvoiceTemplate>(`${base}/invoice-templates/${id}/`),
+  get: (id: string) => api.get<InvoiceTemplate>(`${base}/invoice-templates/${id}/`),
   create: (d: Partial<InvoiceTemplate>) =>
     api.post<InvoiceTemplate>(`${base}/invoice-templates/`, d),
-  update: (id: number, d: Partial<InvoiceTemplate>) =>
+  update: (id: string, d: Partial<InvoiceTemplate>) =>
     api.put<InvoiceTemplate>(`${base}/invoice-templates/${id}/`, d),
-  remove: (id: number) => api.delete(`${base}/invoice-templates/${id}/`),
-  previewUrl: (id: number) => `${base}/invoice-templates/${id}/preview/`,
+  remove: (id: string) => api.delete(`${base}/invoice-templates/${id}/`),
+  previewUrl: (id: string) => `${base}/invoice-templates/${id}/preview/`,
+  exportUrl: (id: string) => `${base}/invoice-templates/${id}/export/`,
+  importTemplate: (data: unknown) =>
+    api.post<InvoiceTemplate>(`${base}/invoice-templates/import/`, data),
 }
 
 export const attachmentsApi = {
   contentTypes: () =>
     api.get<Record<string, number>>(`${base}/attachments/content_types/`),
-  list: (contentType: number, objectId: number) =>
+  list: (contentType: number, objectId: string) =>
     api.get<Page<Attachment>>(
       `${base}/attachments/?content_type=${contentType}&object_id=${objectId}`,
     ),
-  upload: (contentType: number, objectId: number, file: File) => {
+  upload: (contentType: number, objectId: string, file: File) => {
     const form = new FormData()
     form.append('file', file)
     form.append('content_type', String(contentType))
     form.append('object_id', String(objectId))
     return api.upload<Attachment>(`${base}/attachments/`, form)
   },
-  remove: (id: number) => api.delete(`${base}/attachments/${id}/`),
+  remove: (id: string) => api.delete(`${base}/attachments/${id}/`),
+}
+
+export const companyContactsApi = {
+  list: () => api.get<Page<CompanyContact>>(`${base}/company-contacts/?page_size=200`),
+  create: (d: Partial<CompanyContact>) =>
+    api.post<CompanyContact>(`${base}/company-contacts/`, d),
+  update: (id: string, d: Partial<CompanyContact>) =>
+    api.put<CompanyContact>(`${base}/company-contacts/${id}/`, d),
+  remove: (id: string) => api.delete(`${base}/company-contacts/${id}/`),
+}
+
+export const companyImagesApi = {
+  list: () => api.get<Page<CompanyImage>>(`${base}/company-images/?page_size=200`),
+  upload: (d: { kind: string; key: string; name: string; file: File }, id?: string) => {
+    const form = new FormData()
+    form.append('kind', d.kind)
+    form.append('key', d.key)
+    form.append('name', d.name)
+    form.append('image', d.file)
+    return id
+      ? api.uploadPut<CompanyImage>(`${base}/company-images/${id}/`, form)
+      : api.upload<CompanyImage>(`${base}/company-images/`, form)
+  },
+  remove: (id: string) => api.delete(`${base}/company-images/${id}/`),
 }
 
 export const settingsApi = {
@@ -336,6 +462,8 @@ export const settingsApi = {
   update: (d: Record<string, unknown>) =>
     api.put<Record<string, unknown>>(`${base}/settings/`, d),
   updateWithLogo: (form: FormData) => api.upload<Record<string, unknown>>(`${base}/settings/`, form),
+  previewNumber: (d: { entity: string; format: string; scope: string[]; start: number }) =>
+    api.post<{ preview: string }>(`${base}/settings/preview-number/`, d),
 }
 
 export const statsApi = {

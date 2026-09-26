@@ -115,10 +115,11 @@ def build_xrechnung_xml(invoice: Invoice) -> bytes:
     ms.grand_total = invoice.total
     ms.due_amount = invoice.remaining
 
-    if company.iban:
+    bank_account = invoice.bank_account
+    if bank_account and bank_account.iban:
         pm = PaymentMeans()
         pm.type_code = "58"  # SEPA credit transfer
-        pm.payee_account.iban = company.iban.replace(" ", "")
+        pm.payee_account.iban = bank_account.iban.replace(" ", "")
         doc.trade.settlement.payment_means.add(pm)
 
     if invoice.due_date:

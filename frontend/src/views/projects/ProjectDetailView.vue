@@ -16,6 +16,7 @@ import TabPanel from 'primevue/tabpanel'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
+import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
 import { projectsApi, type Project } from '../../api'
@@ -24,7 +25,7 @@ import { useNotify } from '../../composables/useNotify'
 const { t } = useI18n()
 const route = useRoute()
 const notify = useNotify()
-const id = Number(route.params.id)
+const id = route.params.id as string
 const project = ref<Project | null>(null)
 const form = ref<Partial<Project>>({})
 const saving = ref(false)
@@ -56,6 +57,7 @@ async function save() {
     </AppPageHeader>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+      <AppFormField :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
       <AppFormField :label="t('projects.customer')"><CustomerSelect v-model="form.customer" /></AppFormField>
       <AppFormField :label="t('common.name')"><InputText v-model="form.name" class="w-full" /></AppFormField>
       <AppFormField :label="t('common.status')">
@@ -74,7 +76,7 @@ async function save() {
       <div class="border border-surface-200 dark:border-surface-800 p-4">
         <div class="flex justify-between text-sm mb-1">
           <span>{{ t('projects.usedHours') }}</span>
-          <span>{{ project.used_hours.toFixed(1) }} / {{ project.budget_hours ?? '—' }}h</span>
+          <span><AppNumberDisplay :value="project.used_hours" :minimum-fraction-digits="1" :maximum-fraction-digits="1" /> / <AppNumberDisplay :value="project.budget_hours" />h</span>
         </div>
         <ProgressBar :value="project.budget_hours_percent ?? 0" :show-value="false" :pt="{ value: { class: (project.budget_hours_percent ?? 0) >= 80 ? 'bg-red-500' : '' } }" />
       </div>

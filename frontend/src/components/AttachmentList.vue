@@ -6,8 +6,9 @@ import FileUpload from 'primevue/fileupload'
 import { attachmentsApi, type Attachment } from '../api'
 import { useNotify } from '../composables/useNotify'
 import AppEmptyState from './ui/AppEmptyState.vue'
+import AppDateTimeDisplay from './ui/AppDateTimeDisplay.vue'
 
-const props = defineProps<{ model: string; objectId: number }>()
+const props = defineProps<{ model: string; objectId: string }>()
 const { t } = useI18n()
 const notify = useNotify()
 const items = ref<Attachment[]>([])
@@ -46,7 +47,7 @@ async function remove(a: Attachment) {
       <li v-for="a in items" :key="a.id" class="flex items-center gap-3 py-2">
         <i class="pi pi-paperclip" />
         <a :href="a.url" target="_blank" class="text-sm text-primary truncate flex-1">{{ a.name }}</a>
-        <span class="text-xs text-surface-400">{{ new Date(a.uploaded_at).toLocaleDateString() }}</span>
+        <AppDateTimeDisplay class="text-xs text-surface-400" :value="a.uploaded_at" type="datetime" />
         <Button icon="pi pi-trash" text size="small" severity="danger" @click="remove(a)" />
       </li>
     </ul>

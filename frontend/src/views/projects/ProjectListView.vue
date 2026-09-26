@@ -13,6 +13,7 @@ import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
+import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
 import { projectsApi, type Project } from '../../api'
 import { useNotify } from '../../composables/useNotify'
@@ -59,16 +60,17 @@ async function save() {
     </AppPageHeader>
 
     <AppDataTable :rows="rows" :loading="loading" @row-click="(r: Project) => router.push(`/projects/${r.id}`)">
+      <Column field="number" header="#" />
       <Column field="name" :header="t('common.name')" />
       <Column field="customer_name" :header="t('projects.customer')" />
       <Column :header="t('common.status')">
         <template #body="{ data }"><AppStatusTag :status="data.status" :label="t(`projects.status.${data.status}`)" /></template>
       </Column>
       <Column :header="t('projects.usedHours')">
-        <template #body="{ data }">{{ data.used_hours.toFixed(1) }}h</template>
+        <template #body="{ data }"><AppNumberDisplay :value="data.used_hours" :minimum-fraction-digits="1" :maximum-fraction-digits="1" />h</template>
       </Column>
       <Column :header="t('projects.budgetHours')">
-        <template #body="{ data }">{{ data.budget_hours ?? '—' }}</template>
+        <template #body="{ data }"><AppNumberDisplay :value="data.budget_hours" /></template>
       </Column>
       <template #card="{ row }">
         <div class="flex justify-between">

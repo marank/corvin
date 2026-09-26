@@ -30,7 +30,7 @@ class DashboardStatsView(APIView):
         )
 
         hours_by_customer = (
-            entries.values("project__customer__name")
+            entries.values("customer__name")
             .annotate(hours=Sum("duration_minutes") / 60.0)
             .order_by("-hours")[:10]
         )

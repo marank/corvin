@@ -20,7 +20,9 @@ if sys.platform == "win32":
 
 # Dev frontend runs on vite :5173 and proxies /api + /media — same origin,
 # so CSRF/CORS stay simple. Trusted origins anyway for flexibility.
+# Vite proxy rewrites Origin to the backend host (see vite.config.ts);
+# Django compares the port too, so list it explicitly.
 CSRF_TRUSTED_ORIGINS = env(
     "CSRF_TRUSTED_ORIGINS",
-    default=["http://localhost:5173", "http://127.0.0.1:5173"],
+    default=["http://localhost:8000", "http://127.0.0.1:8000"],
 )

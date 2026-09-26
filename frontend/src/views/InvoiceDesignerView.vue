@@ -6,42 +6,171 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
-import Textarea from 'primevue/textarea'
-import Checkbox from 'primevue/checkbox'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
-import AppFormField from '../components/ui/AppFormField.vue'
+import AppCodeEditor from '../components/ui/AppCodeEditor.vue'
 import InvoicePreviewFrame from '../components/InvoicePreviewFrame.vue'
-import { templatesApi, type InvoiceTemplate } from '../api'
+import InvoiceVariableBrowser, { type VariableGroup } from '../components/InvoiceVariableBrowser.vue'
+import {
+  companyImagesApi, templatesApi, textBlocksApi,
+  type CompanyImage, type InvoiceTemplate, type TextBlock,
+} from '../api'
 import { useNotify } from '../composables/useNotify'
 
 const { t } = useI18n()
 const route = useRoute()
 const notify = useNotify()
-const id = Number(route.params.id)
+const id = route.params.id as string
 
 const template = ref<InvoiceTemplate | null>(null)
 const saving = ref(false)
 const previewKey = ref(0)
-const pageSizes = ['A4', 'LETTER']
+const pageSizes = [
+  { value: 'A3', label: 'DIN A3 — 297 × 420 mm' },
+  { value: 'A4', label: 'DIN A4 — 210 × 297 mm' },
+  { value: 'A5', label: 'DIN A5 — 148 × 210 mm' },
+  { value: 'LETTER', label: 'US Letter — 8.5 × 11 in' },
+  { value: 'LEGAL', label: 'US Legal — 8.5 × 14 in' },
+  { value: 'TABLOID', label: 'US Tabloid — 11 × 17 in' },
+]
 const mobileTab = ref('editor')
+const editorSection = ref('general')
+const mobileEditorSection = ref('general')
+const headerEditor = ref<InstanceType<typeof AppCodeEditor>>()
+const bodyEditor = ref<InstanceType<typeof AppCodeEditor>>()
+const footerEditor = ref<InstanceType<typeof AppCodeEditor>>()
+const mobileHeaderEditor = ref<InstanceType<typeof AppCodeEditor>>()
+const mobileBodyEditor = ref<InstanceType<typeof AppCodeEditor>>()
+const mobileFooterEditor = ref<InstanceType<typeof AppCodeEditor>>()
+const images = ref<CompanyImage[]>([])
+const textBlocks = ref<TextBlock[]>([])
 
 const previewUrl = computed(() => `${templatesApi.previewUrl(id)}?k=${previewKey.value}`)
 
-const placeholders = [
-  'invoice.number', 'invoice.issue_date', 'invoice.due_date', 'invoice.status',
-  'customer.name', 'customer.street', 'customer.postal_code', 'customer.city', 'customer.buyer_reference',
-  'company.name', 'company.street', 'company.vat_id', 'company.iban',
-  'items', 'invoice.subtotal', 'invoice.vat_amount', 'invoice.total',
-]
+const variableGroups = computed<VariableGroup[]>(() => [
+  {
+    label: t('designer.variableGroups.invoice'),
+    entries: [
+      'number', 'issue_date', 'due_date', 'status', 'subtotal', 'vat_rate',
+      'vat_amount', 'total', 'currency', 'notes', 'amount_paid', 'remaining',
+    ].map((field) => ({ label: field, code: `{{ invoice.${field} }}` })),
+  },
+  {
+    label: t('designer.variableGroups.page'),
+    entries: [
+      'document_type', 'size', 'width', 'height', 'margin_top', 'margin_right', 'margin_bottom',
+      'margin_left', 'font_size', 'primary_font', 'secondary_font',
+      'primary_color', 'secondary_color', 'tertiary_color',
+      'background_color', 'text_color',
+    ].map((field) => ({ label: field, code: `{{ page.${field} }}` })),
+  },
+  {
+    label: t('designer.variableGroups.customer'),
+    entries: [
+      'number', 'name', 'email', 'phone', 'website', 'vat_id',
+      'buyer_reference', 'street', 'postal_code', 'city', 'country',
+    ].map((field) => ({ label: field, code: `{{ customer.${field} }}` })),
+  },
+  {
+    label: t('designer.variableGroups.company'),
+    entries: [
+      'company_name', 'street', 'postal_code', 'city', 'country', 'email',
+      'phone', 'tax_id', 'vat_id', 'iban', 'bic', 'currency',
+    ].map((field) => ({ label: field, code: `{{ company.${field} }}` })),
+  },
+  {
+    label: t('designer.variableGroups.bankAccount'),
+    entries: [
+      'name', 'bank_name', 'account_holder', 'iban', 'bic',
+    ].map((field) => ({ label: field, code: `{{ invoice.bank_account.${field} }}` })),
+  },
+  {
+    label: t('designer.variableGroups.invoiceContacts'),
+    entries: [
+      { label: 'contact loop', code: '{% for contact in invoice_contacts %}\n{{ contact.name }}{% if not forloop.last %}, {% endif %}\n{% endfor %}' },
+      { label: 'name', code: '{{ contact.name }}' },
+      { label: 'role', code: '{{ contact.role }}' },
+      { label: 'email', code: '{{ contact.email }}' },
+      { label: 'phone', code: '{{ contact.phone }}' },
+    ],
+  },
+  {
+    label: t('designer.variableGroups.companyContacts'),
+    entries: [
+      { label: 'contact loop', code: '{% for contact in company_contacts %}\n{{ contact.name }} {{ contact.role }} {{ contact.email }} {{ contact.phone }}\n{% endfor %}' },
+      { label: 'name', code: '{{ contact.name }}' },
+      { label: 'role', code: '{{ contact.role }}' },
+      { label: 'email', code: '{{ contact.email }}' },
+      { label: 'phone', code: '{{ contact.phone }}' },
+    ],
+  },
+  {
+    label: t('designer.variableGroups.relations'),
+    entries: [
+      { label: 'project.number', code: '{{ project.number }}' },
+      { label: 'project.name', code: '{{ project.name }}' },
+      { label: 'contract.number', code: '{{ contract.number }}' },
+      { label: 'contract.name', code: '{{ contract.name }}' },
+    ],
+  },
+  {
+    label: t('designer.variableGroups.formatting'),
+    entries: [
+      { label: 'date', code: '{% display_date invoice.issue_date %}' },
+      { label: 'time', code: '{% display_time now %}' },
+      { label: 'number', code: '{% display_number invoice.subtotal %}' },
+      { label: 'money', code: '{% display_money invoice.total invoice.currency %}' },
+    ],
+  },
+  {
+    label: t('designer.variableGroups.lines'),
+    entries: [
+      { label: 'line loop', code: '{% for item in items %}\n{{ item.position }} {{ item.description }} {{ item.quantity }} {{ item.unit }} {% display_money item.total invoice.currency %}\n{% endfor %}' },
+      { label: 'description', code: '{{ item.description }}' },
+      { label: 'quantity', code: '{% display_number item.quantity %}' },
+      { label: 'unit price', code: '{% display_money item.unit_price invoice.currency %}' },
+      { label: 'total', code: '{% display_money item.total invoice.currency %}' },
+    ],
+  },
+  {
+    label: t('designer.variableGroups.textBlocks'),
+    entries: textBlocks.value.map((block) => ({
+      label: `${block.name} (${block.key})`,
+      code: `{{ text_blocks.${block.key} }}`,
+    })),
+  },
+  {
+    label: t('designer.variableGroups.images'),
+    entries: images.value.map((image) => ({
+      label: image.name,
+      code: `<img src="{{ images.${image.key} }}" alt="${image.name}">`,
+    })),
+  },
+])
 
 onMounted(async () => {
-  template.value = await templatesApi.get(id)
+  const [invoiceTemplate, imagePage, textBlockPage] = await Promise.all([
+    templatesApi.get(id), companyImagesApi.list(), textBlocksApi.list(),
+  ])
+  template.value = invoiceTemplate
+  images.value = imagePage.results
+  textBlocks.value = textBlockPage.results
 })
+
+function insertSnippet(code: string) {
+  const mobile = window.innerWidth < 1024
+  const section = mobile ? mobileEditorSection.value : editorSection.value
+  const editors = mobile
+    ? { header: mobileHeaderEditor.value, body: mobileBodyEditor.value, footer: mobileFooterEditor.value }
+    : { header: headerEditor.value, body: bodyEditor.value, footer: footerEditor.value }
+  const editor = editors[section as keyof typeof editors] ?? editors.body
+  if (editor) editor.insert(code)
+  else if (template.value) template.value.body_html += code
+}
 
 async function save() {
   if (!template.value) return
@@ -66,7 +195,7 @@ watch(() => template.value && [template.value.page_size, template.value.margin_t
   <div v-if="template" class="h-full flex flex-col">
     <AppPageHeader :title="template.name" :subtitle="t('designer.title')">
       <template #actions>
-        <Select v-model="template.page_size" :options="pageSizes" class="w-28" />
+        <a :href="templatesApi.exportUrl(id)" download><Button :label="t('designer.exportTemplate')" icon="pi pi-download" severity="secondary" /></a>
         <Button :label="t('common.save')" icon="pi pi-save" :loading="saving" @click="save" />
       </template>
     </AppPageHeader>
@@ -77,18 +206,55 @@ watch(() => template.value && [template.value.page_size, template.value.margin_t
         <TabList>
           <Tab value="editor">{{ t('designer.editor') }}</Tab>
           <Tab value="preview">{{ t('designer.preview') }}</Tab>
-          <Tab value="mail">{{ t('designer.mailSubject') }}</Tab>
         </TabList>
         <TabPanels class="flex-1 min-h-0">
           <TabPanel value="editor" class="h-full">
-            <Textarea v-model="template.body_html" class="w-full h-full font-mono text-sm" auto-resize :rows="30" />
+            <Tabs v-model:value="mobileEditorSection">
+              <TabList>
+                <Tab value="general">{{ t('designer.general') }}</Tab>
+                <Tab value="header">{{ t('designer.headerHtml') }}</Tab>
+                <Tab value="body">{{ t('designer.bodyHtml') }}</Tab>
+                <Tab value="footer">{{ t('designer.footerHtml') }}</Tab>
+                <Tab value="css">CSS</Tab>
+              </TabList>
+              <TabPanels>
+                <TabPanel value="general" class="h-[60vh] overflow-y-auto border border-surface-200 dark:border-surface-800 p-4">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+                    <label class="text-sm sm:col-span-2">{{ t('designer.templateName') }}<InputText v-model="template.name" class="w-full mt-1" /></label>
+                    <label class="text-sm sm:col-span-2">{{ t('designer.pageSize') }}<Select v-model="template.page_size" :options="pageSizes" option-label="label" option-value="value" class="w-full mt-1" /></label>
+                    <label class="text-sm">{{ t('designer.marginTop') }}<InputNumber v-model="template.margin_top" class="w-full mt-1" /></label>
+                    <label class="text-sm">{{ t('designer.marginRight') }}<InputNumber v-model="template.margin_right" class="w-full mt-1" /></label>
+                    <label class="text-sm">{{ t('designer.marginBottom') }}<InputNumber v-model="template.margin_bottom" class="w-full mt-1" /></label>
+                    <label class="text-sm">{{ t('designer.marginLeft') }}<InputNumber v-model="template.margin_left" class="w-full mt-1" /></label>
+                    <label class="text-sm">{{ t('designer.fontSize') }}<InputNumber v-model="template.font_size" :min="1" :max-fraction-digits="2" class="w-full mt-1" /></label>
+                    <label class="text-sm">{{ t('designer.primaryFont') }}<InputText v-model="template.primary_font" class="w-full mt-1" /></label>
+                    <label class="text-sm">{{ t('designer.secondaryFont') }}<InputText v-model="template.secondary_font" class="w-full mt-1" /></label>
+                    <label v-for="field in ['primary_color', 'secondary_color', 'tertiary_color', 'background_color', 'text_color'] as const" :key="field" class="text-sm">
+                      {{ t(`designer.${field}`) }}
+                      <div class="flex gap-2 mt-1"><input v-model="template[field]" type="color" class="h-10 w-12 border border-surface-300 dark:border-surface-700" /><InputText v-model="template[field]" class="flex-1 min-w-0" /></div>
+                    </label>
+                  </div>
+                </TabPanel>
+                <TabPanel value="header" class="h-[60vh] border border-surface-200 dark:border-surface-800">
+                  <AppCodeEditor ref="mobileHeaderEditor" v-model="template.header_html" language="html" />
+                </TabPanel>
+                <TabPanel value="body" class="h-[60vh] border border-surface-200 dark:border-surface-800">
+                  <AppCodeEditor ref="mobileBodyEditor" v-model="template.body_html" language="html" />
+                </TabPanel>
+                <TabPanel value="footer" class="h-[60vh] border border-surface-200 dark:border-surface-800">
+                  <AppCodeEditor ref="mobileFooterEditor" v-model="template.footer_html" language="html" />
+                </TabPanel>
+                <TabPanel value="css" class="h-[60vh] border border-surface-200 dark:border-surface-800">
+                  <AppCodeEditor v-model="template.css" language="css" />
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
+            <InvoiceVariableBrowser :groups="variableGroups" @insert="insertSnippet">
+              <template #title>{{ t('designer.placeholders') }}</template>
+            </InvoiceVariableBrowser>
           </TabPanel>
           <TabPanel value="preview" class="h-full min-h-96">
             <InvoicePreviewFrame :url="previewUrl" />
-          </TabPanel>
-          <TabPanel value="mail">
-            <AppFormField :label="t('designer.mailSubject')"><InputText v-model="template.mail_subject" class="w-full" /></AppFormField>
-            <AppFormField :label="t('designer.mailBody')" class="mt-3"><Textarea v-model="template.mail_body" rows="8" class="w-full" /></AppFormField>
           </TabPanel>
         </TabPanels>
       </Tabs>
@@ -97,24 +263,49 @@ watch(() => template.value && [template.value.page_size, template.value.margin_t
     <!-- Desktop: split -->
     <div class="hidden lg:grid flex-1 min-h-0 grid-cols-2 gap-4">
       <div class="flex flex-col min-h-0 border border-surface-200 dark:border-surface-800">
-        <div class="flex gap-3 p-2 border-b border-surface-200 dark:border-surface-800 text-sm items-center">
-          <span class="text-surface-500">{{ t('designer.margins') }}:</span>
-          <InputNumber v-model="template.margin_top" class="w-16" size="small" />
-          <InputNumber v-model="template.margin_right" class="w-16" size="small" />
-          <InputNumber v-model="template.margin_bottom" class="w-16" size="small" />
-          <InputNumber v-model="template.margin_left" class="w-16" size="small" />
-          <label class="flex items-center gap-1 ms-auto"><Checkbox v-model="template.is_default" binary /> default</label>
-        </div>
-        <Textarea v-model="template.body_html" class="flex-1 w-full font-mono text-sm border-0" />
-        <Textarea v-model="template.css" class="w-full font-mono text-sm border-0 border-t border-surface-200 dark:border-surface-800" :rows="6" placeholder="CSS" />
-        <details class="p-2 border-t border-surface-200 dark:border-surface-800 text-xs">
-          <summary class="cursor-pointer text-surface-500">{{ t('designer.placeholders') }}</summary>
-          <code v-for="p in placeholders" :key="p" class="inline-block mr-3 mt-1">{{ '{' + '{' + p + '}' + '}' }}</code>
-        </details>
-        <div class="p-2 border-t border-surface-200 dark:border-surface-800 grid grid-cols-1 gap-2">
-          <InputText v-model="template.mail_subject" :placeholder="t('designer.mailSubject')" class="w-full" />
-          <Textarea v-model="template.mail_body" :placeholder="t('designer.mailBody')" rows="3" class="w-full" />
-        </div>
+        <Tabs v-model:value="editorSection" class="flex-1 min-h-0 flex flex-col">
+          <TabList>
+            <Tab value="general">{{ t('designer.general') }}</Tab>
+            <Tab value="header">{{ t('designer.headerHtml') }}</Tab>
+            <Tab value="body">{{ t('designer.bodyHtml') }}</Tab>
+            <Tab value="footer">{{ t('designer.footerHtml') }}</Tab>
+            <Tab value="css">CSS</Tab>
+          </TabList>
+          <TabPanels class="flex-1 min-h-0">
+            <TabPanel value="general" class="h-full overflow-y-auto p-4">
+              <div class="grid grid-cols-2 gap-4 max-w-2xl">
+                <label class="text-sm col-span-2">{{ t('designer.templateName') }}<InputText v-model="template.name" class="w-full mt-1" /></label>
+                <label class="text-sm col-span-2">{{ t('designer.pageSize') }}<Select v-model="template.page_size" :options="pageSizes" option-label="label" option-value="value" class="w-full mt-1" /></label>
+                <label class="text-sm">{{ t('designer.marginTop') }}<InputNumber v-model="template.margin_top" class="w-full mt-1" /></label>
+                <label class="text-sm">{{ t('designer.marginRight') }}<InputNumber v-model="template.margin_right" class="w-full mt-1" /></label>
+                <label class="text-sm">{{ t('designer.marginBottom') }}<InputNumber v-model="template.margin_bottom" class="w-full mt-1" /></label>
+                <label class="text-sm">{{ t('designer.marginLeft') }}<InputNumber v-model="template.margin_left" class="w-full mt-1" /></label>
+                <label class="text-sm">{{ t('designer.fontSize') }}<InputNumber v-model="template.font_size" :min="1" :max-fraction-digits="2" class="w-full mt-1" /></label>
+                <label class="text-sm">{{ t('designer.primaryFont') }}<InputText v-model="template.primary_font" class="w-full mt-1" /></label>
+                <label class="text-sm">{{ t('designer.secondaryFont') }}<InputText v-model="template.secondary_font" class="w-full mt-1" /></label>
+                <label v-for="field in ['primary_color', 'secondary_color', 'tertiary_color', 'background_color', 'text_color'] as const" :key="field" class="text-sm">
+                  {{ t(`designer.${field}`) }}
+                  <div class="flex gap-2 mt-1"><input v-model="template[field]" type="color" class="h-10 w-12 border border-surface-300 dark:border-surface-700" /><InputText v-model="template[field]" class="flex-1 min-w-0" /></div>
+                </label>
+              </div>
+            </TabPanel>
+            <TabPanel value="header" class="h-full">
+              <AppCodeEditor ref="headerEditor" v-model="template.header_html" language="html" />
+            </TabPanel>
+            <TabPanel value="body" class="h-full">
+              <AppCodeEditor ref="bodyEditor" v-model="template.body_html" language="html" />
+            </TabPanel>
+            <TabPanel value="footer" class="h-full">
+              <AppCodeEditor ref="footerEditor" v-model="template.footer_html" language="html" />
+            </TabPanel>
+            <TabPanel value="css" class="h-full">
+              <AppCodeEditor v-model="template.css" language="css" />
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
+        <InvoiceVariableBrowser :groups="variableGroups" @insert="insertSnippet">
+          <template #title>{{ t('designer.placeholders') }}</template>
+        </InvoiceVariableBrowser>
       </div>
       <div class="min-h-0 border border-surface-200 dark:border-surface-800">
         <InvoicePreviewFrame :url="previewUrl" />

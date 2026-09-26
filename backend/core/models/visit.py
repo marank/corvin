@@ -6,6 +6,7 @@ from .project import Project
 
 
 class OnSiteVisit(OwnedModel):
+    number = models.CharField(max_length=50, blank=True, db_index=True)
     customer = models.ForeignKey(
         Customer, on_delete=models.CASCADE, related_name="visits"
     )
@@ -21,6 +22,13 @@ class OnSiteVisit(OwnedModel):
 
     class Meta:
         ordering = ["-date"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "number"],
+                condition=~models.Q(number=""),
+                name="unique_visit_number_per_owner",
+            )
+        ]
 
     def __str__(self):
         return f"{self.customer.name} @ {self.date}"

@@ -11,6 +11,7 @@ import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
+import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
 import ProjectSelect from '../../components/ProjectSelect.vue'
 import { visitsApi, type Visit } from '../../api'
@@ -55,13 +56,14 @@ async function save() {
     </AppPageHeader>
 
     <AppDataTable :rows="rows" :loading="loading" @row-click="(r: Visit) => router.push(`/visits/${r.id}`)">
-      <Column field="date" :header="t('common.date')" />
+      <Column field="number" header="#" />
+      <Column :header="t('common.date')"><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
       <Column field="customer_name" :header="t('projects.customer')" />
       <Column field="project_name" :header="t('nav.projects')" />
       <Column field="location" :header="t('visits.location')" />
       <template #card="{ row }">
         <div class="font-medium">{{ row.customer_name }}</div>
-        <div class="text-sm text-surface-500">{{ row.date }} · {{ row.location }}</div>
+        <div class="text-sm text-surface-500"><AppDateTimeDisplay :value="row.date" /> · {{ row.location }}</div>
       </template>
     </AppDataTable>
 

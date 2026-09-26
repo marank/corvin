@@ -27,6 +27,7 @@ class SupportContract(OwnedModel):
         QUARTERLY = "quarterly", "Quarterly"
         YEARLY = "yearly", "Yearly"
 
+    number = models.CharField(max_length=50, blank=True, db_index=True)
     customer = models.ForeignKey(
         Customer, on_delete=models.CASCADE, related_name="contracts"
     )
@@ -62,6 +63,13 @@ class SupportContract(OwnedModel):
 
     class Meta:
         ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "number"],
+                condition=~models.Q(number=""),
+                name="unique_contract_number_per_owner",
+            )
+        ]
 
     def current_period(self) -> tuple[date, date]:
         """[start, end) of the current billing period."""

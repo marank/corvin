@@ -16,8 +16,8 @@ class OnSiteVisitSerializer(OwnedSerializer):
     class Meta:
         model = OnSiteVisit
         fields = [
-            "id", "customer", "customer_name", "project", "project_name",
+            "id", "number", "customer", "customer_name", "project", "project_name",
             "date", "location", "arrival", "departure", "notes",
             "created_at", "updated_at",
         ]
-        read_only_fields = ["created_at", "updated_at"]
+        read_only_fields = ["number", "created_at", "updated_at"]

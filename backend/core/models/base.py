@@ -1,8 +1,19 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 
 
-class OwnedModel(models.Model):
+class UuidModel(models.Model):
+    id = models.UUIDField(
+        primary_key=True, default=uuid.uuid7, editable=False
+    )
+
+    class Meta:
+        abstract = True
+
+
+class OwnedModel(UuidModel):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

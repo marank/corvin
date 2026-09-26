@@ -1,4 +1,4 @@
-<script setup lang="ts" generic="T extends { id: number }">
+<script setup lang="ts" generic="T extends { id: string }">
 import DataTable from 'primevue/datatable'
 import AppEmptyState from './AppEmptyState.vue'
 import { useI18n } from 'vue-i18n'

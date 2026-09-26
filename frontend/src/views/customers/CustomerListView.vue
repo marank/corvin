@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppStatusTag from '../../components/ui/AppStatusTag.vue'
@@ -22,7 +23,7 @@ const loading = ref(true)
 const search = ref('')
 const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
-const form = ref({ name: '', email: '', phone: '', street: '', postal_code: '', city: '', country: 'DE', buyer_reference: '', notes: '' })
+const form = ref({ name: '', email: '', phone: '', website: '', vat_id: '', buyer_reference: '', payment_terms_days: null as number | null, notes: '' })
 
 async function load() {
   loading.value = true
@@ -56,9 +57,10 @@ async function save() {
     </AppPageHeader>
 
     <AppDataTable :rows="rows" :loading="loading" @row-click="(r: Customer) => router.push(`/customers/${r.id}`)">
+      <Column field="number" header="#" />
       <Column field="name" :header="t('common.name')" />
-      <Column field="city" :header="t('common.address')">
-        <template #body="{ data }">{{ data.postal_code }} {{ data.city }}</template>
+      <Column :header="t('common.address')">
+        <template #body="{ data }">{{ data.primary_address ? `${data.primary_address.postal_code} ${data.primary_address.city}` : '—' }}</template>
       </Column>
       <Column field="email" :header="t('common.email')" />
       <Column field="project_count" :header="t('nav.projects')" />
@@ -70,7 +72,7 @@ async function save() {
       </Column>
       <template #card="{ row }">
         <div class="font-medium">{{ row.name }}</div>
-        <div class="text-sm text-surface-500">{{ row.postal_code }} {{ row.city }}</div>
+        <div class="text-sm text-surface-500">{{ row.primary_address ? `${row.primary_address.postal_code} ${row.primary_address.city}` : '' }}</div>
       </template>
     </AppDataTable>
 
@@ -81,12 +83,10 @@ async function save() {
           <AppFormField :label="t('common.email')"><InputText v-model="form.email" class="w-full" /></AppFormField>
           <AppFormField :label="t('common.phone')"><InputText v-model="form.phone" class="w-full" /></AppFormField>
         </div>
-        <AppFormField :label="t('common.address')"><InputText v-model="form.street" class="w-full" /></AppFormField>
-        <div class="grid grid-cols-3 gap-3">
-          <AppFormField label="PLZ"><InputText v-model="form.postal_code" class="w-full" /></AppFormField>
-          <AppFormField :label="t('common.address')" class="col-span-2"><InputText v-model="form.city" class="w-full" /></AppFormField>
-        </div>
+        <AppFormField :label="t('customers.website')"><InputText v-model="form.website" class="w-full" /></AppFormField>
+        <AppFormField :label="t('customers.vatId')"><InputText v-model="form.vat_id" class="w-full" /></AppFormField>
         <AppFormField :label="t('customers.buyerReference')"><InputText v-model="form.buyer_reference" class="w-full" /></AppFormField>
+        <AppFormField :label="t('customers.paymentTerms')"><InputNumber v-model="form.payment_terms_days" :min="0" :placeholder="t('customers.paymentTermsDefault')" class="w-full" /></AppFormField>
       </div>
     </AppModal>
   </div>

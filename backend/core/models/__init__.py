@@ -1,4 +1,8 @@
+from .address import Address
 from .attachment import Attachment
+from .bank_account import BankAccount
+from .company_contact import CompanyContact
+from .company_image import CompanyImage
 from .company_settings import CompanySettings
 from .contact import Contact
 from .customer import Customer
@@ -12,11 +16,16 @@ from .payment import Payment
 from .project import Project
 from .support_contract import SupportContract
 from .task import Task
+from .text_block import TextBlock
 from .time_entry import TimeEntry
 from .visit import OnSiteVisit
 
 __all__ = [
+    "Address",
     "Attachment",
+    "BankAccount",
+    "CompanyContact",
+    "CompanyImage",
     "CompanySettings",
     "Contact",
     "Customer",
@@ -31,5 +40,6 @@ __all__ = [
     "Project",
     "SupportContract",
     "Task",
+    "TextBlock",
     "TimeEntry",
 ]

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import Drawer from 'primevue/drawer'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import { useAuthStore } from '../stores/auth'
+import { useFormattingStore } from '../stores/formatting'
 import { setLocale, i18n } from '../i18n'
 import TimerWidget from '../components/TimerWidget.vue'
 
@@ -13,7 +13,8 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
-const navOpen = ref(false)
+const formatting = useFormattingStore()
+const menuOpen = ref(false)
 const dark = ref(document.documentElement.classList.contains('dark'))
 
 const items = computed(() => [
@@ -33,6 +34,8 @@ const locales = [
   { label: 'Deutsch', value: 'de' },
   { label: 'English', value: 'en' },
 ]
+onMounted(() => formatting.load())
+
 const locale = computed({
   get: () => i18n.global.locale.value,
   set: (v: string) => setLocale(v),
@@ -48,6 +51,11 @@ function isActive(to: string, exact?: boolean) {
   return exact ? route.path === to : route.path.startsWith(to)
 }
 
+function navigate(to: string) {
+  menuOpen.value = false
+  router.push(to)
+}
+
 async function logout() {
   await auth.logout()
   router.push('/login')
@@ -56,7 +64,7 @@ async function logout() {
 
 <template>
   <div class="flex h-full">
-    <!-- Desktop sidebar -->
+    <!-- Desktop sidebar (unchanged) -->
     <aside class="hidden lg:flex w-56 shrink-0 flex-col border-r border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900">
       <div class="h-14 flex items-center px-4 border-b border-surface-200 dark:border-surface-800 font-semibold">
         {{ t('app.title') }}
@@ -77,27 +85,37 @@ async function logout() {
       </nav>
     </aside>
 
-    <!-- Mobile drawer -->
-    <Drawer v-model:visible="navOpen" position="left" class="w-64">
-      <nav class="py-2">
-        <router-link
-          v-for="item in items"
-          :key="item.to"
-          :to="item.to"
-          class="flex items-center gap-3 px-4 py-3 text-sm"
-          :class="isActive(item.to, item.exact) ? 'text-primary font-medium' : 'text-surface-600 dark:text-surface-300'"
-          @click="navOpen = false"
-        >
-          <i :class="item.icon" />
-          <span>{{ item.label }}</span>
-        </router-link>
-      </nav>
-    </Drawer>
+    <!-- Full-screen tile menu (all viewports) -->
+    <Teleport to="body">
+      <div
+        v-if="menuOpen"
+        class="fixed inset-0 z-50 bg-white dark:bg-surface-950 flex flex-col"
+      >
+        <div class="h-14 flex items-center px-4 border-b border-surface-200 dark:border-surface-800">
+          <span class="font-semibold">{{ t('app.title') }}</span>
+          <Button icon="pi pi-times" text class="ms-auto" aria-label="close" @click="menuOpen = false" />
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 max-w-4xl mx-auto">
+            <button
+              v-for="item in items"
+              :key="item.to"
+              class="flex flex-col items-center justify-center gap-3 p-6 min-h-28 border border-surface-200 dark:border-surface-800 hover:border-primary hover:text-primary transition-colors"
+              :class="isActive(item.to, item.exact) ? 'text-primary border-primary' : 'text-surface-600 dark:text-surface-300'"
+              @click="navigate(item.to)"
+            >
+              <i :class="item.icon" style="font-size: 1.75rem" />
+              <span class="text-sm font-medium">{{ item.label }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <div class="flex-1 flex flex-col min-w-0">
       <!-- Topbar -->
       <header class="h-14 shrink-0 flex items-center gap-2 px-3 lg:px-5 border-b border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900">
-        <Button icon="pi pi-bars" text class="lg:hidden" @click="navOpen = true" aria-label="menu" />
+        <Button icon="pi pi-bars" text @click="menuOpen = true" aria-label="menu" />
         <div class="flex-1" />
         <TimerWidget />
         <Select

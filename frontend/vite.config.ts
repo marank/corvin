@@ -4,10 +4,24 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
+  resolve: {
+    dedupe: ['@codemirror/state', '@codemirror/view'],
+  },
+  optimizeDeps: {
+    include: [
+      'codemirror', '@codemirror/state', '@codemirror/view',
+      '@codemirror/lang-html', '@codemirror/lang-css',
+    ],
+  },
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:8000',
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        // Django CSRF checks Origin; make proxied requests look same-origin.
+        headers: { origin: 'http://localhost:8000' },
+      },
       '/media': 'http://localhost:8000',
     },
   },

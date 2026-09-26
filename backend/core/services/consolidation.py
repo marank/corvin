@@ -1,6 +1,7 @@
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -14,7 +15,7 @@ from core.models import (
     TimeEntry,
 )
 
-from .numbering import next_invoice_number
+from .numbering import next_number
 from .rates import resolve_rate, round_up_minutes, rounding_increment
 
 
@@ -23,7 +24,7 @@ def _line_for_entries(owner, entries, description: str) -> dict:
     each entry's own effective-dated rate, average the unit price."""
     total_minutes = 0
     total_amount = Decimal("0")
-    customer = entries[0].project.customer
+    customer = entries[0].customer
     for e in entries:
         minutes = round_up_minutes(
             e.duration_minutes,
@@ -63,16 +64,19 @@ def consolidate(
     group_by: str = "entry",
     vat_rate: Decimal | None = None,
     template=None,
+    contacts=None,
+    bank_account=None,
     e_invoice_format: str = Invoice.EInvoiceFormat.NONE,
+    extra_lines: list[dict] | None = None,
 ) -> Invoice:
     qs = TimeEntry.objects.filter(
         owner=owner,
-        project__customer=customer,
+        customer=customer,
         billable=True,
         invoice__isnull=True,
         contract__isnull=True,  # contract-covered entries bill via the contract
         end_time__isnull=False,  # running timers excluded
-    ).select_related("project", "project__customer")
+    ).select_related("customer", "project")
     if project:
         qs = qs.filter(project=project)
     if date_from:
@@ -80,7 +84,7 @@ def consolidate(
     if date_to:
         qs = qs.filter(date__lte=date_to)
     entries = list(qs.order_by("date", "start_time"))
-    if not entries:
+    if not entries and not extra_lines:
         raise ValidationError("No billable, uninvoiced time entries found.")
 
     # group entries into line items
@@ -98,32 +102,68 @@ def consolidate(
         raise ValidationError(f"Unknown group_by: {group_by}")
 
     company = getattr(owner, "company_settings", None)
-    prefix = company.invoice_prefix if company else "RE"
-
+    issue_date = timezone.localdate()
+    payment_terms_days = (
+        customer.payment_terms_days
+        if customer.payment_terms_days is not None
+        else company.payment_terms_days if company else 14
+    )
+    default_vat_rate = (
+        company.default_vat_rate
+        if company and company.vat_enabled
+        else Decimal("0") if company else Decimal("19")
+    )
     invoice = Invoice.objects.create(
         owner=owner,
-        number=next_invoice_number(owner, prefix),
+        number=next_number(owner, "invoice", {
+            "customer": customer,
+            "project": project,
+            "invoice": SimpleNamespace(
+                customer=customer, project=project, issue_date=issue_date
+            ),
+        }),
         customer=customer,
         project=project,
-        issue_date=timezone.localdate(),
-        vat_rate=vat_rate if vat_rate is not None else (
-            company.default_vat_rate if company else Decimal("19")
-        ),
+        issue_date=issue_date,
+        due_date=issue_date + timedelta(days=payment_terms_days),
+        vat_rate=vat_rate if vat_rate is not None else default_vat_rate,
+        currency=company.currency if company else "EUR",
         e_invoice_format=e_invoice_format,
         template=template,
+        bank_account_override=bank_account,
+    )
+
+    invoice.contacts.set(
+        contacts if contacts is not None else customer.contacts.filter(
+            is_invoice_contact=True
+        )
     )
 
     for position, (_, group) in enumerate(sorted(groups.items(), key=lambda g: g[0]), start=1):
         first = group[0]
+        scope = first.project.name if first.project else customer.name
         if group_by == "entry":
-            desc = f"{first.date} — {first.project.name}: {first.description or 'Services'}"
+            desc = f"{first.date} — {scope}: {first.description or 'Services'}"
         elif group_by == "day":
-            desc = f"{first.date} — {first.project.name}"
+            desc = f"{first.date} — {scope}"
         else:
-            desc = f"{first.project.name} — consulting services"
+            desc = f"{scope} — consulting services"
         line = _line_for_entries(owner, group, desc)
         InvoiceLineItem.objects.create(
             owner=owner, invoice=invoice, position=position, **line
+        )
+
+    position = invoice.items.count()
+    for line in extra_lines or []:
+        position += 1
+        InvoiceLineItem.objects.create(
+            owner=owner,
+            invoice=invoice,
+            position=position,
+            description=line["description"],
+            quantity=line["quantity"],
+            unit=line["unit"],
+            unit_price=line["unit_price"],
         )
 
     invoice.recalc_totals()

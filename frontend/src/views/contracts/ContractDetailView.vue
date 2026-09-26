@@ -8,6 +8,8 @@ import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
+import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
+import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import ContractUsageBar from '../../components/ContractUsageBar.vue'
 import {
   contractsApi, invoicesApi, timeEntriesApi,
@@ -19,7 +21,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const notify = useNotify()
-const id = Number(route.params.id)
+const id = route.params.id as string
 
 const contract = ref<SupportContract | null>(null)
 const usage = ref<ContractUsage | null>(null)
@@ -52,7 +54,7 @@ async function runNow() {
 
 <template>
   <div v-if="contract">
-    <AppPageHeader :title="contract.name" :subtitle="contract.customer_name">
+    <AppPageHeader :title="contract.name" :subtitle="`${contract.number} · ${contract.customer_name}`">
       <template #actions>
         <Button :label="t('contracts.runNow')" icon="pi pi-play" :loading="running" @click="runNow" />
       </template>
@@ -60,24 +62,24 @@ async function runNow() {
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div class="border border-surface-200 dark:border-surface-800 p-4">
-        <p class="text-sm text-surface-500 mb-2">{{ t('contracts.usage') }} ({{ usage?.period_start }} – {{ usage?.period_end }})</p>
+        <p class="text-sm text-surface-500 mb-2">{{ t('contracts.usage') }} (<AppDateTimeDisplay :value="usage?.period_start" /> – <AppDateTimeDisplay :value="usage?.period_end" />)</p>
         <ContractUsageBar v-if="usage" :usage="usage" />
       </div>
       <div class="border border-surface-200 dark:border-surface-800 p-4">
         <p class="text-sm text-surface-500">{{ t('contracts.fixedPrice') }}</p>
         <p class="text-xl font-semibold mt-1"><AppMoneyDisplay :amount="contract.fixed_price" /></p>
-        <p class="text-sm text-surface-500 mt-1">{{ t(`contracts.periods.${contract.period}`) }} · {{ contract.included_hours }}h</p>
+        <p class="text-sm text-surface-500 mt-1">{{ t(`contracts.periods.${contract.period}`) }} · <AppNumberDisplay :value="contract.included_hours" />h</p>
       </div>
       <div class="border border-surface-200 dark:border-surface-800 p-4">
         <p class="text-sm text-surface-500">{{ t('contracts.nextBilling') }}</p>
-        <p class="text-xl font-semibold mt-1">{{ contract.next_billing_date }}</p>
-        <p class="text-sm text-surface-500 mt-1">{{ contract.start_date }} – {{ contract.end_date ?? '∞' }}</p>
+        <p class="text-xl font-semibold mt-1"><AppDateTimeDisplay :value="contract.next_billing_date" /></p>
+        <p class="text-sm text-surface-500 mt-1"><AppDateTimeDisplay :value="contract.start_date" /> – <AppDateTimeDisplay v-if="contract.end_date" :value="contract.end_date" /><span v-else>∞</span></p>
       </div>
     </div>
 
     <h2 class="font-semibold mt-6 mb-2">{{ t('time.title') }}</h2>
     <AppDataTable :rows="entries">
-      <Column field="date" :header="t('common.date')" />
+      <Column :header="t('common.date')"><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
       <Column field="description" :header="t('time.description')" />
       <Column :header="t('time.duration')">
         <template #body="{ data }"><AppDurationDisplay :minutes="data.duration_minutes" /></template>
@@ -87,7 +89,7 @@ async function runNow() {
     <h2 class="font-semibold mt-6 mb-2">{{ t('invoices.title') }}</h2>
     <AppDataTable :rows="invoices" @row-click="(r: Invoice) => router.push(`/invoices/${r.id}`)">
       <Column field="number" :header="t('invoices.number')" />
-      <Column field="issue_date" :header="t('invoices.issueDate')" />
+      <Column :header="t('invoices.issueDate')"><template #body="{ data }"><AppDateTimeDisplay :value="data.issue_date" /></template></Column>
       <Column :header="t('common.total')">
         <template #body="{ data }"><AppMoneyDisplay :amount="data.total" /></template>
       </Column>

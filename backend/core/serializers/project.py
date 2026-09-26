@@ -18,14 +18,14 @@ class ProjectSerializer(OwnedSerializer):
     class Meta:
         model = Project
         fields = [
-            "id", "customer", "customer_name", "name", "description",
+            "id", "number", "customer", "customer_name", "name", "description",
             "status", "budget_hours", "budget_amount",
             "rounding_increment_minutes",
             "used_hours", "used_amount",
             "budget_hours_percent", "budget_amount_percent",
             "created_at", "updated_at",
         ]
-        read_only_fields = ["created_at", "updated_at"]
+        read_only_fields = ["number", "created_at", "updated_at"]
 
     def _stats(self, obj) -> dict:
         if not hasattr(obj, "_budget_stats"):

@@ -33,5 +33,6 @@ def send_invoice_email(
     )
     mail.send()
 
+    invoice.status = Invoice.Status.SENT
     invoice.sent_at = timezone.now()
-    invoice.save(update_fields=["sent_at", "updated_at"])
+    invoice.save(update_fields=["status", "sent_at", "updated_at"])

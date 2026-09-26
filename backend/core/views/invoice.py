@@ -1,6 +1,11 @@
+from datetime import timedelta
+from decimal import Decimal
+from types import SimpleNamespace
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import FileResponse, HttpResponse
 from django.utils import timezone
+from django.views.decorators.clickjacking import xframe_options_exempt
 from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -17,9 +22,25 @@ from core.services.pdf import render_invoice_html, render_invoice_pdf
 from .base import OwnedViewSet
 
 
+class ManualLineSerializer(serializers.Serializer):
+    description = serializers.CharField(max_length=500)
+    quantity = serializers.DecimalField(
+        max_digits=10, decimal_places=2, default=1
+    )
+    unit = serializers.ChoiceField(
+        choices=["hours", "flat", "piece"], default="flat"
+    )
+    unit_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+
 class ConsolidateSerializer(serializers.Serializer):
-    customer_id = serializers.IntegerField()
-    project_id = serializers.IntegerField(required=False, allow_null=True)
+    customer_id = serializers.UUIDField()
+    contact_ids = serializers.ListField(
+        child=serializers.UUIDField(), required=False
+    )
+    extra_lines = ManualLineSerializer(many=True, required=False)
+    project_id = serializers.UUIDField(required=False, allow_null=True)
+    bank_account_id = serializers.UUIDField(required=False, allow_null=True)
     date_from = serializers.DateField(required=False, allow_null=True)
     date_to = serializers.DateField(required=False, allow_null=True)
     group_by = serializers.ChoiceField(
@@ -36,10 +57,16 @@ class SendEmailSerializer(serializers.Serializer):
     body = serializers.CharField(required=False, allow_blank=True)
 
 
+def _validation_detail(error):
+    if hasattr(error, "error_dict"):
+        return error.message_dict
+    return {"detail": error.messages}
+
+
 class InvoiceViewSet(OwnedViewSet):
     queryset = Invoice.objects.select_related(
         "customer", "project", "contract", "template"
-    ).prefetch_related("items", "payments")
+    ).prefetch_related("contacts", "items", "payments")
     serializer_class = InvoiceSerializer
     filterset_fields = {
         "customer": ["exact"],
@@ -52,16 +79,38 @@ class InvoiceViewSet(OwnedViewSet):
     ordering_fields = ["issue_date", "number", "total", "due_date"]
 
     def perform_create(self, serializer):
-        from core.services.numbering import next_invoice_number
+        from core.services.numbering import next_number
 
         company = getattr(self.request.user, "company_settings", None)
-        serializer.save(
-            owner=self.request.user,
-            number=next_invoice_number(
-                self.request.user,
-                company.invoice_prefix if company else "RE",
-            ),
+        customer = serializer.validated_data["customer"]
+        issue_date = serializer.validated_data["issue_date"]
+        payment_terms_days = (
+            customer.payment_terms_days
+            if customer.payment_terms_days is not None
+            else company.payment_terms_days if company else 14
         )
+        defaults = {
+            "owner": self.request.user,
+            "number": next_number(self.request.user, "invoice", {
+                "customer": customer,
+                "project": serializer.validated_data.get("project"),
+                "contract": serializer.validated_data.get("contract"),
+                "invoice": SimpleNamespace(**serializer.validated_data),
+            }),
+        }
+        if "due_date" not in serializer.validated_data:
+            defaults["due_date"] = issue_date + timedelta(days=payment_terms_days)
+        if "currency" not in serializer.validated_data:
+            defaults["currency"] = company.currency if company else "EUR"
+        if "vat_rate" not in serializer.validated_data:
+            defaults["vat_rate"] = (
+                company.default_vat_rate
+                if company and company.vat_enabled
+                else Decimal("0") if company else Decimal("19")
+            )
+        invoice = serializer.save(**defaults)
+        if "contacts" not in serializer.validated_data:
+            invoice.contacts.set(customer.contacts.filter(is_invoice_contact=True))
 
     def perform_update(self, serializer):
         invoice = self.get_object()
@@ -76,7 +125,7 @@ class InvoiceViewSet(OwnedViewSet):
 
     @action(detail=False, methods=["post"])
     def consolidate(self, request):
-        from core.models import Customer, Project
+        from core.models import BankAccount, Contact, Customer, Project
 
         ser = ConsolidateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -93,6 +142,22 @@ class InvoiceViewSet(OwnedViewSet):
             ).first()
             if not project:
                 raise ValidationError({"project_id": "Invalid project."})
+        contacts = None
+        if "contact_ids" in d:
+            contacts = list(Contact.objects.filter(
+                owner=request.user,
+                customer=customer,
+                id__in=d["contact_ids"],
+            ))
+            if len(contacts) != len(set(d["contact_ids"])):
+                raise ValidationError({"contact_ids": "Invalid contacts."})
+        bank_account = None
+        if d.get("bank_account_id"):
+            bank_account = BankAccount.objects.filter(
+                owner=request.user, pk=d["bank_account_id"]
+            ).first()
+            if not bank_account:
+                raise ValidationError({"bank_account_id": "Invalid bank account."})
         try:
             invoice = consolidate(
                 owner=request.user,
@@ -101,10 +166,13 @@ class InvoiceViewSet(OwnedViewSet):
                 date_from=d.get("date_from"),
                 date_to=d.get("date_to"),
                 group_by=d["group_by"],
+                contacts=contacts,
+                bank_account=bank_account,
                 e_invoice_format=d["e_invoice_format"],
+                extra_lines=d.get("extra_lines"),
             )
         except DjangoValidationError as e:
-            raise ValidationError(e.message_dict or {"detail": e.messages}) from e
+            raise ValidationError(_validation_detail(e)) from e
         return Response(
             InvoiceSerializer(invoice, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
@@ -120,7 +188,7 @@ class InvoiceViewSet(OwnedViewSet):
         try:
             archive_invoice(invoice)
         except DjangoValidationError as e:
-            raise ValidationError(e.message_dict or {"detail": e.messages}) from e
+            raise ValidationError(_validation_detail(e)) from e
         invoice.status = Invoice.Status.ISSUED
         invoice.save(update_fields=["status", "updated_at"])
         return Response(
@@ -130,8 +198,11 @@ class InvoiceViewSet(OwnedViewSet):
     @action(detail=True, methods=["post"])
     def mark_sent(self, request, pk=None):
         invoice = self.get_object()
+        if invoice.status != Invoice.Status.ISSUED:
+            raise ValidationError("Only issued invoices can be marked as sent.")
+        invoice.status = Invoice.Status.SENT
         invoice.sent_at = timezone.now()
-        invoice.save(update_fields=["sent_at", "updated_at"])
+        invoice.save(update_fields=["status", "sent_at", "updated_at"])
         return Response(
             InvoiceSerializer(invoice, context={"request": request}).data
         )
@@ -176,7 +247,7 @@ class InvoiceViewSet(OwnedViewSet):
             try:
                 content = build_xrechnung_xml(invoice)
             except DjangoValidationError as e:
-                raise ValidationError(e.message_dict or {"detail": e.messages}) from e
+                raise ValidationError(_validation_detail(e)) from e
         return HttpResponse(
             content, content_type="application/xml",
             headers={
@@ -184,6 +255,7 @@ class InvoiceViewSet(OwnedViewSet):
             },
         )
 
+    @xframe_options_exempt
     @action(detail=True, methods=["get"])
     def preview(self, request, pk=None):
         invoice = self.get_object()
@@ -204,7 +276,7 @@ class InvoiceViewSet(OwnedViewSet):
                 ser.validated_data.get("body", ""),
             )
         except DjangoValidationError as e:
-            raise ValidationError(e.message_dict or {"detail": e.messages}) from e
+            raise ValidationError(_validation_detail(e)) from e
         return Response(
             InvoiceSerializer(invoice, context={"request": request}).data
         )

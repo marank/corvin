@@ -2,9 +2,11 @@ import { defineStore } from 'pinia'
 import { api } from '../api/client'
 
 export interface RunningEntry {
-  id: number
-  project: number
-  project_name: string
+  id: string
+  customer: string
+  customer_name: string
+  project: string | null
+  project_name: string | null
   date: string
   start_time: string
   description: string
@@ -36,10 +38,10 @@ export const useTimerStore = defineStore('timer', {
         this.elapsed = Math.max(0, Date.now() - start)
       }, 1000)
     },
-    async start(project: number, description = '') {
+    async start(customer: string, project: string | null = null, description = '') {
       this.running = await api.post<RunningEntry>(
         '/api/v1/time-entries/start_timer/',
-        { project, description },
+        { customer, project, description },
       )
       this._tick()
     },

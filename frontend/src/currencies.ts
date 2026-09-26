@@ -1,0 +1,70 @@
+export interface CurrencyOption {
+  code: string
+  symbol: string
+  label: string
+}
+
+const currentCurrencyCodes = [
+  'AED', 'AFN', 'ALL', 'AMD', 'AOA', 'ARS', 'AUD', 'AWG', 'AZN',
+  'BAM', 'BBD', 'BDT', 'BGN', 'BHD', 'BIF', 'BMD', 'BND', 'BOB', 'BOV',
+  'BRL', 'BSD', 'BTN', 'BWP', 'BYN', 'BZD',
+  'CAD', 'CDF', 'CHE', 'CHF', 'CHW', 'CLF', 'CLP', 'CNY', 'COP', 'COU',
+  'CRC', 'CUP', 'CVE', 'CZK',
+  'DJF', 'DKK', 'DOP', 'DZD',
+  'EGP', 'ERN', 'ETB', 'EUR',
+  'FJD', 'FKP',
+  'GBP', 'GEL', 'GHS', 'GIP', 'GMD', 'GNF', 'GTQ', 'GYD',
+  'HKD', 'HNL', 'HTG', 'HUF',
+  'IDR', 'ILS', 'INR', 'IQD', 'IRR', 'ISK',
+  'JMD', 'JOD', 'JPY',
+  'KES', 'KGS', 'KHR', 'KMF', 'KPW', 'KRW', 'KWD', 'KYD', 'KZT',
+  'LAK', 'LBP', 'LKR', 'LRD', 'LSL', 'LYD',
+  'MAD', 'MDL', 'MGA', 'MKD', 'MMK', 'MNT', 'MOP', 'MRU', 'MUR', 'MVR',
+  'MWK', 'MXN', 'MXV', 'MYR', 'MZN',
+  'NAD', 'NGN', 'NIO', 'NOK', 'NPR', 'NZD',
+  'OMR',
+  'PAB', 'PEN', 'PGK', 'PHP', 'PKR', 'PLN', 'PYG',
+  'QAR',
+  'RON', 'RSD', 'RUB', 'RWF',
+  'SAR', 'SBD', 'SCR', 'SDG', 'SEK', 'SGD', 'SHP', 'SLE', 'SOS', 'SRD',
+  'SSP', 'STN', 'SVC', 'SYP', 'SZL',
+  'THB', 'TJS', 'TMT', 'TND', 'TOP', 'TRY', 'TTD', 'TWD', 'TZS',
+  'UAH', 'UGX', 'USD', 'USN', 'UYI', 'UYU', 'UYW', 'UZS',
+  'VED', 'VES', 'VND', 'VUV',
+  'WST',
+  'XAF', 'XCD', 'XCG', 'XOF', 'XPF',
+  'YER',
+  'ZAR', 'ZMW', 'ZWG',
+]
+
+export function getCurrencyName(code: string): string {
+  try {
+    return new Intl.DisplayNames([document.documentElement.lang || navigator.language], {
+      type: 'currency',
+    }).of(code) ?? code
+  } catch {
+    return code
+  }
+}
+
+export function getCurrencySymbol(code: string): string {
+  try {
+    return new Intl.NumberFormat('en', {
+      style: 'currency', currency: code, currencyDisplay: 'narrowSymbol',
+    }).formatToParts(0).find((part) => part.type === 'currency')?.value ?? code
+  } catch {
+    return code
+  }
+}
+
+export const currencies: CurrencyOption[] = currentCurrencyCodes
+  .map((code) => {
+    const name = getCurrencyName(code)
+    const symbol = getCurrencySymbol(code)
+    return {
+      code,
+      symbol,
+      label: `${name} (${code}, ${symbol})`,
+    }
+  })
+  .sort((a, b) => a.code.localeCompare(b.code))

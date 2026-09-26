@@ -6,6 +6,7 @@ import Button from 'primevue/button'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
+import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
@@ -19,17 +20,20 @@ import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
+import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
+import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
 import InvoicePreviewFrame from '../../components/InvoicePreviewFrame.vue'
-import { invoicesApi, paymentsApi, type Invoice } from '../../api'
+import { bankAccountsApi, invoicesApi, paymentsApi, type BankAccount, type Invoice } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 
 const { t } = useI18n()
 const route = useRoute()
 const notify = useNotify()
-const id = Number(route.params.id)
+const id = route.params.id as string
 
 const invoice = ref<Invoice | null>(null)
+const bankAccounts = ref<BankAccount[]>([])
 const busy = ref(false)
 const emailModal = ref<InstanceType<typeof AppModal>>()
 const paymentModal = ref<InstanceType<typeof AppModal>>()
@@ -40,10 +44,20 @@ const previewUrl = computed(() => invoicesApi.previewUrl(id))
 const pdfUrl = computed(() => invoicesApi.pdfUrl(id))
 const xmlUrl = computed(() => invoicesApi.xmlUrl(id))
 const isDraft = computed(() => invoice.value?.status === 'draft')
+const canReceivePayment = computed(() => ['issued', 'sent'].includes(invoice.value?.status ?? ''))
 
 async function load() {
-  invoice.value = await invoicesApi.get(id)
+  const [loadedInvoice, accountPage] = await Promise.all([
+    invoicesApi.get(id), bankAccountsApi.list(),
+  ])
+  invoice.value = loadedInvoice
+  bankAccounts.value = accountPage.results.filter((account) => account.is_active)
   emailForm.value.to = invoice.value.customer_name ? '' : ''
+}
+
+async function updateBankAccount(value: string | null) {
+  if (!invoice.value) return
+  await act(() => invoicesApi.update(id, { ...invoice.value!, bank_account_override: value }))
 }
 onMounted(load)
 
@@ -82,8 +96,8 @@ async function addPayment() {
       <template #actions>
         <AppStatusTag :status="invoice.partially_paid ? 'partially_paid' : invoice.status" :label="invoice.partially_paid ? t('invoices.status.paid') + ' (teilw.)' : t(`invoices.status.${invoice.status}`)" />
         <Button v-if="isDraft" :label="t('invoices.finalize')" icon="pi pi-lock" :loading="busy" @click="act(() => invoicesApi.finalize(id))" />
-        <Button v-if="invoice.status === 'issued'" :label="t('invoices.sendEmail')" icon="pi pi-send" :loading="busy" @click="emailModal?.open()" />
-        <Button v-if="invoice.status === 'issued' && Number(invoice.remaining) > 0" :label="t('invoices.addPayment')" icon="pi pi-money-bill" @click="paymentForm.amount = Number(invoice.remaining); paymentModal?.open()" />
+        <Button v-if="canReceivePayment" :label="t('invoices.sendEmail')" icon="pi pi-send" :loading="busy" @click="emailModal?.open()" />
+        <Button v-if="canReceivePayment && Number(invoice.remaining) > 0" :label="t('invoices.addPayment')" icon="pi pi-money-bill" @click="paymentForm.amount = Number(invoice.remaining); paymentModal?.open()" />
         <Button v-if="invoice.status === 'issued'" :label="t('invoices.markSent')" text :loading="busy" @click="act(() => invoicesApi.markSent(id))" />
         <Button v-if="isDraft" :label="t('common.delete')" text severity="danger" @click="act(() => invoicesApi.remove(id))" />
       </template>
@@ -92,16 +106,21 @@ async function addPayment() {
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
       <div>
         <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4 mb-4 grid grid-cols-2 gap-3 text-sm">
-          <div><span class="text-surface-500">{{ t('invoices.issueDate') }}</span><br>{{ invoice.issue_date }}</div>
-          <div><span class="text-surface-500">{{ t('invoices.dueDate') }}</span><br>{{ invoice.due_date ?? '—' }}</div>
+          <div><span class="text-surface-500">{{ t('invoices.issueDate') }}</span><br><AppDateTimeDisplay :value="invoice.issue_date" /></div>
+          <div><span class="text-surface-500">{{ t('invoices.dueDate') }}</span><br><AppDateTimeDisplay :value="invoice.due_date" /></div>
           <div><span class="text-surface-500">{{ t('invoices.eInvoice') }}</span><br>{{ invoice.e_invoice_format }}</div>
-          <div><span class="text-surface-500">{{ t('invoices.vatRate') }}</span><br>{{ invoice.vat_rate }}%</div>
+          <div><span class="text-surface-500">{{ t('invoices.vatRate') }}</span><br><AppNumberDisplay :value="invoice.vat_rate" :maximum-fraction-digits="2" />%</div>
+          <div class="col-span-2">
+            <span class="text-surface-500">{{ t('settings.bankAccount') }}</span>
+            <Select v-if="isDraft" :model-value="invoice.bank_account_override" :options="bankAccounts" option-label="name" option-value="id" show-clear :placeholder="invoice.bank_account?.name || t('invoices.inheritedBankAccount')" class="w-full mt-1" @update:model-value="updateBankAccount" />
+            <div v-else>{{ invoice.bank_account?.name || '—' }}</div>
+          </div>
         </div>
 
         <AppDataTable :rows="invoice.items">
           <Column field="position" header="#" class="w-10" />
           <Column field="description" :header="t('time.description')" />
-          <Column field="quantity" :header="t('invoices.quantity')" />
+          <Column :header="t('invoices.quantity')"><template #body="{ data }"><AppNumberDisplay :value="data.quantity" /></template></Column>
           <Column :header="t('invoices.unitPrice')">
             <template #body="{ data }"><AppMoneyDisplay :amount="data.unit_price" :currency="invoice!.currency" /></template>
           </Column>
@@ -131,7 +150,7 @@ async function addPayment() {
           <TabPanels>
             <TabPanel value="payments">
               <AppDataTable :rows="invoice.payments">
-                <Column field="date" :header="t('common.date')" />
+                <Column :header="t('common.date')"><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
                 <Column :header="t('common.total')">
                   <template #body="{ data }"><AppMoneyDisplay :amount="data.amount" :currency="invoice.currency" /></template>
                 </Column>

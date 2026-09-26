@@ -5,6 +5,7 @@ import Chart from 'primevue/chart'
 import ProgressBar from 'primevue/progressbar'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
 import AppMoneyDisplay from '../components/ui/AppMoneyDisplay.vue'
+import AppNumberDisplay from '../components/ui/AppNumberDisplay.vue'
 import ContractUsageBar from '../components/ContractUsageBar.vue'
 import { statsApi } from '../api'
 
@@ -17,7 +18,7 @@ interface DashboardStats {
   overdue: { total: number | null; count: number }
   contracts: { id: number; name: string; period_start: string; period_end: string; used_hours: number; included_hours: number; overage_hours: number }[]
   budget_warnings: { id: number; name: string; customer: string; budget_hours_percent: number | null; budget_amount_percent: number | null }[]
-  timer_running: number | null
+  timer_running: string | null
 }
 
 const { t } = useI18n()
@@ -47,24 +48,24 @@ const pieOpts = { maintainAspectRatio: false }
     <div v-if="stats" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
         <p class="text-sm text-surface-500">{{ t('dashboard.weekHours') }}</p>
-        <p class="text-2xl font-semibold mt-1">{{ stats.week_hours.toFixed(1) }}h</p>
+        <p class="text-2xl font-semibold mt-1"><AppNumberDisplay :value="stats.week_hours" :minimum-fraction-digits="1" :maximum-fraction-digits="1" />h</p>
       </div>
       <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
         <p class="text-sm text-surface-500">{{ t('dashboard.uninvoiced') }}</p>
-        <p class="text-2xl font-semibold mt-1">{{ stats.uninvoiced_hours.toFixed(1) }}h</p>
+        <p class="text-2xl font-semibold mt-1"><AppNumberDisplay :value="stats.uninvoiced_hours" :minimum-fraction-digits="1" :maximum-fraction-digits="1" />h</p>
       </div>
       <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
         <p class="text-sm text-surface-500">{{ t('dashboard.openInvoices') }}</p>
         <p class="text-2xl font-semibold mt-1">
           <AppMoneyDisplay :amount="stats.open_invoices.total ?? 0" />
-          <span class="text-sm font-normal text-surface-500"> ({{ stats.open_invoices.count }})</span>
+          <span class="text-sm font-normal text-surface-500"> (<AppNumberDisplay :value="stats.open_invoices.count" :maximum-fraction-digits="0" />)</span>
         </p>
       </div>
       <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
         <p class="text-sm text-surface-500">{{ t('dashboard.overdue') }}</p>
         <p class="text-2xl font-semibold mt-1 text-red-500">
           <AppMoneyDisplay :amount="stats.overdue.total ?? 0" />
-          <span class="text-sm font-normal"> ({{ stats.overdue.count }})</span>
+          <span class="text-sm font-normal"> (<AppNumberDisplay :value="stats.overdue.count" :maximum-fraction-digits="0" />)</span>
         </p>
       </div>
 

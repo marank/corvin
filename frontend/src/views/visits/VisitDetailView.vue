@@ -14,6 +14,7 @@ import Column from 'primevue/column'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
+import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
@@ -25,7 +26,7 @@ import { useNotify } from '../../composables/useNotify'
 const { t } = useI18n()
 const route = useRoute()
 const notify = useNotify()
-const id = Number(route.params.id)
+const id = route.params.id as string
 const visit = ref<Visit | null>(null)
 const form = ref<Partial<Visit>>({})
 const entries = ref<TimeEntry[]>([])
@@ -58,6 +59,7 @@ async function save() {
     </AppPageHeader>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+      <AppFormField :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
       <AppFormField :label="t('projects.customer')"><CustomerSelect v-model="form.customer" /></AppFormField>
       <AppFormField :label="t('nav.projects')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
       <AppFormField :label="t('common.date')"><AppDateInput v-model="(form.date as any)" /></AppFormField>
@@ -75,7 +77,7 @@ async function save() {
       <TabPanels>
         <TabPanel value="entries">
           <AppDataTable :rows="entries">
-            <Column field="date" :header="t('common.date')" />
+            <Column :header="t('common.date')"><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
             <Column field="description" :header="t('time.description')" />
             <Column :header="t('time.duration')">
               <template #body="{ data }"><AppDurationDisplay :minutes="data.duration_minutes" /></template>

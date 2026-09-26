@@ -13,6 +13,8 @@ import AppStatusTag from '../components/ui/AppStatusTag.vue'
 import AppModal from '../components/ui/AppModal.vue'
 import AppFormField from '../components/ui/AppFormField.vue'
 import AppDateInput from '../components/ui/AppDateInput.vue'
+import AppDateTimeDisplay from '../components/ui/AppDateTimeDisplay.vue'
+import CustomerSelect from '../components/CustomerSelect.vue'
 import ProjectSelect from '../components/ProjectSelect.vue'
 import { tasksApi, type Task } from '../api'
 import { useNotify } from '../composables/useNotify'
@@ -78,9 +80,11 @@ async function toggleDone(task: Task) {
       <Column :header="''" class="w-8">
         <template #body="{ data }"><Checkbox :model-value="data.status === 'done'" binary @click.stop @change="toggleDone(data)" /></template>
       </Column>
+      <Column field="number" header="#" />
       <Column field="title" :header="t('common.name')" />
+      <Column field="customer_name" :header="t('projects.customer')" />
       <Column field="project_name" :header="t('nav.projects')" />
-      <Column field="due_date" :header="t('tasks.dueDate')" />
+      <Column :header="t('tasks.dueDate')"><template #body="{ data }"><AppDateTimeDisplay :value="data.due_date" /></template></Column>
       <Column :header="t('tasks.priority')">
         <template #body="{ data }"><AppStatusTag :status="data.priority" :label="t(`tasks.priorities.${data.priority}`)" /></template>
       </Column>
@@ -98,8 +102,10 @@ async function toggleDone(task: Task) {
 
     <AppModal ref="modal" :title="t('tasks.new')" @confirm="save">
       <div class="flex flex-col gap-4">
+        <AppFormField v-if="editing" :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
         <AppFormField :label="t('common.name')" required><InputText v-model="form.title" class="w-full" /></AppFormField>
-        <AppFormField :label="t('nav.projects')"><ProjectSelect v-model="form.project" /></AppFormField>
+        <AppFormField :label="t('projects.customer')"><CustomerSelect v-model="form.customer" /></AppFormField>
+        <AppFormField :label="t('nav.projects')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
         <AppFormField :label="t('time.description')"><Textarea v-model="form.description" rows="2" class="w-full" /></AppFormField>
         <div class="grid grid-cols-3 gap-3">
           <AppFormField :label="t('tasks.dueDate')"><AppDateInput v-model="(form.due_date as any)" /></AppFormField>

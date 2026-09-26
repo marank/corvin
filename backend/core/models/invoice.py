@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db import models
 
 from .base import OwnedModel
+from .contact import Contact
 from .customer import Customer
 from .invoice_template import InvoiceTemplate
 from .project import Project
@@ -13,6 +14,7 @@ class Invoice(OwnedModel):
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
         ISSUED = "issued", "Issued"
+        SENT = "sent", "Sent"
         PAID = "paid", "Paid"
         CANCELLED = "cancelled", "Cancelled"
 
@@ -21,9 +23,12 @@ class Invoice(OwnedModel):
         ZUGFERD = "zugferd", "ZUGFeRD (PDF/A-3 + XML)"
         XRECHNUNG = "xrechnung", "XRechnung (XML only)"
 
-    number = models.CharField(max_length=50)
+    number = models.CharField(max_length=50, blank=True, db_index=True)
     customer = models.ForeignKey(
         Customer, on_delete=models.PROTECT, related_name="invoices"
+    )
+    contacts = models.ManyToManyField(
+        Contact, blank=True, related_name="invoices"
     )
     project = models.ForeignKey(
         Project, on_delete=models.SET_NULL, related_name="invoices",
@@ -53,14 +58,29 @@ class Invoice(OwnedModel):
         InvoiceTemplate, on_delete=models.SET_NULL, related_name="invoices",
         null=True, blank=True,
     )
+    bank_account_override = models.ForeignKey(
+        "BankAccount", on_delete=models.SET_NULL, related_name="invoices",
+        null=True, blank=True,
+    )
 
     class Meta:
         ordering = ["-issue_date", "-id"]
         constraints = [
             models.UniqueConstraint(
-                fields=["owner", "number"], name="unique_invoice_number_per_owner"
+                fields=["owner", "number"],
+                condition=~models.Q(number=""),
+                name="unique_invoice_number_per_owner",
             )
         ]
+
+    @property
+    def bank_account(self):
+        if self.bank_account_override_id:
+            return self.bank_account_override
+        if self.customer.bank_account_id:
+            return self.customer.bank_account
+        company = getattr(self.owner, "company_settings", None)
+        return company.default_bank_account if company else None
 
     @property
     def amount_paid(self):

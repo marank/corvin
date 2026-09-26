@@ -52,6 +52,12 @@ export const api = {
       body: form,
       headers: { 'X-CSRFToken': getCsrfToken() },
     }),
+  uploadPut: <T>(path: string, form: FormData) =>
+    request<T>(path, {
+      method: 'PUT',
+      body: form,
+      headers: { 'X-CSRFToken': getCsrfToken() },
+    }),
 }
 
 export interface Page<T> {

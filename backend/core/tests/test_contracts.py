@@ -50,7 +50,7 @@ def test_flat_contract_no_hours(user, customer, contract):
 
 
 @pytest.mark.django_db
-def test_wrong_customer_contract_rejected(user, contract):
+def test_wrong_customer_contract_rejected(user, customer, contract):
     from datetime import time
 
     from core.models import Customer, Project, TimeEntry
@@ -61,7 +61,8 @@ def test_wrong_customer_contract_rejected(user, contract):
     )
     with pytest.raises(ValidationError):
         TimeEntry.objects.create(
-            owner=user, project=other_project, contract=contract,
+            owner=user, customer=customer, project=other_project,
+            contract=contract,
             date=date(2026, 9, 1),
             start_time=time(9), end_time=time(10),
         )

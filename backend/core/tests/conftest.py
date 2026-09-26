@@ -5,6 +5,7 @@ import pytest
 from django.contrib.auth.models import User
 
 from core.models import (
+    Address,
     CompanySettings,
     Customer,
     InvoiceTemplate,
@@ -31,14 +32,21 @@ def user(db):
 
 @pytest.fixture
 def customer(user):
-    return Customer.objects.create(
+    c = Customer.objects.create(
         owner=user,
         name="Acme GmbH",
+        buyer_reference="04011000-12345",
+    )
+    Address.objects.create(
+        owner=user,
+        customer=c,
+        label="HQ",
         street="Industrieweg 5",
         postal_code="20095",
         city="Hamburg",
-        buyer_reference="04011000-12345",
+        is_primary=True,
     )
+    return c
 
 
 @pytest.fixture
@@ -55,6 +63,7 @@ def make_entry(user, project):
         h2, m2 = map(int, end.split(":"))
         return TimeEntry.objects.create(
             owner=user,
+            customer=kw.pop("customer", project.customer),
             project=project,
             date=d,
             start_time=time(h1, m1),

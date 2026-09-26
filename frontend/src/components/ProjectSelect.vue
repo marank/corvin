@@ -3,8 +3,8 @@ import Select from 'primevue/select'
 import { ref, watch } from 'vue'
 import { projectsApi, type Project } from '../api'
 
-const props = defineProps<{ customerId?: number | null }>()
-const model = defineModel<number | null>()
+const props = defineProps<{ customerId?: string | null }>()
+const model = defineModel<string | null>()
 const projects = ref<Project[]>([])
 
 async function load() {

@@ -3,23 +3,25 @@ from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.models import TimeEntry
+from core.models import Customer, TimeEntry
 from core.serializers import TimeEntrySerializer
 
 from .base import OwnedViewSet
 
 
 class StartTimerSerializer(serializers.Serializer):
-    project = serializers.IntegerField()
+    customer = serializers.UUIDField()
+    project = serializers.UUIDField(required=False, allow_null=True)
     description = serializers.CharField(required=False, allow_blank=True)
 
 
 class TimeEntryViewSet(OwnedViewSet):
     queryset = TimeEntry.objects.select_related(
-        "project", "project__customer", "contract"
+        "customer", "project", "contract"
     )
     serializer_class = TimeEntrySerializer
     filterset_fields = {
+        "customer": ["exact"],
         "project": ["exact"],
         "project__customer": ["exact"],
         "contract": ["exact", "isnull"],
@@ -28,7 +30,7 @@ class TimeEntryViewSet(OwnedViewSet):
         "date": ["gte", "lte", "exact"],
         "visit": ["exact"],
     }
-    search_fields = ["description", "project__name"]
+    search_fields = ["description", "project__name", "customer__name"]
     ordering_fields = ["date", "start_time", "duration_minutes"]
 
     @action(detail=False, methods=["get"])
@@ -50,19 +52,28 @@ class TimeEntryViewSet(OwnedViewSet):
             )
         ser = StartTimerSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        from core.models import Project
-
-        project = Project.objects.filter(
-            owner=request.user, pk=ser.validated_data["project"]
+        customer = Customer.objects.filter(
+            owner=request.user, pk=ser.validated_data["customer"]
         ).first()
-        if not project:
+        if not customer:
             return Response(
-                {"project": ["Invalid project."]},
+                {"customer": ["Invalid customer."]},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        project = None
+        if ser.validated_data.get("project"):
+            project = customer.projects.filter(
+                pk=ser.validated_data["project"]
+            ).first()
+            if project is None:
+                return Response(
+                    {"project": ["Invalid project."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         now = timezone.localtime()
         entry = TimeEntry.objects.create(
             owner=request.user,
+            customer=customer,
             project=project,
             date=now.date(),
             start_time=now.time(),

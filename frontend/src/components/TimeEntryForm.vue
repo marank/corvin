@@ -3,11 +3,11 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
-import Checkbox from 'primevue/checkbox'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import AppFormField from './ui/AppFormField.vue'
+import AppCheckboxField from './ui/AppCheckboxField.vue'
 import AppDateInput from './ui/AppDateInput.vue'
 import CustomerSelect from './CustomerSelect.vue'
 import ProjectSelect from './ProjectSelect.vue'
@@ -24,11 +24,11 @@ const emit = defineEmits<{ saved: [entry: TimeEntry]; cancel: [] }>()
 const { t } = useI18n()
 const notify = useNotify()
 
-const customerId = ref<number | null>(null)
+const customerId = ref<string | null>(null)
 const form = ref({
-  project: null as number | null,
-  visit: null as number | null,
-  contract: null as number | null,
+  project: null as string | null,
+  visit: null as string | null,
+  contract: null as string | null,
   date: new Date().toISOString().slice(0, 10),
   start_time: '',
   end_time: '',
@@ -43,6 +43,7 @@ watch(
   () => props.entry,
   (e) => {
     if (!e) return
+    customerId.value = e.customer
     form.value = {
       project: e.project,
       visit: e.visit,
@@ -76,6 +77,7 @@ async function save() {
   try {
     const payload = {
       ...form.value,
+      customer: customerId.value,
       start_time: form.value.start_time + ':00',
       end_time: form.value.end_time ? form.value.end_time + ':00' : null,
     }
@@ -93,8 +95,8 @@ async function save() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <AppFormField :label="t('projects.customer')"><CustomerSelect v-model="customerId" /></AppFormField>
-    <AppFormField :label="t('nav.projects')" required>
+    <AppFormField :label="t('projects.customer')" required><CustomerSelect v-model="customerId" /></AppFormField>
+    <AppFormField :label="t('nav.projects')">
       <ProjectSelect v-model="form.project" :customer-id="customerId" />
     </AppFormField>
     <AppFormField v-if="contracts.length" :label="t('time.coveredByContract')">
@@ -115,9 +117,7 @@ async function save() {
     <AppFormField :label="t('time.description')">
       <Textarea v-model="form.description" rows="3" class="w-full" />
     </AppFormField>
-    <label class="flex items-center gap-2 text-sm">
-      <Checkbox v-model="form.billable" binary /> {{ t('time.billable') }}
-    </label>
+    <AppCheckboxField v-model="form.billable" :label="t('time.billable')" />
     <div class="flex justify-end gap-2">
       <Button :label="t('common.cancel')" text @click="emit('cancel')" />
       <Button :label="t('common.save')" :loading="saving" @click="save" />

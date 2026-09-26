@@ -8,6 +8,7 @@ import QRCode from 'qrcode'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppModal from '../../components/ui/AppModal.vue'
+import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import { securityApi } from '../../api'
 import { useAuthStore } from '../../stores/auth'
 import { useNotify } from '../../composables/useNotify'
@@ -106,7 +107,7 @@ async function revokeOthers() {
         <ul class="divide-y divide-surface-200 dark:divide-surface-800 text-sm">
           <li v-for="s in sessions" :key="s.key" class="py-2 flex justify-between">
             <span class="font-mono truncate max-w-72">{{ s.key }}</span>
-            <span class="text-surface-500">{{ s.current ? '●' : '' }} {{ new Date(s.expire_date).toLocaleString() }}</span>
+            <span class="text-surface-500">{{ s.current ? '●' : '' }} <AppDateTimeDisplay :value="s.expire_date" type="datetime" /></span>
           </li>
         </ul>
       </section>

@@ -4,13 +4,12 @@ from .base import OwnedModel
 
 
 class Customer(OwnedModel):
+    number = models.CharField(max_length=50, blank=True, db_index=True)
     name = models.CharField(max_length=255)
-    street = models.CharField(max_length=255, blank=True)
-    postal_code = models.CharField(max_length=20, blank=True)
-    city = models.CharField(max_length=255, blank=True)
-    country = models.CharField(max_length=100, default="Deutschland")
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=50, blank=True)
+    website = models.URLField(blank=True)
+    vat_id = models.CharField(max_length=50, blank=True)
     notes = models.TextField(blank=True)
     buyer_reference = models.CharField(
         max_length=255, blank=True, help_text="Leitweg-ID (XRechnung)"
@@ -18,10 +17,47 @@ class Customer(OwnedModel):
     rounding_increment_minutes = models.PositiveIntegerField(
         null=True, blank=True, help_text="Round time entries up to this increment"
     )
+    payment_terms_days = models.PositiveIntegerField(null=True, blank=True)
+    bank_account = models.ForeignKey(
+        "BankAccount", on_delete=models.SET_NULL, related_name="customers",
+        null=True, blank=True,
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
         ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "number"],
+                condition=~models.Q(number=""),
+                name="unique_customer_number_per_owner",
+            )
+        ]
+
+    @property
+    def primary_address(self):
+        return (
+            self.addresses.filter(is_primary=True).first()
+            or self.addresses.first()
+        )
+
+    # Convenience proxies for invoice templates / e-invoicing —
+    # resolve to the primary address.
+    @property
+    def street(self):
+        return self.primary_address.street if self.primary_address else ""
+
+    @property
+    def postal_code(self):
+        return self.primary_address.postal_code if self.primary_address else ""
+
+    @property
+    def city(self):
+        return self.primary_address.city if self.primary_address else ""
+
+    @property
+    def country(self):
+        return self.primary_address.country if self.primary_address else ""
 
     def __str__(self):
         return self.name

@@ -20,7 +20,8 @@ def draft_invoice(user, customer, project, invoice_template):
         valid_from=date(2025, 1, 1),
     )
     TimeEntry.objects.create(
-        owner=user, project=project, date=date(2026, 9, 1),
+        owner=user, customer=customer, project=project,
+        date=date(2026, 9, 1),
         start_time=time(9), end_time=time(11),
     )
     return consolidate(owner=user, customer=customer)
@@ -39,6 +40,18 @@ def test_finalize_archives_pdf(user, draft_invoice):
     # PDF download serves the archived file
     r2 = c.get(f"/api/v1/invoices/{draft_invoice.id}/pdf/")
     assert r2.status_code == 200
+
+
+@pytest.mark.django_db
+def test_mark_sent_updates_status_and_timestamp(user, draft_invoice):
+    draft_invoice.status = Invoice.Status.ISSUED
+    draft_invoice.save(update_fields=["status"])
+    c = APIClient()
+    c.force_authenticate(user)
+    r = c.post(f"/api/v1/invoices/{draft_invoice.id}/mark_sent/")
+    assert r.status_code == 200
+    assert r.json()["status"] == Invoice.Status.SENT
+    assert r.json()["sent_at"] is not None
 
 
 @pytest.mark.django_db

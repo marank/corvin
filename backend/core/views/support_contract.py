@@ -1,9 +1,12 @@
+from types import SimpleNamespace
+
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from core.models import SupportContract
 from core.serializers import InvoiceSerializer, SupportContractSerializer
 from core.services.contracts import contract_usage, generate_invoice
+from core.services.numbering import next_number
 
 from .base import OwnedViewSet
 
@@ -14,7 +17,16 @@ class SupportContractViewSet(OwnedViewSet):
     )
     serializer_class = SupportContractSerializer
     filterset_fields = ["customer", "project", "active", "period"]
-    search_fields = ["name", "customer__name"]
+    search_fields = ["number", "name", "customer__name"]
+
+    def perform_create(self, serializer):
+        customer = serializer.validated_data["customer"]
+        project = serializer.validated_data.get("project")
+        contract = SimpleNamespace(**serializer.validated_data)
+        serializer.save(number=next_number(
+            self.request.user, "contract",
+            {"customer": customer, "project": project, "contract": contract},
+        ))
 
     @action(detail=True, methods=["get"])
     def usage(self, request, pk=None):

@@ -6,11 +6,13 @@ from .base import OwnedSerializer
 
 
 class TimeEntrySerializer(OwnedSerializer):
-    owner_fk_fields = ("project", "visit", "contract")
+    owner_fk_fields = ("customer", "project", "visit", "contract")
 
-    project_name = serializers.CharField(source="project.name", read_only=True)
+    project_name = serializers.CharField(
+        source="project.name", read_only=True, default=None
+    )
     customer_name = serializers.CharField(
-        source="project.customer.name", read_only=True
+        source="customer.name", read_only=True
     )
     contract_name = serializers.CharField(
         source="contract.name", read_only=True, default=None
@@ -21,7 +23,7 @@ class TimeEntrySerializer(OwnedSerializer):
     class Meta:
         model = TimeEntry
         fields = [
-            "id", "project", "project_name", "customer_name",
+            "id", "customer", "customer_name", "project", "project_name",
             "visit", "contract", "contract_name",
             "date", "start_time", "end_time", "break_minutes",
             "duration_minutes", "hours", "is_running",

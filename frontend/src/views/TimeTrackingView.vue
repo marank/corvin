@@ -8,8 +8,10 @@ import InputText from 'primevue/inputtext'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
 import AppDataTable from '../components/ui/AppDataTable.vue'
 import AppDurationDisplay from '../components/ui/AppDurationDisplay.vue'
+import AppDateTimeDisplay from '../components/ui/AppDateTimeDisplay.vue'
 import AppModal from '../components/ui/AppModal.vue'
 import TimeEntryForm from '../components/TimeEntryForm.vue'
+import CustomerSelect from '../components/CustomerSelect.vue'
 import ProjectSelect from '../components/ProjectSelect.vue'
 import { timeEntriesApi, type TimeEntry } from '../api'
 import { useTimerStore } from '../stores/timer'
@@ -22,7 +24,8 @@ const rows = ref<TimeEntry[]>([])
 const loading = ref(true)
 const modal = ref<InstanceType<typeof AppModal>>()
 const editing = ref<TimeEntry | null>(null)
-const timerProject = ref<number | null>(null)
+const timerCustomer = ref<string | null>(null)
+const timerProject = ref<string | null>(null)
 const timerDesc = ref('')
 
 async function load() {
@@ -38,9 +41,9 @@ function openEdit(entry?: TimeEntry) {
 }
 
 async function startTimer() {
-  if (!timerProject.value) return
+  if (!timerCustomer.value) return
   try {
-    await timer.start(timerProject.value, timerDesc.value)
+    await timer.start(timerCustomer.value, timerProject.value, timerDesc.value)
     load()
   } catch (e) {
     notify.error(e)
@@ -57,14 +60,15 @@ async function startTimer() {
     </AppPageHeader>
 
     <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-3 mb-4 flex flex-wrap items-center gap-3">
-      <ProjectSelect v-model="timerProject" class="w-64" />
+      <CustomerSelect v-model="timerCustomer" class="w-56" />
+      <ProjectSelect v-model="timerProject" :customer-id="timerCustomer" class="w-56" />
       <InputText v-model="timerDesc" :placeholder="t('time.description')" class="flex-1 min-w-40" />
-      <Button v-if="!timer.running" :label="t('time.startTimer')" icon="pi pi-play" :disabled="!timerProject" @click="startTimer" />
+      <Button v-if="!timer.running" :label="t('time.startTimer')" icon="pi pi-play" :disabled="!timerCustomer" @click="startTimer" />
       <Button v-else :label="t('time.stopTimer')" icon="pi pi-stop" severity="danger" @click="timer.stop().then(load)" />
     </div>
 
     <AppDataTable :rows="rows" :loading="loading" @row-click="openEdit">
-      <Column field="date" :header="t('common.date')" />
+      <Column :header="t('common.date')"><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
       <Column field="project_name" :header="t('nav.projects')" />
       <Column field="customer_name" :header="t('projects.customer')" />
       <Column field="description" :header="t('time.description')" />
@@ -89,7 +93,7 @@ async function startTimer() {
         <div class="flex justify-between items-center">
           <div>
             <div class="font-medium">{{ row.description || row.project_name }}</div>
-            <div class="text-sm text-surface-500">{{ row.date }} · {{ row.customer_name }}</div>
+            <div class="text-sm text-surface-500"><AppDateTimeDisplay :value="row.date" /> · {{ row.customer_name }}</div>
           </div>
           <AppDurationDisplay :minutes="row.duration_minutes" />
         </div>

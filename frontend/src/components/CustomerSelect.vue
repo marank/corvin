@@ -3,7 +3,7 @@ import Select from 'primevue/select'
 import { onMounted, ref } from 'vue'
 import { customersApi, type Customer } from '../api'
 
-const model = defineModel<number | null>()
+const model = defineModel<string | null>()
 const customers = ref<Customer[]>([])
 
 onMounted(async () => {

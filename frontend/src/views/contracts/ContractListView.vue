@@ -7,13 +7,15 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
-import Checkbox from 'primevue/checkbox'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
+import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
+import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
+import AppCheckboxField from '../../components/ui/AppCheckboxField.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
 import ProjectSelect from '../../components/ProjectSelect.vue'
@@ -64,24 +66,25 @@ async function save() {
     </AppPageHeader>
 
     <AppDataTable :rows="rows" :loading="loading" @row-click="(r: SupportContract) => router.push(`/contracts/${r.id}`)">
+      <Column field="number" header="#" />
       <Column field="name" :header="t('common.name')" />
       <Column field="customer_name" :header="t('projects.customer')" />
       <Column :header="t('contracts.period')">
         <template #body="{ data }">{{ t(`contracts.periods.${data.period}`) }}</template>
       </Column>
       <Column :header="t('contracts.includedHours')">
-        <template #body="{ data }">{{ data.included_hours }}h</template>
+        <template #body="{ data }"><AppNumberDisplay :value="data.included_hours" />h</template>
       </Column>
       <Column :header="t('contracts.fixedPrice')">
         <template #body="{ data }"><AppMoneyDisplay :amount="data.fixed_price" /></template>
       </Column>
-      <Column field="next_billing_date" :header="t('contracts.nextBilling')" />
+      <Column :header="t('contracts.nextBilling')"><template #body="{ data }"><AppDateTimeDisplay :value="data.next_billing_date" /></template></Column>
       <Column :header="t('common.status')">
         <template #body="{ data }"><AppStatusTag :status="data.active ? 'active' : 'cancelled'" :label="data.active ? t('customers.active') : '—'" /></template>
       </Column>
       <template #card="{ row }">
         <div class="font-medium">{{ row.name }}</div>
-        <div class="text-sm text-surface-500">{{ row.customer_name }} · {{ row.included_hours }}h / <AppMoneyDisplay :amount="row.fixed_price" /></div>
+        <div class="text-sm text-surface-500">{{ row.customer_name }} · <AppNumberDisplay :value="row.included_hours" />h / <AppMoneyDisplay :amount="row.fixed_price" /></div>
       </template>
     </AppDataTable>
 
@@ -101,9 +104,9 @@ async function save() {
         <AppFormField :label="t('common.date')"><AppDateInput v-model="(form.start_date as any)" /></AppFormField>
         <AppFormField :label="t('contracts.nextBilling')"><AppDateInput v-model="(form.next_billing_date as any)" /></AppFormField>
         <AppFormField :label="t('time.end')"><AppDateInput v-model="(form.end_date as any)" /></AppFormField>
-        <label class="flex items-center gap-2 text-sm"><Checkbox v-model="form.bill_overage" binary /> {{ t('contracts.billOverage') }}</label>
+        <AppCheckboxField v-model="form.bill_overage" :label="t('contracts.billOverage')" />
         <AppFormField v-if="form.bill_overage" :label="t('contracts.overageRate')"><InputNumber v-model="form.overage_rate" mode="currency" currency="EUR" class="w-full" /></AppFormField>
-        <label class="flex items-center gap-2 text-sm"><Checkbox v-model="form.active" binary /> {{ t('customers.active') }}</label>
+        <AppCheckboxField v-model="form.active" :label="t('customers.active')" />
       </div>
     </AppModal>
   </div>

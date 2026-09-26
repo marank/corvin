@@ -9,6 +9,7 @@ import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
+import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import { invoicesApi, type Invoice } from '../../api'
 
 const { t } = useI18n()
@@ -42,8 +43,8 @@ onMounted(load)
     <AppDataTable :rows="rows" :loading="loading" @row-click="(r: Invoice) => router.push(`/invoices/${r.id}`)">
       <Column field="number" :header="t('invoices.number')" />
       <Column field="customer_name" :header="t('projects.customer')" />
-      <Column field="issue_date" :header="t('invoices.issueDate')" />
-      <Column field="due_date" :header="t('invoices.dueDate')" />
+      <Column :header="t('invoices.issueDate')"><template #body="{ data }"><AppDateTimeDisplay :value="data.issue_date" /></template></Column>
+      <Column :header="t('invoices.dueDate')"><template #body="{ data }"><AppDateTimeDisplay :value="data.due_date" /></template></Column>
       <Column :header="t('common.total')">
         <template #body="{ data }"><AppMoneyDisplay :amount="data.total" :currency="data.currency" /></template>
       </Column>
@@ -62,7 +63,7 @@ onMounted(load)
         <div class="flex justify-between items-center">
           <div>
             <div class="font-medium">{{ row.number }}</div>
-            <div class="text-sm text-surface-500">{{ row.customer_name }} · {{ row.issue_date }}</div>
+            <div class="text-sm text-surface-500">{{ row.customer_name }} · <AppDateTimeDisplay :value="row.issue_date" /></div>
           </div>
           <div class="text-end">
             <AppMoneyDisplay :amount="row.total" :currency="row.currency" />

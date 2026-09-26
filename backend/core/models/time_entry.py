@@ -4,14 +4,19 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from .base import OwnedModel
+from .customer import Customer
 from .project import Project
 from .support_contract import SupportContract
 from .visit import OnSiteVisit
 
 
 class TimeEntry(OwnedModel):
+    customer = models.ForeignKey(
+        Customer, on_delete=models.PROTECT, related_name="time_entries"
+    )
     project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name="time_entries"
+        Project, on_delete=models.SET_NULL, related_name="time_entries",
+        null=True, blank=True,
     )
     visit = models.ForeignKey(
         OnSiteVisit, on_delete=models.SET_NULL, related_name="time_entries",
@@ -47,18 +52,25 @@ class TimeEntry(OwnedModel):
         return round(self.duration_minutes / 60, 2)
 
     def clean(self):
+        if self.project and self.project.customer_id != self.customer_id:
+            raise ValidationError(
+                {"project": "Project does not belong to the customer."}
+            )
         if self.contract:
-            project_customer = self.project.customer_id
-            if self.contract.customer_id != project_customer:
+            if self.contract.customer_id != self.customer_id:
                 raise ValidationError(
                     "Contract does not belong to the entry's customer."
                 )
-            if self.contract.project_id and self.contract.project_id != self.project_id:
+            if self.contract.project_id and (
+                self.contract.project_id != self.project_id
+            ):
                 raise ValidationError(
                     "Contract is limited to a different project."
                 )
-        if self.visit and self.visit.customer_id != self.project.customer_id:
-            raise ValidationError("Visit does not belong to the entry's customer.")
+        if self.visit and self.visit.customer_id != self.customer_id:
+            raise ValidationError(
+                "Visit does not belong to the entry's customer."
+            )
 
     def save(self, *args, **kwargs):
         if self.start_time and self.end_time:
@@ -70,4 +82,4 @@ class TimeEntry(OwnedModel):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.project.name} {self.date} ({self.hours}h)"
+        return f"{self.customer.name} {self.date} ({self.hours}h)"
