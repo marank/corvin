@@ -1,0 +1,42 @@
+[project]
+name = "projectmanager-backend"
+version = "0.1.0"
+description = "Project management app for IT consultants — Django backend"
+requires-python = ">=3.14"
+dependencies = [
+    "django>=6.1,<7.0",
+    "djangorestframework>=3.16",
+    "django-filter>=25.1",
+    "django-cors-headers>=4.6",
+    "django-environ>=0.12",
+    "django-otp>=1.6",
+    "qrcode[pil]>=8.0",
+    "weasyprint>=66.0",
+    "drafthorse>=2025.1",
+    "psycopg[binary]>=3.2",
+    "gunicorn>=23.0; sys_platform != 'win32'",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-django>=4.11",
+    "factory-boy>=3.3",
+    "ruff>=0.9",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.development"
+python_files = ["test_*.py"]
+testpaths = ["core/tests"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "SIM"]
+ignore = ["E501"]

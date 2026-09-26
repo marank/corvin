@@ -1,0 +1,29 @@
+@import 'tailwindcss';
+@import 'primeicons/primeicons.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --app-accent: #2563eb;
+}
+
+html, body, #app {
+  height: 100%;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  background: var(--p-surface-50);
+  color: var(--p-text-color);
+}
+
+.dark body {
+  background: var(--p-surface-950);
+}
+
+/* flat: kill every radius and shadow */
+* {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
