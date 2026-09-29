@@ -52,3 +52,12 @@ tr .app-icon-btn {
 tr:hover .app-icon-btn {
   opacity: 1;
 }
+
+@keyframes breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-breathe {
+  animation: breathe 1.5s ease-in-out infinite;
+}

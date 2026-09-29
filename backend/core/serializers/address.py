@@ -10,6 +10,7 @@ class AddressSerializer(OwnedSerializer):
         model = Address
         fields = [
             "id", "customer", "label", "street", "postal_code", "city",
-            "country", "is_primary", "created_at", "updated_at",
+            "country", "is_primary", "is_invoice_address", "is_delivery_address",
+            "created_at", "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]

@@ -1,8 +1,15 @@
 from rest_framework import serializers
 
-from core.models import TimeEntry
+from core.models import TimeEntry, TimeEntryBreak
 
 from .base import OwnedSerializer
+
+
+class TimeEntryBreakSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TimeEntryBreak
+        fields = ["id", "start_datetime", "end_datetime"]
+        read_only_fields = ["id"]
 
 
 class TimeEntrySerializer(OwnedSerializer):
@@ -12,21 +19,58 @@ class TimeEntrySerializer(OwnedSerializer):
         source="project.name", read_only=True, default=None
     )
     customer_name = serializers.CharField(
-        source="customer.name", read_only=True
+        source="customer.name", read_only=True, default=None
     )
     contract_name = serializers.CharField(
         source="contract.name", read_only=True, default=None
     )
     hours = serializers.FloatField(read_only=True)
     is_running = serializers.BooleanField(read_only=True)
+    breaks = TimeEntryBreakSerializer(many=True, required=False)
+    break_minutes = serializers.SerializerMethodField(read_only=True)
+    is_paused = serializers.SerializerMethodField(read_only=True)
+
+    def get_break_minutes(self, obj: TimeEntry) -> int:
+        return obj._break_minutes()
+
+    def get_is_paused(self, obj: TimeEntry) -> bool:
+        return obj.breaks.filter(end_datetime__isnull=True).exists()
+
+    def update(self, instance: TimeEntry, validated_data: dict) -> TimeEntry:
+        breaks_data = validated_data.pop("breaks", None)
+        instance = super().update(instance, validated_data)
+        if breaks_data is not None:
+            existing = {str(b.id): b for b in instance.breaks.all()}
+            kept_ids = set()
+            for b_data in breaks_data:
+                bid = b_data.get("id")
+                if bid and bid in existing:
+                    b = existing[bid]
+                    b.start_datetime = b_data.get("start_datetime", b.start_datetime)
+                    b.end_datetime = b_data.get("end_datetime", b.end_datetime)
+                    b.save()
+                    kept_ids.add(bid)
+                else:
+                    TimeEntryBreak.objects.create(
+                        owner=instance.owner,
+                        time_entry=instance,
+                        start_datetime=b_data["start_datetime"],
+                        end_datetime=b_data.get("end_datetime"),
+                    )
+            for bid, b in existing.items():
+                if bid not in kept_ids:
+                    b.delete()
+        instance.save()
+        return instance
 
     class Meta:
         model = TimeEntry
         fields = [
             "id", "customer", "customer_name", "project", "project_name",
             "visit", "contract", "contract_name",
-            "date", "start_time", "end_time", "break_minutes",
-            "duration_minutes", "hours", "is_running",
+            "start_datetime", "end_datetime",
+            "normalized_start_datetime", "normalized_end_datetime",
+            "breaks", "break_minutes", "duration_minutes", "hours", "is_running", "is_paused",
             "description", "billable", "invoice",
             "created_at", "updated_at",
         ]

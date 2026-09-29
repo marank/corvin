@@ -1,14 +1,15 @@
-from datetime import date, time
+from datetime import date, datetime
 from decimal import Decimal
 
 import pytest
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 from core.models import (
     Address,
     CompanySettings,
     Customer,
-    InvoiceTemplate,
+    DocumentTemplate,
     Project,
     SupportContract,
     TimeEntry,
@@ -59,15 +60,15 @@ def project(user, customer):
 @pytest.fixture
 def make_entry(user, project):
     def _make(d=date(2026, 9, 1), start="09:00", end="11:00", **kw):
+        tz = timezone.get_current_timezone()
         h1, m1 = map(int, start.split(":"))
         h2, m2 = map(int, end.split(":"))
         return TimeEntry.objects.create(
             owner=user,
             customer=kw.pop("customer", project.customer),
             project=project,
-            date=d,
-            start_time=time(h1, m1),
-            end_time=time(h2, m2),
+            start_datetime=timezone.make_aware(datetime(d.year, d.month, d.day, h1, m1), tz),
+            end_datetime=timezone.make_aware(datetime(d.year, d.month, d.day, h2, m2), tz),
             **kw,
         )
 
@@ -76,7 +77,7 @@ def make_entry(user, project):
 
 @pytest.fixture
 def invoice_template(user):
-    return InvoiceTemplate.objects.create(
+    return DocumentTemplate.objects.create(
         owner=user,
         name="Default",
         body_html=(

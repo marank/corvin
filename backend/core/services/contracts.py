@@ -22,7 +22,7 @@ def contract_usage(contract: SupportContract) -> dict:
     """Used/included/overage hours of the current billing period."""
     start, end = contract.current_period()
     qs = TimeEntry.objects.filter(
-        contract=contract, date__gte=start, date__lt=end, end_time__isnull=False
+        contract=contract, start_datetime__date__gte=start, start_datetime__date__lt=end, end_datetime__isnull=False
     )
     minutes = sum(e.duration_minutes for e in qs)
     used = Decimal(minutes) / 60
@@ -122,8 +122,8 @@ def generate_invoice(contract: SupportContract) -> Invoice:
 
     # link covered entries to the generated invoice for traceability
     TimeEntry.objects.filter(
-        contract=contract, date__gte=start, date__lt=end,
-        end_time__isnull=False, invoice__isnull=True,
+        contract=contract, start_datetime__date__gte=start, start_datetime__date__lt=end,
+        end_datetime__isnull=False, invoice__isnull=True,
     ).update(invoice=invoice)
 
     invoice.recalc_totals()

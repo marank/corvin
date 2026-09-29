@@ -33,6 +33,7 @@ class CompanySettings(UuidModel):
     country = models.CharField(max_length=100, default="Deutschland")
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=50, blank=True)
+    website = models.URLField(blank=True)
     tax_id = models.CharField(max_length=50, blank=True)
     vat_id = models.CharField(max_length=50, blank=True)
     iban = models.CharField(max_length=34, blank=True)
@@ -62,9 +63,27 @@ class CompanySettings(UuidModel):
         max_length=10, choices=[("before", "Before"), ("after", "After")],
         default="after",
     )
+    class TimeRoundingDirection(models.TextChoices):
+        NEAREST = "nearest", "Nearest"
+        BACKWARDS = "backwards", "Backwards"
+        FORWARDS = "forwards", "Forwards"
+
     currency_space = models.BooleanField(default=True)
     theme = models.CharField(max_length=10, default="light")
     template_assignments = models.JSONField(default=dict, blank=True)
+    time_rounding_start_direction = models.CharField(
+        max_length=10,
+        choices=TimeRoundingDirection.choices,
+        default=TimeRoundingDirection.NEAREST,
+    )
+    time_rounding_start_minutes = models.PositiveIntegerField(default=5)
+    time_rounding_end_direction = models.CharField(
+        max_length=10,
+        choices=TimeRoundingDirection.choices,
+        default=TimeRoundingDirection.NEAREST,
+    )
+    time_rounding_end_minutes = models.PositiveIntegerField(default=5)
+    timer_counts_during_break = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Settings of {self.user}"

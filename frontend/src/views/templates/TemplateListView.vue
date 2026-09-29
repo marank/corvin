@@ -18,7 +18,7 @@ import AppModal from '../../components/ui/AppModal.vue'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import Select from 'primevue/select'
 import {
-  settingsApi, templatesApi, textBlocksApi, type InvoiceTemplate, type TextBlock,
+  settingsApi, templatesApi, textBlocksApi, type DocumentTemplate, type TextBlock,
 } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
@@ -30,7 +30,7 @@ const confirmDelete = useConfirmDelete()
 const importInput = ref<HTMLInputElement>()
 const textBlockModal = ref<InstanceType<typeof AppModal>>()
 const activeTab = ref('assignments')
-const rows = ref<InvoiceTemplate[]>([])
+const rows = ref<DocumentTemplate[]>([])
 const textBlocks = ref<TextBlock[]>([])
 const editingTextBlock = ref<TextBlock | null>(null)
 const textBlockForm = ref<Partial<TextBlock>>({})
@@ -89,7 +89,7 @@ function removeTextBlock(textBlock: TextBlock) {
   })
 }
 
-function removeTemplate(template: InvoiceTemplate) {
+function removeTemplate(template: DocumentTemplate) {
   confirmDelete(async () => {
     await templatesApi.remove(template.id)
     rows.value = rows.value.filter((item) => item.id !== template.id)
@@ -164,7 +164,7 @@ async function importTemplate(event: Event) {
           </div>
         </TabPanel>
         <TabPanel value="templates">
-          <AppDataTable :rows="rows" :loading="loading" @row-click="(r: InvoiceTemplate) => router.push(`/templates/${r.id}`)">
+          <AppDataTable :rows="rows" :loading="loading" @row-click="(r: DocumentTemplate) => router.push(`/templates/${r.id}`)">
             <Column field="name" :header="t('common.name')" />
             <Column field="page_size" :header="t('designer.pageSize')" />
             <Column :header="t('common.actions')">

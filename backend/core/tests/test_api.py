@@ -1,7 +1,8 @@
-from datetime import date, time, timedelta
+from datetime import date, datetime, timedelta
 
 import pytest
 from django.contrib.auth.models import User
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from core.models import (
@@ -52,8 +53,7 @@ def test_timer_flow(client, customer, project):
         "description": "debugging",
     })
     assert r.status_code == 201
-    entry_id = r.json()["id"]
-    r2 = client.post(f"/api/v1/time-entries/{entry_id}/stop/")
+    r2 = client.post("/api/v1/time-entries/stop/")
     assert r2.status_code == 200
     assert r2.json()["is_running"] is False
     # customer-only timer (no project) works too
@@ -68,10 +68,11 @@ def test_consolidate_endpoint(client, user, customer, project):
         owner=user, customer=customer, amount="80",
         valid_from=date(2025, 1, 1),
     )
+    tz = timezone.get_current_timezone()
     TimeEntry.objects.create(
         owner=user, customer=customer, project=project,
-        date=date(2026, 9, 1),
-        start_time=time(9), end_time=time(11),
+        start_datetime=timezone.make_aware(datetime(2026, 9, 1, 9, 0), tz),
+        end_datetime=timezone.make_aware(datetime(2026, 9, 1, 11, 0), tz),
     )
     r = client.post("/api/v1/invoices/consolidate/", {
         "customer_id": customer.id, "group_by": "project"

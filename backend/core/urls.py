@@ -11,9 +11,9 @@ from core.views.customer import (
     ContactViewSet,
     CustomerViewSet,
 )
+from core.views.document_template import DocumentTemplateViewSet
 from core.views.hourly_rate import HourlyRateViewSet
 from core.views.invoice import InvoiceViewSet
-from core.views.invoice_template import InvoiceTemplateViewSet
 from core.views.payment import PaymentViewSet
 from core.views.project import ProjectViewSet
 from core.views.security import (
@@ -48,7 +48,7 @@ router.register(
     "support-contracts", SupportContractViewSet, basename="support-contract"
 )
 router.register(
-    "invoice-templates", InvoiceTemplateViewSet, basename="invoice-template"
+    "document-templates", DocumentTemplateViewSet, basename="document-template"
 )
 router.register("invoices", InvoiceViewSet, basename="invoice")
 router.register("payments", PaymentViewSet, basename="payment")

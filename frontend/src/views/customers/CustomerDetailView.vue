@@ -51,8 +51,10 @@ const rateModal = ref<InstanceType<typeof AppModal>>()
 const addressModal = ref<InstanceType<typeof AppModal>>()
 const editingContact = ref<Contact | null>(null)
 const contactForm = ref<Partial<Contact>>({ is_invoice_contact: false })
+const editingRate = ref<HourlyRate | null>(null)
 const rateForm = ref<Partial<HourlyRate>>({ amount: 0, valid_from: '', valid_to: null })
-const addressForm = ref<Partial<Address>>({ country: 'Deutschland' })
+const editingAddress = ref<Address | null>(null)
+const addressForm = ref<Partial<Address>>({ country: 'Deutschland', is_primary: false, is_invoice_address: false, is_delivery_address: false })
 
 const subtitle = computed(() => {
   const a = customer.value?.primary_address
@@ -111,11 +113,24 @@ function removeContact(c: Contact) {
   })
 }
 
+function openAddress(address?: Address) {
+  editingAddress.value = address ?? null
+  addressForm.value = address
+    ? { ...address }
+    : { country: 'Deutschland', is_primary: false, is_invoice_address: false, is_delivery_address: false }
+  addressModal.value?.open()
+}
+
 async function saveAddress() {
   try {
-    await addressesApi.create({ ...addressForm.value, customer: id })
+    if (editingAddress.value) {
+      await addressesApi.update(editingAddress.value.id, addressForm.value)
+    } else {
+      await addressesApi.create({ ...addressForm.value, customer: id })
+    }
     addressModal.value?.close()
-    addressForm.value = { country: 'Deutschland' }
+    addressForm.value = { country: 'Deutschland', is_primary: false, is_invoice_address: false, is_delivery_address: false }
+    editingAddress.value = null
     load()
   } catch (e) {
     notify.error(e)
@@ -136,11 +151,24 @@ function removeRate(r: HourlyRate) {
   })
 }
 
+function openRate(rate?: HourlyRate) {
+  editingRate.value = rate ?? null
+  rateForm.value = rate
+    ? { ...rate }
+    : { amount: 0, valid_from: '', valid_to: null }
+  rateModal.value?.open()
+}
+
 async function saveRate() {
   try {
-    await ratesApi.create({ ...rateForm.value, customer: id })
+    if (editingRate.value) {
+      await ratesApi.update(editingRate.value.id, rateForm.value)
+    } else {
+      await ratesApi.create({ ...rateForm.value, customer: id })
+    }
     rateModal.value?.close()
     rateForm.value = { amount: 0, valid_from: '', valid_to: null }
+    editingRate.value = null
     rates.value = (await ratesApi.list(`customer=${id}&page_size=100`)).results
   } catch (e) {
     notify.error(e)
@@ -219,32 +247,44 @@ async function saveRate() {
               <template #body="{ data }"><i v-if="data.is_invoice_contact" class="pi pi-check" /></template>
             </Column>
             <Column :header="t('common.actions')">
-              <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeContact(data)" /></template>
+              <template #body="{ data }">
+                <AppIconButton icon="pi pi-pencil" aria-label="Edit" @click.stop="openContact(data)" />
+                <AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeContact(data)" />
+              </template>
             </Column>
           </AppDataTable>
         </TabPanel>
         <TabPanel value="addresses">
           <div class="flex justify-end pt-4 mb-2">
-            <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="addressForm = { country: 'Deutschland' }; addressModal?.open()" />
+            <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openAddress()" />
           </div>
           <AppDataTable :rows="addresses">
             <Column field="label" :header="t('customers.addressLabel')" />
-            <Column field="street" :header="t('common.address')" />
-            <Column :header="t('common.address')">
+            <Column field="street" :header="t('customers.street')" />
+            <Column :header="t('customers.postalCode') + ' / ' + t('customers.city')">
               <template #body="{ data }">{{ data.postal_code }} {{ data.city }}</template>
             </Column>
-            <Column field="country" :header="t('common.address')" />
+            <Column field="country" :header="t('customers.country')" />
             <Column :header="t('common.status')">
-              <template #body="{ data }"><Tag v-if="data.is_primary" :value="t('customers.primary')" severity="info" /></template>
+              <template #body="{ data }">
+                <div class="flex flex-wrap gap-1">
+                  <Tag v-if="data.is_primary" :value="t('customers.primary')" severity="info" />
+                  <Tag v-if="data.is_invoice_address" :value="t('customers.invoiceAddress')" severity="info" />
+                  <Tag v-if="data.is_delivery_address" :value="t('customers.deliveryAddress')" severity="info" />
+                </div>
+              </template>
             </Column>
             <Column :header="t('common.actions')">
-              <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeAddress(data)" /></template>
+              <template #body="{ data }">
+                <AppIconButton icon="pi pi-pencil" aria-label="Edit" @click.stop="openAddress(data)" />
+                <AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeAddress(data)" />
+              </template>
             </Column>
           </AppDataTable>
         </TabPanel>
         <TabPanel value="rates">
           <div class="flex justify-end pt-4 mb-2">
-            <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="rateForm = { amount: 0, valid_from: '', valid_to: null }; rateModal?.open()" />
+            <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openRate()" />
           </div>
           <AppDataTable :rows="rates">
             <Column :header="t('common.date')"><template #body="{ data }"><AppDateTimeDisplay :value="data.valid_from" /></template></Column>
@@ -255,7 +295,10 @@ async function saveRate() {
               <template #body="{ data }"><AppDateTimeDisplay :value="data.valid_to" /></template>
             </Column>
             <Column :header="t('common.actions')">
-              <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeRate(data)" /></template>
+              <template #body="{ data }">
+                <AppIconButton icon="pi pi-pencil" aria-label="Edit" @click.stop="openRate(data)" />
+                <AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeRate(data)" />
+              </template>
             </Column>
           </AppDataTable>
         </TabPanel>
@@ -265,7 +308,7 @@ async function saveRate() {
       </TabPanels>
     </Tabs>
 
-    <AppModal ref="contactModal" :title="t('customers.contacts')" @confirm="saveContact">
+    <AppModal ref="contactModal" :title="editingContact ? t('common.edit') + ' ' + t('customers.contacts') : t('customers.contacts')" @confirm="saveContact">
       <div class="flex flex-col gap-4">
         <div class="grid grid-cols-2 gap-3">
           <AppFormField :label="t('customers.firstName')" required><InputText v-model="contactForm.first_name" class="w-full" /></AppFormField>
@@ -278,22 +321,24 @@ async function saveRate() {
       </div>
     </AppModal>
 
-    <AppModal ref="addressModal" :title="t('customers.addresses')" @confirm="saveAddress">
+    <AppModal ref="addressModal" :title="editingAddress ? t('common.edit') + ' ' + t('customers.addresses') : t('customers.addresses')" @confirm="saveAddress">
       <div class="flex flex-col gap-4">
-        <div class="grid grid-cols-2 gap-3">
-          <AppFormField :label="t('customers.addressLabel')"><InputText v-model="addressForm.label" class="w-full" /></AppFormField>
-          <AppFormField :label="t('common.address')"><InputText v-model="addressForm.country" class="w-full" /></AppFormField>
-        </div>
-        <AppFormField :label="t('common.address')"><InputText v-model="addressForm.street" class="w-full" /></AppFormField>
+        <AppFormField :label="t('customers.addressLabel')"><InputText v-model="addressForm.label" class="w-full" /></AppFormField>
+        <AppFormField :label="t('customers.street')"><InputText v-model="addressForm.street" class="w-full" /></AppFormField>
         <div class="grid grid-cols-3 gap-3">
-          <AppFormField label="PLZ"><InputText v-model="addressForm.postal_code" class="w-full" /></AppFormField>
-          <AppFormField :label="t('common.address')" class="col-span-2"><InputText v-model="addressForm.city" class="w-full" /></AppFormField>
+          <AppFormField :label="t('customers.postalCode')"><InputText v-model="addressForm.postal_code" class="w-full" /></AppFormField>
+          <AppFormField :label="t('customers.city')" class="col-span-2"><InputText v-model="addressForm.city" class="w-full" /></AppFormField>
         </div>
-        <AppCheckboxField v-model="addressForm.is_primary" :label="t('customers.primary')" />
+        <AppFormField :label="t('customers.country')"><InputText v-model="addressForm.country" class="w-full" /></AppFormField>
+        <div class="grid grid-cols-3 gap-3">
+          <AppCheckboxField v-model="addressForm.is_primary" :label="t('customers.primary')" />
+          <AppCheckboxField v-model="addressForm.is_invoice_address" :label="t('customers.invoiceAddress')" />
+          <AppCheckboxField v-model="addressForm.is_delivery_address" :label="t('customers.deliveryAddress')" />
+        </div>
       </div>
     </AppModal>
 
-    <AppModal ref="rateModal" :title="t('customers.rates')" @confirm="saveRate">
+    <AppModal ref="rateModal" :title="editingRate ? t('common.edit') + ' ' + t('customers.rates') : t('customers.rates')" @confirm="saveRate">
       <div class="flex flex-col gap-4">
         <AppFormField :label="t('invoices.unitPrice')" required><InputNumber v-model="rateForm.amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
         <AppFormField :label="t('common.date')" required><AppDateInput v-model="(rateForm.valid_from as any)" /></AppFormField>

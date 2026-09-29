@@ -1,11 +1,11 @@
-from core.models import InvoiceTemplate
+from core.models import DocumentTemplate
 
 from .base import OwnedSerializer
 
 
-class InvoiceTemplateSerializer(OwnedSerializer):
+class DocumentTemplateSerializer(OwnedSerializer):
     class Meta:
-        model = InvoiceTemplate
+        model = DocumentTemplate
         fields = [
             "id", "name", "page_size",
             "margin_top", "margin_right", "margin_bottom", "margin_left",

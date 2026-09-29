@@ -6,11 +6,11 @@ from .company_image import CompanyImage
 from .company_settings import CompanySettings
 from .contact import Contact
 from .customer import Customer
+from .document_archive import DocumentArchive
+from .document_template import DocumentTemplate
 from .hourly_rate import HourlyRate
 from .invoice import Invoice
-from .invoice_document import InvoiceDocument
 from .invoice_line_item import InvoiceLineItem
-from .invoice_template import InvoiceTemplate
 from .number_sequence import NumberSequence
 from .payment import Payment
 from .project import Project
@@ -18,6 +18,7 @@ from .support_contract import SupportContract
 from .task import Task
 from .text_block import TextBlock
 from .time_entry import TimeEntry
+from .time_entry_break import TimeEntryBreak
 from .visit import OnSiteVisit
 
 __all__ = [
@@ -31,9 +32,9 @@ __all__ = [
     "Customer",
     "HourlyRate",
     "Invoice",
-    "InvoiceDocument",
+    "DocumentArchive",
     "InvoiceLineItem",
-    "InvoiceTemplate",
+    "DocumentTemplate",
     "NumberSequence",
     "OnSiteVisit",
     "Payment",
@@ -42,4 +43,5 @@ __all__ = [
     "Task",
     "TextBlock",
     "TimeEntry",
+    "TimeEntryBreak",
 ]

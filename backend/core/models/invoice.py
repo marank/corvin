@@ -1,11 +1,12 @@
 from decimal import Decimal
 
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 
 from .base import OwnedModel
 from .contact import Contact
 from .customer import Customer
-from .invoice_template import InvoiceTemplate
+from .document_template import DocumentTemplate
 from .project import Project
 from .support_contract import SupportContract
 
@@ -55,12 +56,15 @@ class Invoice(OwnedModel):
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     sent_at = models.DateTimeField(null=True, blank=True)
     template = models.ForeignKey(
-        InvoiceTemplate, on_delete=models.SET_NULL, related_name="invoices",
+        DocumentTemplate, on_delete=models.SET_NULL, related_name="invoices",
         null=True, blank=True,
     )
     bank_account_override = models.ForeignKey(
         "BankAccount", on_delete=models.SET_NULL, related_name="invoices",
         null=True, blank=True,
+    )
+    documents = GenericRelation(
+        "DocumentArchive", content_type_field="content_type", object_id_field="object_id"
     )
 
     class Meta:

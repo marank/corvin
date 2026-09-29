@@ -1,13 +1,13 @@
-from datetime import date, time
+from datetime import date, datetime
 from decimal import Decimal
 
 import pytest
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from core.models import (
     HourlyRate,
     Invoice,
-    InvoiceDocument,
     TimeEntry,
 )
 from core.services.consolidation import consolidate
@@ -19,10 +19,11 @@ def draft_invoice(user, customer, project, invoice_template):
         owner=user, customer=customer, amount=Decimal("80"),
         valid_from=date(2025, 1, 1),
     )
+    tz = timezone.get_current_timezone()
     TimeEntry.objects.create(
         owner=user, customer=customer, project=project,
-        date=date(2026, 9, 1),
-        start_time=time(9), end_time=time(11),
+        start_datetime=timezone.make_aware(datetime(2026, 9, 1, 9, 0), tz),
+        end_datetime=timezone.make_aware(datetime(2026, 9, 1, 11, 0), tz),
     )
     return consolidate(owner=user, customer=customer)
 
@@ -35,7 +36,8 @@ def test_finalize_archives_pdf(user, draft_invoice):
     assert r.status_code == 200
     draft_invoice.refresh_from_db()
     assert draft_invoice.status == Invoice.Status.ISSUED
-    doc = InvoiceDocument.objects.get(invoice=draft_invoice, kind="pdf")
+    doc = draft_invoice.documents.filter(kind="pdf").first()
+    assert doc is not None
     assert doc.sha256 and doc.file.size > 1000
     # PDF download serves the archived file
     r2 = c.get(f"/api/v1/invoices/{draft_invoice.id}/pdf/")

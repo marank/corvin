@@ -18,7 +18,7 @@ import InvoicePreviewFrame from '../components/InvoicePreviewFrame.vue'
 import InvoiceVariableBrowser, { type VariableGroup } from '../components/InvoiceVariableBrowser.vue'
 import {
   companyImagesApi, templatesApi, textBlocksApi,
-  type CompanyImage, type InvoiceTemplate, type TextBlock,
+  type CompanyImage, type DocumentTemplate, type TextBlock,
 } from '../api'
 import { useNotify } from '../composables/useNotify'
 import { useConfirmDelete } from '../composables/useConfirmDelete'
@@ -30,7 +30,7 @@ const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const id = route.params.id as string
 
-const template = ref<InvoiceTemplate | null>(null)
+const template = ref<DocumentTemplate | null>(null)
 const saving = ref(false)
 const previewKey = ref(0)
 const previewMode = ref<'html' | 'pdf'>('html')
@@ -117,7 +117,7 @@ const variableGroups = computed<VariableGroup[]>(() => [
     label: t('designer.variableGroups.company'),
     entries: [
       'company_name', 'street', 'postal_code', 'city', 'country', 'email',
-      'phone', 'tax_id', 'vat_id', 'iban', 'bic', 'currency',
+      'phone', 'website', 'tax_id', 'vat_id', 'iban', 'bic', 'currency',
     ].map((field) => ({ label: field, code: `{{ company.${field} }}` })),
   },
   {

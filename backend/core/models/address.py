@@ -18,6 +18,8 @@ class Address(OwnedModel):
     city = models.CharField(max_length=255, blank=True)
     country = models.CharField(max_length=100, default="Deutschland")
     is_primary = models.BooleanField(default=False)
+    is_invoice_address = models.BooleanField(default=False)
+    is_delivery_address = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-is_primary", "label", "city"]

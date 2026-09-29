@@ -16,7 +16,7 @@ class DashboardStatsView(APIView):
         today = timezone.localdate()
         year_ago = today - timedelta(days=365)
 
-        entries = TimeEntry.objects.filter(owner=user, end_time__isnull=False)
+        entries = TimeEntry.objects.filter(owner=user, end_datetime__isnull=False)
         invoices = Invoice.objects.filter(owner=user).exclude(
             status=Invoice.Status.CANCELLED
         )
@@ -40,7 +40,7 @@ class DashboardStatsView(APIView):
         ).aggregate(hours=Sum("duration_minutes"))
 
         week_start = today - timedelta(days=today.weekday())
-        week_hours = entries.filter(date__gte=week_start).aggregate(
+        week_hours = entries.filter(start_datetime__date__gte=week_start).aggregate(
             hours=Sum("duration_minutes")
         )
 
@@ -72,7 +72,7 @@ class DashboardStatsView(APIView):
                 )
 
         running = TimeEntry.objects.filter(
-            owner=user, end_time__isnull=True
+            owner=user, end_datetime__isnull=True
         ).first()
 
         return Response({

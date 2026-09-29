@@ -31,11 +31,11 @@ def _line_for_entries(owner, entries, description: str) -> dict:
             rounding_increment(customer, e.project),
         )
         rate = resolve_rate(
-            owner=owner, customer=customer, project=e.project, on_date=e.date
+            owner=owner, customer=customer, project=e.project, on_date=e.start_datetime.date()
         )
         if rate is None:
             raise ValidationError(
-                f"No hourly rate found for {customer.name} on {e.date}."
+                f"No hourly rate found for {customer.name} on {e.start_datetime.date()}."
             )
         total_minutes += minutes
         total_amount += Decimal(minutes) / 60 * rate
@@ -75,15 +75,15 @@ def consolidate(
         billable=True,
         invoice__isnull=True,
         contract__isnull=True,  # contract-covered entries bill via the contract
-        end_time__isnull=False,  # running timers excluded
+        end_datetime__isnull=False,  # running timers excluded
     ).select_related("customer", "project")
     if project:
         qs = qs.filter(project=project)
     if date_from:
-        qs = qs.filter(date__gte=date_from)
+        qs = qs.filter(start_datetime__date__gte=date_from)
     if date_to:
-        qs = qs.filter(date__lte=date_to)
-    entries = list(qs.order_by("date", "start_time"))
+        qs = qs.filter(start_datetime__date__lte=date_to)
+    entries = list(qs.order_by("start_datetime"))
     if not entries and not extra_lines:
         raise ValidationError("No billable, uninvoiced time entries found.")
 
@@ -94,7 +94,7 @@ def consolidate(
             groups[(e.id,)].append(e)
     elif group_by == "day":
         for e in entries:
-            groups[(e.project_id, e.date)].append(e)
+            groups[(e.project_id, e.start_datetime.date())].append(e)
     elif group_by == "project":
         for e in entries:
             groups[(e.project_id,)].append(e)
@@ -143,9 +143,9 @@ def consolidate(
         first = group[0]
         scope = first.project.name if first.project else customer.name
         if group_by == "entry":
-            desc = f"{first.date} — {scope}: {first.description or 'Services'}"
+            desc = f"{first.start_datetime.date()} — {scope}: {first.description or 'Services'}"
         elif group_by == "day":
-            desc = f"{first.date} — {scope}"
+            desc = f"{first.start_datetime.date()} — {scope}"
         else:
             desc = f"{scope} — consulting services"
         line = _line_for_entries(owner, group, desc)

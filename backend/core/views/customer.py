@@ -38,7 +38,7 @@ class CustomerViewSet(OwnedViewSet):
                     filter=Q(
                         time_entries__invoice__isnull=True,
                         time_entries__billable=True,
-                        time_entries__end_time__isnull=False,
+                        time_entries__end_datetime__isnull=False,
                         time_entries__contract__isnull=True,
                     ),
                 )

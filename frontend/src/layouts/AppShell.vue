@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
@@ -17,6 +17,8 @@ const auth = useAuthStore()
 const formatting = useFormattingStore()
 const menuOpen = ref(false)
 const dark = ref(document.documentElement.classList.contains('dark'))
+const sidebarNav = ref<HTMLElement | null>(null)
+const indicatorStyle = ref({ top: '0px', height: '0px' })
 
 const items = computed(() => [
   { to: '/', icon: 'pi pi-chart-bar', label: t('nav.dashboard'), exact: true },
@@ -35,7 +37,29 @@ const locales = [
   { label: 'Deutsch', value: 'de' },
   { label: 'English', value: 'en' },
 ]
-onMounted(() => formatting.load())
+
+const activeIndex = computed(() =>
+  items.value.findIndex((item) => isActive(item.to, item.exact))
+)
+
+async function updateIndicator() {
+  await nextTick()
+  const nav = sidebarNav.value
+  if (!nav) return
+  const activeLink = nav.querySelector('.sidebar-active-item') as HTMLElement | null
+  if (activeLink) {
+    indicatorStyle.value = {
+      top: `${activeLink.offsetTop}px`,
+      height: `${activeLink.offsetHeight}px`,
+    }
+  }
+}
+
+watch(activeIndex, updateIndicator, { immediate: true })
+onMounted(() => {
+  formatting.load()
+  window.addEventListener('resize', updateIndicator)
+})
 
 const locale = computed({
   get: () => i18n.global.locale.value,
@@ -70,15 +94,19 @@ async function logout() {
       <div class="h-14 flex items-center px-4 border-b border-surface-200 dark:border-surface-800 font-semibold">
         {{ t('app.title') }}
       </div>
-      <nav class="flex-1 overflow-y-auto py-2">
+      <nav ref="sidebarNav" class="relative flex-1 overflow-y-auto py-2">
+        <div
+          class="absolute left-0 z-10 w-0.5 bg-primary transition-all duration-200 ease-out"
+          :style="indicatorStyle"
+        />
         <router-link
           v-for="item in items"
           :key="item.to"
           :to="item.to"
-          class="flex items-center gap-3 px-4 py-2.5 text-sm border-l-2"
+          class="relative flex items-center gap-3 px-4 py-2.5 text-sm"
           :class="isActive(item.to, item.exact)
-            ? 'border-primary text-primary font-medium bg-blue-50 dark:bg-surface-800'
-            : 'border-transparent text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800'"
+            ? 'sidebar-active-item text-primary font-medium bg-blue-50 dark:bg-surface-800'
+            : 'text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800'"
         >
           <i :class="item.icon" />
           <span>{{ item.label }}</span>

@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
-import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import AppFormField from './ui/AppFormField.vue'
 import AppCheckboxField from './ui/AppCheckboxField.vue'
-import AppDateInput from './ui/AppDateInput.vue'
+import AppDateTimeInput from './ui/AppDateTimeInput.vue'
+import AppDateTimeDisplay from './ui/AppDateTimeDisplay.vue'
+import AppIconButton from './ui/AppIconButton.vue'
 import CustomerSelect from './CustomerSelect.vue'
 import ProjectSelect from './ProjectSelect.vue'
 import {
@@ -24,20 +25,81 @@ const emit = defineEmits<{ saved: [entry: TimeEntry]; cancel: [] }>()
 const { t } = useI18n()
 const notify = useNotify()
 
+interface BreakForm {
+  id?: string
+  start_datetime: string
+  end_datetime: string | null
+}
+
 const customerId = ref<string | null>(null)
 const form = ref({
   project: null as string | null,
   visit: null as string | null,
   contract: null as string | null,
-  date: new Date().toISOString().slice(0, 10),
-  start_time: '',
-  end_time: '',
-  break_minutes: 0,
+  start_datetime: new Date().toISOString(),
+  end_datetime: null as string | null,
+  duration_minutes: 0,
+  breaks: [] as BreakForm[],
   description: '',
   billable: true,
 })
 const saving = ref(false)
 const contracts = ref<SupportContract[]>([])
+const updating = ref(false)
+const durationText = ref('00:00')
+
+function formatDuration(minutes: number): string {
+  const m = Math.max(0, minutes)
+  const h = Math.floor(m / 60)
+  const min = m % 60
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`
+}
+
+function parseDuration(value: string): number {
+  const parts = value.split(':').map((p) => parseInt(p, 10))
+  if (parts.length !== 2 || parts.some(isNaN)) return 0
+  return Math.max(0, parts[0] * 60 + parts[1])
+}
+
+function breakMinutes(): number {
+  let total = 0
+  for (const b of form.value.breaks) {
+    if (b.end_datetime) {
+      total += Math.max(0, Math.round((new Date(b.end_datetime).getTime() - new Date(b.start_datetime).getTime()) / 60_000))
+    }
+  }
+  return total
+}
+
+function recalcEndFromDuration() {
+  if (updating.value) return
+  const start = new Date(form.value.start_datetime)
+  updating.value = true
+  form.value.end_datetime = new Date(start.getTime() + (form.value.duration_minutes + breakMinutes()) * 60_000).toISOString()
+  durationText.value = formatDuration(form.value.duration_minutes)
+  nextTick(() => { updating.value = false })
+}
+
+function recalcDurationFromTimes() {
+  if (updating.value) return
+  const start = new Date(form.value.start_datetime)
+  const end = form.value.end_datetime ? new Date(form.value.end_datetime) : null
+  if (!end) return
+  updating.value = true
+  form.value.duration_minutes = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60_000) - breakMinutes())
+  durationText.value = formatDuration(form.value.duration_minutes)
+  nextTick(() => { updating.value = false })
+}
+
+function onDurationInput(value: string) {
+  durationText.value = value
+  form.value.duration_minutes = parseDuration(value)
+}
+
+watch(() => form.value.start_datetime, recalcDurationFromTimes)
+watch(() => form.value.end_datetime, recalcDurationFromTimes)
+watch(() => form.value.duration_minutes, recalcEndFromDuration)
+watch(() => form.value.breaks, recalcDurationFromTimes, { deep: true })
 
 watch(
   () => props.entry,
@@ -48,13 +110,14 @@ watch(
       project: e.project,
       visit: e.visit,
       contract: e.contract,
-      date: e.date,
-      start_time: e.start_time?.slice(0, 5) ?? '',
-      end_time: e.end_time?.slice(0, 5) ?? '',
-      break_minutes: e.break_minutes,
+      start_datetime: e.start_datetime,
+      end_datetime: e.end_datetime,
+      duration_minutes: e.duration_minutes,
+      breaks: e.breaks.map((b) => ({ id: b.id, start_datetime: b.start_datetime, end_datetime: b.end_datetime })),
       description: e.description,
       billable: e.billable,
     }
+    durationText.value = formatDuration(e.duration_minutes)
   },
   { immediate: true },
 )
@@ -67,19 +130,43 @@ watch(customerId, async (cid) => {
   ).results
 })
 
+const normalizedDurationText = computed(() => {
+  const start = props.entry?.normalized_start_datetime
+  const end = props.entry?.normalized_end_datetime
+  if (!start || !end) return '—'
+  const minutes = Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60_000))
+  return formatDuration(minutes)
+})
+
 const contractOptions = computed(() => [
   { id: null, name: `— ${t('common.no')} —` },
   ...contracts.value,
 ])
 
+function addBreak() {
+  form.value.breaks.push({
+    start_datetime: new Date().toISOString(),
+    end_datetime: null,
+  })
+}
+
+function removeBreak(index: number) {
+  form.value.breaks.splice(index, 1)
+}
+
 async function save() {
   saving.value = true
   try {
     const payload = {
-      ...form.value,
+      project: form.value.project,
+      visit: form.value.visit,
+      contract: form.value.contract,
       customer: customerId.value,
-      start_time: form.value.start_time + ':00',
-      end_time: form.value.end_time ? form.value.end_time + ':00' : null,
+      start_datetime: form.value.start_datetime,
+      end_datetime: form.value.end_datetime,
+      breaks: form.value.breaks,
+      description: form.value.description,
+      billable: form.value.billable,
     }
     const saved = props.entry
       ? await timeEntriesApi.update(props.entry.id, payload)
@@ -95,24 +182,54 @@ async function save() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <AppFormField :label="t('projects.customer')" required><CustomerSelect v-model="customerId" /></AppFormField>
+    <AppFormField :label="t('projects.customer')"><CustomerSelect v-model="customerId" /></AppFormField>
     <AppFormField :label="t('nav.projects')">
       <ProjectSelect v-model="form.project" :customer-id="customerId" />
     </AppFormField>
     <AppFormField v-if="contracts.length" :label="t('time.coveredByContract')">
       <Select v-model="form.contract" :options="contractOptions" option-label="name" option-value="id" class="w-full" />
     </AppFormField>
-    <AppFormField :label="t('common.date')" required><AppDateInput v-model="form.date" /></AppFormField>
-    <div class="grid grid-cols-3 gap-3">
-      <AppFormField :label="t('time.start')">
-        <InputText v-model="form.start_time" type="time" required class="w-full" />
+    <div class="grid grid-cols-5 gap-3">
+      <AppFormField class="col-span-2" :label="t('time.start')" required><AppDateTimeInput v-model="form.start_datetime" /></AppFormField>
+      <AppFormField class="col-span-2" :label="t('time.end')"><AppDateTimeInput v-model="form.end_datetime" /></AppFormField>
+      <AppFormField :label="t('time.duration')">
+        <InputText :value="durationText" class="w-full" @input="onDurationInput(($event.target as HTMLInputElement).value)" />
       </AppFormField>
-      <AppFormField :label="t('time.end')">
-        <InputText v-model="form.end_time" type="time" class="w-full" />
+    </div>
+    <div class="grid grid-cols-5 gap-3">
+      <AppFormField class="col-span-2" :label="t('time.normalizedStart')">
+        <div class="min-h-10 flex items-center px-3 border border-surface-300 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 text-sm">
+          <AppDateTimeDisplay v-if="props.entry?.normalized_start_datetime" :value="props.entry.normalized_start_datetime" type="datetime" />
+          <span v-else class="text-surface-500">—</span>
+        </div>
       </AppFormField>
-      <AppFormField :label="t('time.break')">
-        <InputNumber v-model="form.break_minutes" :min="0" class="w-full" />
+      <AppFormField class="col-span-2" :label="t('time.normalizedEnd')">
+        <div class="min-h-10 flex items-center px-3 border border-surface-300 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 text-sm">
+          <AppDateTimeDisplay v-if="props.entry?.normalized_end_datetime" :value="props.entry.normalized_end_datetime" type="datetime" />
+          <span v-else class="text-surface-500">—</span>
+        </div>
       </AppFormField>
+      <AppFormField :label="t('time.normalizedDuration')">
+        <div class="min-h-10 flex items-center px-3 border border-surface-300 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 text-sm">
+          <span v-if="props.entry?.normalized_start_datetime && props.entry?.normalized_end_datetime">{{ normalizedDurationText }}</span>
+          <span v-else class="text-surface-500">—</span>
+        </div>
+      </AppFormField>
+    </div>
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-medium">{{ t('time.breaks') }}</span>
+        <Button :label="t('time.addBreak')" icon="pi pi-plus" size="small" text @click="addBreak" />
+      </div>
+      <div v-for="(b, index) in form.breaks" :key="index" class="grid grid-cols-5 gap-3 items-end">
+        <AppFormField class="col-span-2" :label="t('time.start')">
+          <AppDateTimeInput v-model="b.start_datetime" />
+        </AppFormField>
+        <AppFormField class="col-span-2" :label="t('time.end')">
+          <AppDateTimeInput v-model="b.end_datetime" />
+        </AppFormField>
+        <AppIconButton icon="pi pi-trash" severity="danger" :aria-label="t('common.delete')" @click="removeBreak(index)" />
+      </div>
     </div>
     <AppFormField :label="t('time.description')">
       <Textarea v-model="form.description" rows="3" class="w-full" />

@@ -12,7 +12,7 @@ PAGE_DIMENSIONS = {
 }
 
 
-class InvoiceTemplate(OwnedModel):
+class DocumentTemplate(OwnedModel):
     class PageSize(models.TextChoices):
         A3 = "A3", "DIN A3"
         A4 = "A4", "DIN A4"

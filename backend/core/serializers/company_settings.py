@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from core.models import BankAccount, CompanySettings, InvoiceTemplate
+from core.models import BankAccount, CompanySettings, DocumentTemplate
 from core.models.company_settings import NUMBERING_SCHEMES
 from core.services.numbering import normalize_scope
 
@@ -41,6 +41,14 @@ class CompanySettingsSerializer(serializers.ModelSerializer):
         currency = attrs.get("currency")
         if currency is not None:
             attrs["currency"] = currency.upper()
+        for field in (
+            "time_rounding_start_minutes", "time_rounding_end_minutes",
+        ):
+            value = attrs.get(field)
+            if value is not None and value < 1:
+                raise serializers.ValidationError({
+                    field: "Must be a positive integer."
+                })
         return attrs
 
     def validate_currency(self, value):
@@ -101,7 +109,7 @@ class CompanySettingsSerializer(serializers.ModelSerializer):
         for report_type, template_id in value.items():
             if template_id is None:
                 continue
-            if not InvoiceTemplate.objects.filter(
+            if not DocumentTemplate.objects.filter(
                 id=template_id, owner=user,
             ).exists():
                 raise serializers.ValidationError(

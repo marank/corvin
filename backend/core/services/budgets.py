@@ -7,7 +7,7 @@ from .rates import resolve_rate
 
 def budget_stats(project: Project) -> dict:
     """Used hours/amount + burn-down percentages for a project."""
-    entries = project.time_entries.filter(end_time__isnull=False)
+    entries = project.time_entries.filter(end_datetime__isnull=False)
     used_minutes = sum(e.duration_minutes for e in entries)
     used_hours = Decimal(used_minutes) / 60
     amount = Decimal("0")
@@ -16,7 +16,7 @@ def budget_stats(project: Project) -> dict:
             owner=project.owner,
             customer=project.customer,
             project=project,
-            on_date=e.date,
+            on_date=e.start_datetime.date(),
         ) or Decimal("0")
         amount += Decimal(e.duration_minutes) / 60 * rate
     return {

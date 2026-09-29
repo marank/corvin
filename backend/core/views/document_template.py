@@ -10,8 +10,8 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.models import CompanyContact, CompanyImage, InvoiceTemplate
-from core.serializers import InvoiceTemplateSerializer
+from core.models import CompanyContact, CompanyImage, DocumentTemplate
+from core.serializers import DocumentTemplateSerializer
 from core.services.pdf import (
     build_pdf_html,
     company_image_context,
@@ -76,15 +76,15 @@ def _sample_invoice(request):
     ), company
 
 
-class InvoiceTemplateViewSet(OwnedViewSet):
-    queryset = InvoiceTemplate.objects.all()
-    serializer_class = InvoiceTemplateSerializer
+class DocumentTemplateViewSet(OwnedViewSet):
+    queryset = DocumentTemplate.objects.all()
+    serializer_class = DocumentTemplateSerializer
     search_fields = ["name"]
 
     def list(self, request, *args, **kwargs):
         # auto-seed a default template on first access
         if not self.get_queryset().exists():
-            InvoiceTemplate.objects.create(
+            DocumentTemplate.objects.create(
                 owner=request.user,
                 name="Default (DIN A4)",
                 body_html=SAMPLE_BODY,
@@ -106,15 +106,15 @@ class InvoiceTemplateViewSet(OwnedViewSet):
     @action(detail=True, methods=["get"], url_path="export")
     def export_template(self, request, pk=None):
         template = self.get_object()
-        data = InvoiceTemplateSerializer(template, context={"request": request}).data
+        data = DocumentTemplateSerializer(template, context={"request": request}).data
         for field in ("id", "created_at", "updated_at"):
             data.pop(field, None)
         payload = {
-            "format": "projectmanager.invoice-template",
+            "format": "projectmanager.document-template",
             "version": 1,
             "template": data,
         }
-        filename = slugify(template.name) or "invoice-template"
+        filename = slugify(template.name) or "document-template"
         return HttpResponse(
             json.dumps(payload, ensure_ascii=False, indent=2),
             content_type="application/json",
@@ -132,7 +132,7 @@ class InvoiceTemplateViewSet(OwnedViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if (
-            payload.get("format") != "projectmanager.invoice-template"
+            payload.get("format") != "projectmanager.document-template"
             or payload.get("version") != 1
             or not isinstance(payload.get("template"), dict)
         ):

@@ -26,6 +26,7 @@ import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
 import { useFormattingStore } from '../../stores/formatting'
+import { useSettingsStore } from '../../stores/settings'
 import { currencies } from '../../currencies'
 
 interface NumberScheme {
@@ -39,12 +40,18 @@ const router = useRouter()
 const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const formatting = useFormattingStore()
+const settingsStore = useSettingsStore()
 const form = ref<Record<string, unknown>>({})
 const saving = ref(false)
 const entities = ['customer', 'project', 'invoice', 'contract', 'visit', 'task']
 const scopes = ['year', 'customer', 'project']
 const currencyDisplays = ['symbol', 'code']
 const currencyPositions = ['before', 'after']
+const roundingDirections = [
+  { label: t('settings.roundingDirections.nearest'), value: 'nearest' },
+  { label: t('settings.roundingDirections.backwards'), value: 'backwards' },
+  { label: t('settings.roundingDirections.forwards'), value: 'forwards' },
+]
 const defaultSchemes: Record<string, NumberScheme> = {
   customer: { format: 'K-{counter:4}', scope: [], start: 1000 },
   project: { format: 'P-{counter:4}', scope: ['customer'], start: 1 },
@@ -91,6 +98,7 @@ onMounted(async () => {
     settingsApi.get(), bankAccountsApi.list(), companyContactsApi.list(), companyImagesApi.list(),
   ])
   form.value = settings
+  settingsStore.apply(settings)
   bankAccounts.value = bankAccountPage.results
   contacts.value = contactPage.results
   images.value = imagePage.results
@@ -231,6 +239,7 @@ async function save() {
     form.value.numbering_schemes = schemes.value
     form.value = await settingsApi.update(form.value)
     formatting.apply(form.value)
+    settingsStore.apply(form.value)
     schemes.value = normalizeSchemes(form.value.numbering_schemes)
     notify.ok(t('common.save'))
   } catch (e) {
@@ -257,6 +266,7 @@ async function save() {
         <Tab value="contacts">{{ t('settings.companyContacts') }}</Tab>
         <Tab value="images">{{ t('settings.images') }}</Tab>
         <Tab value="numbering">{{ t('settings.numbering') }}</Tab>
+        <Tab value="timeTracking">{{ t('settings.timeTracking') }}</Tab>
       </TabList>
       <TabPanels>
         <TabPanel value="company">
@@ -267,6 +277,7 @@ async function save() {
                 <AppFormField :label="t('settings.companyName')"><InputText v-model="(form.company_name as string)" class="w-full" /></AppFormField>
                 <AppFormField :label="t('common.email')"><InputText v-model="(form.email as string)" class="w-full" /></AppFormField>
                 <AppFormField :label="t('common.phone')"><InputText v-model="(form.phone as string)" class="w-full" /></AppFormField>
+                <AppFormField :label="t('settings.website')"><InputText v-model="(form.website as string)" class="w-full" /></AppFormField>
               </div>
             </fieldset>
 
@@ -424,6 +435,42 @@ async function save() {
                 <div class="font-mono text-sm bg-surface-100 dark:bg-surface-800 px-3 py-2 min-h-10 break-all">{{ previews[entity] || '—' }}</div>
               </div>
             </div>
+          </div>
+        </TabPanel>
+        <TabPanel value="timeTracking">
+          <div class="flex flex-col gap-6 max-w-3xl pt-4">
+            <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
+              <legend class="ml-4 px-2 font-medium">{{ t('settings.groups.timeTracking') }}</legend>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <AppFormField :label="t('settings.timeRoundingStartDirection')">
+                  <Select
+                    v-model="form.time_rounding_start_direction"
+                    :options="roundingDirections"
+                    option-label="label"
+                    option-value="value"
+                    class="w-full"
+                  />
+                </AppFormField>
+                <AppFormField :label="t('settings.timeRoundingStartMinutes')">
+                  <InputNumber v-model="(form.time_rounding_start_minutes as number)" :min="1" class="w-full" />
+                </AppFormField>
+                <AppFormField :label="t('settings.timeRoundingEndDirection')">
+                  <Select
+                    v-model="form.time_rounding_end_direction"
+                    :options="roundingDirections"
+                    option-label="label"
+                    option-value="value"
+                    class="w-full"
+                  />
+                </AppFormField>
+                <AppFormField :label="t('settings.timeRoundingEndMinutes')">
+                  <InputNumber v-model="(form.time_rounding_end_minutes as number)" :min="1" class="w-full" />
+                </AppFormField>
+              </div>
+              <div class="mt-4">
+                <AppCheckboxField v-model="(form.timer_counts_during_break as boolean)" :label="t('settings.timerCountsDuringBreak')" />
+              </div>
+            </fieldset>
           </div>
         </TabPanel>
       </TabPanels>

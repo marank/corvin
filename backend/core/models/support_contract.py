@@ -57,7 +57,7 @@ class SupportContract(OwnedModel):
     next_billing_date = models.DateField()
     active = models.BooleanField(default=True)
     template = models.ForeignKey(
-        "core.InvoiceTemplate", on_delete=models.SET_NULL,
+        "core.DocumentTemplate", on_delete=models.SET_NULL,
         null=True, blank=True, related_name="contracts",
     )
 

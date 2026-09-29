@@ -9,6 +9,8 @@ export interface Address {
   city: string
   country: string
   is_primary: boolean
+  is_invoice_address: boolean
+  is_delivery_address: boolean
 }
 
 export interface BankAccount {
@@ -99,22 +101,31 @@ export interface Visit {
   notes: string
 }
 
+export interface TimeEntryBreak {
+  id: string
+  start_datetime: string
+  end_datetime: string | null
+}
+
 export interface TimeEntry {
   id: string
-  customer: string
-  customer_name: string
+  customer: string | null
+  customer_name: string | null
   project: string | null
   project_name: string | null
   visit: string | null
   contract: string | null
   contract_name: string | null
-  date: string
-  start_time: string
-  end_time: string | null
+  start_datetime: string
+  end_datetime: string | null
+  normalized_start_datetime: string | null
+  normalized_end_datetime: string | null
+  breaks: TimeEntryBreak[]
   break_minutes: number
   duration_minutes: number
   hours: number
   is_running: boolean
+  is_paused: boolean
   description: string
   billable: boolean
   invoice: string | null
@@ -215,7 +226,7 @@ export interface TextBlock {
   content: string
 }
 
-export interface InvoiceTemplate {
+export interface DocumentTemplate {
   id: string
   name: string
   page_size: string
@@ -336,6 +347,9 @@ export const timeEntriesApi = {
   update: (id: string, d: Record<string, unknown>) =>
     api.put<TimeEntry>(`${base}/time-entries/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/time-entries/${id}/`),
+  stop: () => api.post<TimeEntry>(`${base}/time-entries/stop/`),
+  pause: () => api.post<TimeEntry>(`${base}/time-entries/pause/`),
+  resume: () => api.post<TimeEntry>(`${base}/time-entries/resume/`),
 }
 
 export const ratesApi = {
@@ -402,18 +416,18 @@ export const textBlocksApi = {
 }
 
 export const templatesApi = {
-  list: () => api.get<Page<InvoiceTemplate>>(`${base}/invoice-templates/`),
-  get: (id: string) => api.get<InvoiceTemplate>(`${base}/invoice-templates/${id}/`),
-  create: (d: Partial<InvoiceTemplate>) =>
-    api.post<InvoiceTemplate>(`${base}/invoice-templates/`, d),
-  update: (id: string, d: Partial<InvoiceTemplate>) =>
-    api.put<InvoiceTemplate>(`${base}/invoice-templates/${id}/`, d),
-  remove: (id: string) => api.delete(`${base}/invoice-templates/${id}/`),
-  previewUrl: (id: string) => `${base}/invoice-templates/${id}/preview/`,
-  previewPdfUrl: (id: string) => `${base}/invoice-templates/${id}/preview-pdf/`,
-  exportUrl: (id: string) => `${base}/invoice-templates/${id}/export/`,
+  list: () => api.get<Page<DocumentTemplate>>(`${base}/document-templates/`),
+  get: (id: string) => api.get<DocumentTemplate>(`${base}/document-templates/${id}/`),
+  create: (d: Partial<DocumentTemplate>) =>
+    api.post<DocumentTemplate>(`${base}/document-templates/`, d),
+  update: (id: string, d: Partial<DocumentTemplate>) =>
+    api.put<DocumentTemplate>(`${base}/document-templates/${id}/`, d),
+  remove: (id: string) => api.delete(`${base}/document-templates/${id}/`),
+  previewUrl: (id: string) => `${base}/document-templates/${id}/preview/`,
+  previewPdfUrl: (id: string) => `${base}/document-templates/${id}/preview-pdf/`,
+  exportUrl: (id: string) => `${base}/document-templates/${id}/export/`,
   importTemplate: (data: unknown) =>
-    api.post<InvoiceTemplate>(`${base}/invoice-templates/import/`, data),
+    api.post<DocumentTemplate>(`${base}/document-templates/import/`, data),
 }
 
 export const attachmentsApi = {

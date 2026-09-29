@@ -8,8 +8,8 @@ from django.utils.safestring import mark_safe
 from core.models import (
     CompanyContact,
     CompanyImage,
+    DocumentTemplate,
     Invoice,
-    InvoiceTemplate,
     TextBlock,
 )
 
@@ -24,7 +24,7 @@ def company_image_context(owner, for_pdf=False) -> dict:
     }
 
 
-def template_page_context(template: InvoiceTemplate, document_type="invoice") -> dict:
+def template_page_context(template: DocumentTemplate, document_type="invoice") -> dict:
     return {
         "document_type": document_type,
         "size": template.page_size,
@@ -72,7 +72,7 @@ def text_block_context(owner, context: Context) -> dict:
 
 
 def build_pdf_html(
-    template: InvoiceTemplate,
+    template: DocumentTemplate,
     *,
     header: str,
     body: str,
@@ -114,7 +114,7 @@ body > #page-content {{ flex: 1 1 auto; min-height: 0; }}
 
 
 def render_invoice_html(
-    invoice: Invoice, template: InvoiceTemplate | None = None, for_pdf=False
+    invoice: Invoice, template: DocumentTemplate | None = None, for_pdf=False
 ) -> str:
     """Render the invoice's DB-stored template to a full HTML document."""
     if template is None:
@@ -124,13 +124,13 @@ def render_invoice_html(
         assignments = getattr(company, "template_assignments", {}) or {}
         tid = assignments.get("invoice")
         if tid:
-            template = InvoiceTemplate.objects.filter(
+            template = DocumentTemplate.objects.filter(
                 id=tid, owner=invoice.owner,
             ).first()
     if template is None:
-        template = InvoiceTemplate.objects.filter(owner=invoice.owner).first()
+        template = DocumentTemplate.objects.filter(owner=invoice.owner).first()
     if template is None:
-        raise ValueError("No invoice template available.")
+        raise ValueError("No document template available.")
 
     context = Context(default_template_context(invoice, for_pdf))
     context["page"] = template_page_context(template, "invoice")
