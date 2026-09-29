@@ -1,8 +1,13 @@
 from rest_framework import serializers
 
-from core.models import BankAccount, CompanySettings
+from core.models import BankAccount, CompanySettings, InvoiceTemplate
 from core.models.company_settings import NUMBERING_SCHEMES
 from core.services.numbering import normalize_scope
+
+REPORT_TYPES = [
+    "invoice", "credit_note", "quote", "order",
+    "delivery_note", "timesheet",
+]
 
 
 class CompanySettingsSerializer(serializers.ModelSerializer):
@@ -83,3 +88,23 @@ class CompanySettingsSerializer(serializers.ModelSerializer):
                 )
             result[entity] = scheme
         return result
+
+    def validate_template_assignments(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Must be an object.")
+        unknown = set(value) - set(REPORT_TYPES)
+        if unknown:
+            raise serializers.ValidationError(
+                f"Unknown report types: {', '.join(sorted(unknown))}."
+            )
+        user = self.instance.user
+        for report_type, template_id in value.items():
+            if template_id is None:
+                continue
+            if not InvoiceTemplate.objects.filter(
+                id=template_id, owner=user,
+            ).exists():
+                raise serializers.ValidationError(
+                    {report_type: "Invalid template."}
+                )
+        return value

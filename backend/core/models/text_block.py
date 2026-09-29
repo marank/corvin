@@ -8,7 +8,7 @@ class TextBlock(OwnedModel):
     name = models.CharField(max_length=255)
     key = models.CharField(
         max_length=100,
-        validators=[RegexValidator(r"^[a-z][a-z0-9_]*$")],
+        validators=[RegexValidator(r"^[a-zA-Z][a-zA-Z0-9_]*$")],
     )
     content = models.TextField()
 

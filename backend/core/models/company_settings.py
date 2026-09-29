@@ -64,6 +64,7 @@ class CompanySettings(UuidModel):
     )
     currency_space = models.BooleanField(default=True)
     theme = models.CharField(max_length=10, default="light")
+    template_assignments = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         return f"Settings of {self.user}"

@@ -38,6 +38,7 @@ class InvoiceTemplate(OwnedModel):
     background_color = models.CharField(max_length=20, default="#ffffff")
     text_color = models.CharField(max_length=20, default="#161616")
     body_html = models.TextField(
+        blank=True,
         help_text="Django template markup: {{ invoice.number }}, "
                   "{% for item in items %}..."
     )
@@ -51,8 +52,6 @@ class InvoiceTemplate(OwnedModel):
     mail_body = models.TextField(
         blank=True, default="Dear customer,\n\nplease find attached your invoice."
     )
-    is_default = models.BooleanField(default=False)
-
     class Meta:
         ordering = ["name"]
 
@@ -63,13 +62,6 @@ class InvoiceTemplate(OwnedModel):
     @property
     def page_height(self):
         return PAGE_DIMENSIONS[self.page_size][1]
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if self.is_default:
-            type(self).objects.filter(owner=self.owner).exclude(pk=self.pk).update(
-                is_default=False
-            )
 
     def __str__(self):
         return self.name

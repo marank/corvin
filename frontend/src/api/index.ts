@@ -237,7 +237,6 @@ export interface InvoiceTemplate {
   footer_html: string
   mail_subject: string
   mail_body: string
-  is_default: boolean
 }
 
 export interface CompanyContact {
@@ -411,6 +410,7 @@ export const templatesApi = {
     api.put<InvoiceTemplate>(`${base}/invoice-templates/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/invoice-templates/${id}/`),
   previewUrl: (id: string) => `${base}/invoice-templates/${id}/preview/`,
+  previewPdfUrl: (id: string) => `${base}/invoice-templates/${id}/preview-pdf/`,
   exportUrl: (id: string) => `${base}/invoice-templates/${id}/export/`,
   importTemplate: (data: unknown) =>
     api.post<InvoiceTemplate>(`${base}/invoice-templates/import/`, data),

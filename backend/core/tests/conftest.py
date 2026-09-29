@@ -79,7 +79,6 @@ def invoice_template(user):
     return InvoiceTemplate.objects.create(
         owner=user,
         name="Default",
-        is_default=True,
         body_html=(
             "<h1>Rechnung {{ invoice.number }}</h1>"
             "<p>{{ customer.name }}</p>"

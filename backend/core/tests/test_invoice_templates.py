@@ -23,7 +23,7 @@ def test_template_export_import_round_trip(user, invoice_template):
     assert payload["version"] == 1
     assert payload["template"]["primary_color"] == "#123456"
     assert "id" not in payload["template"]
-    assert "is_default" not in payload["template"]
+    assert "created_at" not in payload["template"]
 
     imported = client.post(
         "/api/v1/invoice-templates/import/", payload, format="json"
@@ -35,7 +35,7 @@ def test_template_export_import_round_trip(user, invoice_template):
     assert imported_template.id != invoice_template.id
     assert imported_template.header_html == invoice_template.header_html
     assert imported_template.primary_color == "#123456"
-    assert imported_template.is_default is False
+    assert imported_template.pk != invoice_template.pk
 
 
 @pytest.mark.django_db

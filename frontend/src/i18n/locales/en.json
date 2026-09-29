@@ -165,7 +165,6 @@
     "contacts": "Invoice contacts",
     "inheritedBankAccount": "Customer or company default",
     "quantity": "Qty",
-    "unit": "Unit",
     "unitPrice": "Unit price"
   },
   "designer": {
@@ -180,6 +179,7 @@
     "textBlocks": "Text blocks",
     "textBlock": "Text block",
     "textBlockKey": "Variable key",
+    "textBlockKeyHint": "Letters, digits and underscores only.",
     "textBlockContent": "Content",
     "marginTop": "Top margin (mm)",
     "marginRight": "Right margin (mm)",
@@ -197,12 +197,24 @@
     "bodyHtml": "Body HTML",
     "footerHtml": "Footer HTML",
     "preview": "Preview",
+    "generatingPdf": "Generating PDF...",
     "pageSize": "Page size",
     "margins": "Margins (mm)",
     "mailSubject": "Email subject",
     "mailBody": "Email body",
     "placeholders": "Variables and snippets",
-    "variableGroups": { "invoice": "Invoice", "page": "Page and design", "customer": "Customer", "company": "Company", "bankAccount": "Bank account", "invoiceContacts": "Invoice contacts", "companyContacts": "Company contacts", "relations": "Project and contract", "formatting": "Formatting", "lines": "Invoice lines", "textBlocks": "Text blocks", "images": "Images" }
+    "variableGroups": { "invoice": "Invoice", "page": "Page and design", "customer": "Customer", "company": "Company", "bankAccount": "Bank account", "invoiceContacts": "Invoice contacts", "companyContacts": "Company contacts", "relations": "Project and contract", "formatting": "Formatting", "lines": "Invoice lines", "textBlocks": "Text blocks", "images": "Images" },
+    "assignments": "Assignments",
+    "assignmentsHint": "Select a template for each document type.",
+    "reportTypes": {
+      "invoice": "Invoice",
+      "credit_note": "Credit note",
+      "quote": "Quote",
+      "order": "Order",
+      "delivery_note": "Delivery note",
+      "timesheet": "Timesheet"
+    },
+    "noTemplate": "No template"
   },
   "settings": {
     "title": "Settings",

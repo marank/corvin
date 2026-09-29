@@ -165,7 +165,6 @@
     "contacts": "Rechnungskontakte",
     "inheritedBankAccount": "Kunden- oder Unternehmensstandard",
     "quantity": "Menge",
-    "unit": "Einheit",
     "unitPrice": "Einzelpreis"
   },
   "designer": {
@@ -180,6 +179,7 @@
     "textBlocks": "Textbausteine",
     "textBlock": "Textbaustein",
     "textBlockKey": "Variablenschlüssel",
+    "textBlockKeyHint": "Nur Buchstaben, Ziffern und Unterstriche.",
     "textBlockContent": "Inhalt",
     "marginTop": "Oberer Rand (mm)",
     "marginRight": "Rechter Rand (mm)",
@@ -197,12 +197,24 @@
     "bodyHtml": "Inhalts-HTML",
     "footerHtml": "Fußzeilen-HTML",
     "preview": "Vorschau",
+    "generatingPdf": "PDF wird erstellt...",
     "pageSize": "Seitenformat",
     "margins": "Ränder (mm)",
     "mailSubject": "E-Mail-Betreff",
     "mailBody": "E-Mail-Text",
     "placeholders": "Variablen und Bausteine",
-    "variableGroups": { "invoice": "Rechnung", "page": "Seite und Gestaltung", "customer": "Kunde", "company": "Unternehmen", "bankAccount": "Bankverbindung", "invoiceContacts": "Rechnungskontakte", "companyContacts": "Ansprechpartner", "relations": "Projekt und Vertrag", "formatting": "Formatierung", "lines": "Rechnungspositionen", "textBlocks": "Textbausteine", "images": "Bilder" }
+    "variableGroups": { "invoice": "Rechnung", "page": "Seite und Gestaltung", "customer": "Kunde", "company": "Unternehmen", "bankAccount": "Bankverbindung", "invoiceContacts": "Rechnungskontakte", "companyContacts": "Ansprechpartner", "relations": "Projekt und Vertrag", "formatting": "Formatierung", "lines": "Rechnungspositionen", "textBlocks": "Textbausteine", "images": "Bilder" },
+    "assignments": "Zuordnung",
+    "assignmentsHint": "Wählen Sie für jeden Belegtyp eine Vorlage aus.",
+    "reportTypes": {
+      "invoice": "Rechnung",
+      "credit_note": "Gutschrift",
+      "quote": "Angebot",
+      "order": "Bestellung",
+      "delivery_note": "Lieferschein",
+      "timesheet": "Stundennachweis"
+    },
+    "noTemplate": "Keine Vorlage"
   },
   "settings": {
     "title": "Einstellungen",

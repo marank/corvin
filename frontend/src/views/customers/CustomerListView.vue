@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import AppIconButton from '../../components/ui/AppIconButton.vue'
 import InputNumber from 'primevue/inputnumber'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
@@ -14,10 +15,12 @@ import AppFormField from '../../components/ui/AppFormField.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import { customersApi, type Customer } from '../../api'
 import { useNotify } from '../../composables/useNotify'
+import { useConfirmDelete } from '../../composables/useConfirmDelete'
 
 const { t } = useI18n()
 const router = useRouter()
 const notify = useNotify()
+const confirmDelete = useConfirmDelete()
 const rows = ref<Customer[]>([])
 const loading = ref(true)
 const search = ref('')
@@ -37,6 +40,7 @@ async function save() {
   try {
     await customersApi.create(form.value)
     modal.value?.close()
+    form.value = { name: '', email: '', phone: '', website: '', vat_id: '', buyer_reference: '', payment_terms_days: null, notes: '' }
     notify.ok(t('customers.new'))
     load()
   } catch (e) {
@@ -69,6 +73,9 @@ async function save() {
       </Column>
       <Column :header="t('common.status')">
         <template #body="{ data }"><AppStatusTag :status="data.is_active ? 'active' : 'cancelled'" :label="data.is_active ? t('customers.active') : '—'" /></template>
+      </Column>
+      <Column :header="t('common.actions')">
+        <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await customersApi.remove(data.id); load() })" /></template>
       </Column>
       <template #card="{ row }">
         <div class="font-medium">{{ row.name }}</div>

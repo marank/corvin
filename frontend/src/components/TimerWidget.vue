@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import Button from 'primevue/button'
 import { useTimerStore } from '../stores/timer'
+import AppIconButton from './ui/AppIconButton.vue'
 import { useI18n } from 'vue-i18n'
 
 const timer = useTimerStore()
@@ -22,6 +22,6 @@ const text = computed(() => {
     <span class="w-2 h-2 bg-red-500 animate-pulse" />
     <span class="text-sm font-mono">{{ text }}</span>
     <span class="hidden md:inline text-xs text-surface-500 truncate max-w-40">{{ timer.running.description }}</span>
-    <Button icon="pi pi-stop" text size="small" :title="t('time.stopTimer')" @click="timer.stop()" />
+    <AppIconButton icon="pi pi-stop" :aria-label="t('time.stopTimer')" @click="timer.stop()" />
   </div>
 </template>

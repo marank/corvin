@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
@@ -23,15 +23,19 @@ import AppDateInput from '../../components/ui/AppDateInput.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
 import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
+import AppIconButton from '../../components/ui/AppIconButton.vue'
 import {
   addressesApi, bankAccountsApi, contactsApi, customersApi, ratesApi,
   type Address, type BankAccount, type Contact, type Customer, type HourlyRate,
 } from '../../api'
 import { useNotify } from '../../composables/useNotify'
+import { useConfirmDelete } from '../../composables/useConfirmDelete'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const notify = useNotify()
+const confirmDelete = useConfirmDelete()
 const id = route.params.id as string
 
 const customer = ref<Customer | null>(null)
@@ -93,36 +97,50 @@ async function saveContact() {
       await contactsApi.create({ ...contactForm.value, customer: id })
     }
     contactModal.value?.close()
+    contactForm.value = { is_invoice_contact: false }
     contacts.value = (await contactsApi.list(id)).results
   } catch (e) {
     notify.error(e)
   }
 }
 
-async function removeContact(c: Contact) {
-  await contactsApi.remove(c.id)
-  contacts.value = (await contactsApi.list(id)).results
+function removeContact(c: Contact) {
+  confirmDelete(async () => {
+    await contactsApi.remove(c.id)
+    contacts.value = (await contactsApi.list(id)).results
+  })
 }
 
 async function saveAddress() {
   try {
     await addressesApi.create({ ...addressForm.value, customer: id })
     addressModal.value?.close()
+    addressForm.value = { country: 'Deutschland' }
     load()
   } catch (e) {
     notify.error(e)
   }
 }
 
-async function removeAddress(a: Address) {
-  await addressesApi.remove(a.id)
-  load()
+function removeAddress(a: Address) {
+  confirmDelete(async () => {
+    await addressesApi.remove(a.id)
+    load()
+  })
+}
+
+function removeRate(r: HourlyRate) {
+  confirmDelete(async () => {
+    await ratesApi.remove(r.id)
+    rates.value = (await ratesApi.list(`customer=${id}&page_size=100`)).results
+  })
 }
 
 async function saveRate() {
   try {
     await ratesApi.create({ ...rateForm.value, customer: id })
     rateModal.value?.close()
+    rateForm.value = { amount: 0, valid_from: '', valid_to: null }
     rates.value = (await ratesApi.list(`customer=${id}&page_size=100`)).results
   } catch (e) {
     notify.error(e)
@@ -134,6 +152,7 @@ async function saveRate() {
   <div v-if="customer">
     <AppPageHeader :title="customer.name" :subtitle="subtitle">
       <template #actions>
+        <Button :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await customersApi.remove(id); router.push('/customers') })" />
         <Button :label="t('common.save')" :loading="saving" @click="saveCustomer" />
       </template>
     </AppPageHeader>
@@ -200,7 +219,7 @@ async function saveRate() {
               <template #body="{ data }"><i v-if="data.is_invoice_contact" class="pi pi-check" /></template>
             </Column>
             <Column :header="t('common.actions')">
-              <template #body="{ data }"><Button icon="pi pi-trash" text size="small" severity="danger" @click.stop="removeContact(data)" /></template>
+              <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeContact(data)" /></template>
             </Column>
           </AppDataTable>
         </TabPanel>
@@ -219,7 +238,7 @@ async function saveRate() {
               <template #body="{ data }"><Tag v-if="data.is_primary" :value="t('customers.primary')" severity="info" /></template>
             </Column>
             <Column :header="t('common.actions')">
-              <template #body="{ data }"><Button icon="pi pi-trash" text size="small" severity="danger" @click.stop="removeAddress(data)" /></template>
+              <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeAddress(data)" /></template>
             </Column>
           </AppDataTable>
         </TabPanel>
@@ -234,6 +253,9 @@ async function saveRate() {
             </Column>
             <Column field="valid_to" :header="t('time.end')">
               <template #body="{ data }"><AppDateTimeDisplay :value="data.valid_to" /></template>
+            </Column>
+            <Column :header="t('common.actions')">
+              <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeRate(data)" /></template>
             </Column>
           </AppDataTable>
         </TabPanel>

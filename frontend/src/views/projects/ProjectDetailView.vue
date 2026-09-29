@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
@@ -21,10 +21,13 @@ import AttachmentList from '../../components/AttachmentList.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
 import { projectsApi, type Project } from '../../api'
 import { useNotify } from '../../composables/useNotify'
+import { useConfirmDelete } from '../../composables/useConfirmDelete'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const notify = useNotify()
+const confirmDelete = useConfirmDelete()
 const id = route.params.id as string
 const project = ref<Project | null>(null)
 const form = ref<Partial<Project>>({})
@@ -53,7 +56,10 @@ async function save() {
 <template>
   <div v-if="project">
     <AppPageHeader :title="project.name" :subtitle="project.customer_name">
-      <template #actions><Button :label="t('common.save')" :loading="saving" @click="save" /></template>
+      <template #actions>
+        <Button :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await projectsApi.remove(id); router.push('/projects') })" />
+        <Button :label="t('common.save')" :loading="saving" @click="save" />
+      </template>
     </AppPageHeader>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">

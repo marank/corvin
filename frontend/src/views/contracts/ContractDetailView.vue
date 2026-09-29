@@ -16,11 +16,13 @@ import {
   type ContractUsage, type Invoice, type SupportContract, type TimeEntry,
 } from '../../api'
 import { useNotify } from '../../composables/useNotify'
+import { useConfirmDelete } from '../../composables/useConfirmDelete'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const notify = useNotify()
+const confirmDelete = useConfirmDelete()
 const id = route.params.id as string
 
 const contract = ref<SupportContract | null>(null)
@@ -56,6 +58,7 @@ async function runNow() {
   <div v-if="contract">
     <AppPageHeader :title="contract.name" :subtitle="`${contract.number} · ${contract.customer_name}`">
       <template #actions>
+        <Button :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await contractsApi.remove(id); router.push('/contracts') })" />
         <Button :label="t('contracts.runNow')" icon="pi pi-play" :loading="running" @click="runNow" />
       </template>
     </AppPageHeader>

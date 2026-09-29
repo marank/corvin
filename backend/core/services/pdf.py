@@ -71,47 +71,78 @@ def text_block_context(owner, context: Context) -> dict:
     return rendered
 
 
+def build_pdf_html(
+    template: InvoiceTemplate,
+    *,
+    header: str,
+    body: str,
+    footer: str,
+    css: str,
+) -> str:
+    """Build the full HTML document used by WeasyPrint for PDF generation.
+
+    This is the single source of truth for the PDF page structure shared by
+    real invoice rendering and template preview.
+    """
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+{css}
+@page {{
+  size: {template.page_size};
+  margin: 0;
+}}
+html, body {{ margin: 0; }}
+body {{
+  height: {template.page_height};
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}}
+body > #page-header, body > #page-footer {{ flex: 0 0 auto; min-height: 0; }}
+body > #page-content {{ flex: 1 1 auto; min-height: 0; }}
+</style>
+</head>
+<body>
+<div id="page-header">{header}</div>
+<div id="page-content">{body}</div>
+<div id="page-footer">{footer}</div>
+</body>
+</html>"""
+
+
 def render_invoice_html(
     invoice: Invoice, template: InvoiceTemplate | None = None, for_pdf=False
 ) -> str:
     """Render the invoice's DB-stored template to a full HTML document."""
-    template = template or invoice.template or InvoiceTemplate.objects.filter(
-        owner=invoice.owner, is_default=True
-    ).first()
+    if template is None:
+        template = invoice.template
+    if template is None:
+        company = getattr(invoice.owner, "company_settings", None)
+        assignments = getattr(company, "template_assignments", {}) or {}
+        tid = assignments.get("invoice")
+        if tid:
+            template = InvoiceTemplate.objects.filter(
+                id=tid, owner=invoice.owner,
+            ).first()
+    if template is None:
+        template = InvoiceTemplate.objects.filter(owner=invoice.owner).first()
     if template is None:
         raise ValueError("No invoice template available.")
 
     context = Context(default_template_context(invoice, for_pdf))
     context["page"] = template_page_context(template, "invoice")
     context["text_blocks"] = text_block_context(invoice.owner, context)
-    body = Template(template.body_html).render(context)
-    header = Template(template.header_html).render(context)
-    footer = Template(template.footer_html).render(context)
-    css = Template(template.css).render(context)
 
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-@page {{
-  size: {template.page_size};
-  margin: {template.margin_top}mm {template.margin_right}mm
-          {template.margin_bottom}mm {template.margin_left}mm;
-  @top-center {{ content: element(pageHeader); }}
-  @bottom-center {{ content: element(pageFooter); }}
-}}
-#page-header {{ position: running(pageHeader); }}
-#page-footer {{ position: running(pageFooter); }}
-{css}
-</style>
-</head>
-<body>
-<div id="page-header">{header}</div>
-<div id="page-footer">{footer}</div>
-{body}
-</body>
-</html>"""
+    return build_pdf_html(
+        template,
+        header=Template(template.header_html).render(context),
+        body=Template(template.body_html).render(context),
+        footer=Template(template.footer_html).render(context),
+        css=Template(template.css).render(context),
+    )
 
 
 def render_invoice_pdf(invoice: Invoice) -> bytes:

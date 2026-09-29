@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
@@ -19,6 +19,7 @@ import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
+import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
 import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
@@ -26,10 +27,13 @@ import AttachmentList from '../../components/AttachmentList.vue'
 import InvoicePreviewFrame from '../../components/InvoicePreviewFrame.vue'
 import { bankAccountsApi, invoicesApi, paymentsApi, type BankAccount, type Invoice } from '../../api'
 import { useNotify } from '../../composables/useNotify'
+import { useConfirmDelete } from '../../composables/useConfirmDelete'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const notify = useNotify()
+const confirmDelete = useConfirmDelete()
 const id = route.params.id as string
 
 const invoice = ref<Invoice | null>(null)
@@ -85,6 +89,7 @@ async function addPayment() {
   await act(async () => {
     await paymentsApi.create({ ...paymentForm.value, invoice: id })
     paymentModal.value?.close()
+    paymentForm.value = { date: new Date().toISOString().slice(0, 10), amount: 0, note: '' }
     notify.ok(t('invoices.addPayment'))
   })
 }
@@ -99,7 +104,7 @@ async function addPayment() {
         <Button v-if="canReceivePayment" :label="t('invoices.sendEmail')" icon="pi pi-send" :loading="busy" @click="emailModal?.open()" />
         <Button v-if="canReceivePayment && Number(invoice.remaining) > 0" :label="t('invoices.addPayment')" icon="pi pi-money-bill" @click="paymentForm.amount = Number(invoice.remaining); paymentModal?.open()" />
         <Button v-if="invoice.status === 'issued'" :label="t('invoices.markSent')" text :loading="busy" @click="act(() => invoicesApi.markSent(id))" />
-        <Button v-if="isDraft" :label="t('common.delete')" text severity="danger" @click="act(() => invoicesApi.remove(id))" />
+        <Button v-if="isDraft" :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await invoicesApi.remove(id); router.push('/invoices') })" />
       </template>
     </AppPageHeader>
 
@@ -155,6 +160,9 @@ async function addPayment() {
                   <template #body="{ data }"><AppMoneyDisplay :amount="data.amount" :currency="invoice.currency" /></template>
                 </Column>
                 <Column field="note" :header="t('common.notes')" />
+                <Column :header="t('common.actions')">
+                  <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await paymentsApi.remove(data.id); load() })" /></template>
+                </Column>
               </AppDataTable>
             </TabPanel>
             <TabPanel value="attachments"><AttachmentList model="invoice" :object-id="id" /></TabPanel>

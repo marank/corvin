@@ -65,3 +65,11 @@ def test_text_block_key_validation(user):
     )
 
     assert response.status_code == 400
+
+    # Uppercase keys are accepted
+    ok = client.post(
+        "/api/v1/text-blocks/",
+        {"name": "Valid", "key": "INV_PRE_1", "content": "Text"},
+        format="json",
+    )
+    assert ok.status_code == 201

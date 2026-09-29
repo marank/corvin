@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
@@ -22,10 +22,13 @@ import CustomerSelect from '../../components/CustomerSelect.vue'
 import ProjectSelect from '../../components/ProjectSelect.vue'
 import { timeEntriesApi, visitsApi, type TimeEntry, type Visit } from '../../api'
 import { useNotify } from '../../composables/useNotify'
+import { useConfirmDelete } from '../../composables/useConfirmDelete'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const notify = useNotify()
+const confirmDelete = useConfirmDelete()
 const id = route.params.id as string
 const visit = ref<Visit | null>(null)
 const form = ref<Partial<Visit>>({})
@@ -55,7 +58,10 @@ async function save() {
 <template>
   <div v-if="visit">
     <AppPageHeader :title="`${visit.customer_name} — ${visit.date}`" :subtitle="visit.location">
-      <template #actions><Button :label="t('common.save')" :loading="saving" @click="save" /></template>
+      <template #actions>
+        <Button :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await visitsApi.remove(id); router.push('/visits') })" />
+        <Button :label="t('common.save')" :loading="saving" @click="save" />
+      </template>
     </AppPageHeader>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">

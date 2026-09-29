@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Button from 'primevue/button'
 import FileUpload from 'primevue/fileupload'
 import { attachmentsApi, type Attachment } from '../api'
 import { useNotify } from '../composables/useNotify'
 import AppEmptyState from './ui/AppEmptyState.vue'
+import AppIconButton from './ui/AppIconButton.vue'
 import AppDateTimeDisplay from './ui/AppDateTimeDisplay.vue'
 
 const props = defineProps<{ model: string; objectId: string }>()
@@ -48,7 +48,7 @@ async function remove(a: Attachment) {
         <i class="pi pi-paperclip" />
         <a :href="a.url" target="_blank" class="text-sm text-primary truncate flex-1">{{ a.name }}</a>
         <AppDateTimeDisplay class="text-xs text-surface-400" :value="a.uploaded_at" type="datetime" />
-        <Button icon="pi pi-trash" text size="small" severity="danger" @click="remove(a)" />
+        <AppIconButton icon="pi pi-trash" severity="danger" @click="remove(a)" />
       </li>
     </ul>
   </div>

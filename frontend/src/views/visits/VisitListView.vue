@@ -8,6 +8,7 @@ import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
+import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
@@ -16,10 +17,12 @@ import CustomerSelect from '../../components/CustomerSelect.vue'
 import ProjectSelect from '../../components/ProjectSelect.vue'
 import { visitsApi, type Visit } from '../../api'
 import { useNotify } from '../../composables/useNotify'
+import { useConfirmDelete } from '../../composables/useConfirmDelete'
 
 const { t } = useI18n()
 const router = useRouter()
 const notify = useNotify()
+const confirmDelete = useConfirmDelete()
 const rows = ref<Visit[]>([])
 const loading = ref(true)
 const modal = ref<InstanceType<typeof AppModal>>()
@@ -38,6 +41,7 @@ async function save() {
   try {
     await visitsApi.create(form.value)
     modal.value?.close()
+    form.value = { date: new Date().toISOString().slice(0, 10) }
     load()
   } catch (e) {
     notify.error(e)
@@ -61,6 +65,9 @@ async function save() {
       <Column field="customer_name" :header="t('projects.customer')" />
       <Column field="project_name" :header="t('nav.projects')" />
       <Column field="location" :header="t('visits.location')" />
+      <Column :header="t('common.actions')">
+        <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await visitsApi.remove(data.id); load() })" /></template>
+      </Column>
       <template #card="{ row }">
         <div class="font-medium">{{ row.customer_name }}</div>
         <div class="text-sm text-surface-500"><AppDateTimeDisplay :value="row.date" /> · {{ row.location }}</div>

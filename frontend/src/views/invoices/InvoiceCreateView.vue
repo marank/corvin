@@ -11,6 +11,7 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
+import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
@@ -168,7 +169,7 @@ async function create() {
           <template #body="{ data }"><AppMoneyDisplay :amount="data.quantity * data.unit_price" /></template>
         </Column>
         <Column :header="t('common.actions')">
-          <template #body="{ index }"><Button icon="pi pi-trash" text size="small" severity="danger" @click.stop="manualLines.splice(index, 1)" /></template>
+          <template #body="{ index }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="manualLines.splice(index, 1)" /></template>
         </Column>
       </AppDataTable>
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(240px,1fr)_120px_140px_140px] gap-2 items-end">

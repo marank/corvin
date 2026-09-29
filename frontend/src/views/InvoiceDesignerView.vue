@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
+import SelectButton from 'primevue/selectbutton'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
@@ -20,15 +21,25 @@ import {
   type CompanyImage, type InvoiceTemplate, type TextBlock,
 } from '../api'
 import { useNotify } from '../composables/useNotify'
+import { useConfirmDelete } from '../composables/useConfirmDelete'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const notify = useNotify()
+const confirmDelete = useConfirmDelete()
 const id = route.params.id as string
 
 const template = ref<InvoiceTemplate | null>(null)
 const saving = ref(false)
 const previewKey = ref(0)
+const previewMode = ref<'html' | 'pdf'>('html')
+const previewModes = [
+  { value: 'html' as const, label: 'HTML' },
+  { value: 'pdf' as const, label: 'PDF' },
+]
+const pdfLoading = ref(false)
+const pdfBlobUrl = ref<string | null>(null)
 const pageSizes = [
   { value: 'A3', label: 'DIN A3 — 297 × 420 mm' },
   { value: 'A4', label: 'DIN A4 — 210 × 297 mm' },
@@ -49,7 +60,34 @@ const mobileFooterEditor = ref<InstanceType<typeof AppCodeEditor>>()
 const images = ref<CompanyImage[]>([])
 const textBlocks = ref<TextBlock[]>([])
 
-const previewUrl = computed(() => `${templatesApi.previewUrl(id)}?k=${previewKey.value}`)
+const htmlPreviewUrl = computed(() => `${templatesApi.previewUrl(id)}?k=${previewKey.value}`)
+const previewUrl = computed(() =>
+  previewMode.value === 'pdf' && pdfBlobUrl.value ? pdfBlobUrl.value : htmlPreviewUrl.value,
+)
+
+async function loadPdfPreview() {
+  pdfLoading.value = true
+  try {
+    // Revoke old blob
+    if (pdfBlobUrl.value) {
+      URL.revokeObjectURL(pdfBlobUrl.value)
+      pdfBlobUrl.value = null
+    }
+    const res = await fetch(templatesApi.previewPdfUrl(id), { credentials: 'same-origin' })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const blob = await res.blob()
+    pdfBlobUrl.value = URL.createObjectURL(blob)
+  } catch (e) {
+    notify.error(e)
+    previewMode.value = 'html'
+  } finally {
+    pdfLoading.value = false
+  }
+}
+
+watch(previewMode, (mode) => {
+  if (mode === 'pdf') loadPdfPreview()
+})
 
 const variableGroups = computed<VariableGroup[]>(() => [
   {
@@ -178,6 +216,7 @@ async function save() {
   try {
     template.value = await templatesApi.update(id, template.value)
     previewKey.value++
+    if (previewMode.value === 'pdf') loadPdfPreview()
     notify.ok(t('common.save'))
   } catch (e) {
     notify.error(e)
@@ -195,7 +234,9 @@ watch(() => template.value && [template.value.page_size, template.value.margin_t
   <div v-if="template" class="h-full flex flex-col">
     <AppPageHeader :title="template.name" :subtitle="t('designer.title')">
       <template #actions>
+        <Button :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await templatesApi.remove(id); router.push('/templates') })" />
         <a :href="templatesApi.exportUrl(id)" download><Button :label="t('designer.exportTemplate')" icon="pi pi-download" severity="secondary" /></a>
+        <SelectButton v-model="previewMode" :options="previewModes" option-label="label" option-value="value" :allow-empty="false" />
         <Button :label="t('common.save')" icon="pi pi-save" :loading="saving" @click="save" />
       </template>
     </AppPageHeader>
@@ -254,7 +295,10 @@ watch(() => template.value && [template.value.page_size, template.value.margin_t
             </InvoiceVariableBrowser>
           </TabPanel>
           <TabPanel value="preview" class="h-full min-h-96">
-            <InvoicePreviewFrame :url="previewUrl" />
+            <div v-if="pdfLoading" class="flex items-center justify-center h-full text-surface-500">
+              <i class="pi pi-spin pi-spinner mr-2" />{{ t('designer.generatingPdf') }}
+            </div>
+            <InvoicePreviewFrame v-else :url="previewUrl" :mode="previewMode" />
           </TabPanel>
         </TabPanels>
       </Tabs>
@@ -308,7 +352,10 @@ watch(() => template.value && [template.value.page_size, template.value.margin_t
         </InvoiceVariableBrowser>
       </div>
       <div class="min-h-0 border border-surface-200 dark:border-surface-800">
-        <InvoicePreviewFrame :url="previewUrl" />
+        <div v-if="pdfLoading" class="flex items-center justify-center h-full text-surface-500">
+          <i class="pi pi-spin pi-spinner mr-2" />{{ t('designer.generatingPdf') }}
+        </div>
+        <InvoicePreviewFrame v-else :url="previewUrl" :mode="previewMode" />
       </div>
     </div>
   </div>

@@ -10,10 +10,13 @@ import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
 import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
+import AppIconButton from '../../components/ui/AppIconButton.vue'
 import { invoicesApi, type Invoice } from '../../api'
+import { useConfirmDelete } from '../../composables/useConfirmDelete'
 
 const { t } = useI18n()
 const router = useRouter()
+const confirmDelete = useConfirmDelete()
 const rows = ref<Invoice[]>([])
 const loading = ref(true)
 const statusFilter = ref<string | null>(null)
@@ -57,6 +60,11 @@ onMounted(load)
       <Column :header="t('common.status')">
         <template #body="{ data }">
           <AppStatusTag :status="data.partially_paid ? 'partially_paid' : data.status" :label="data.partially_paid ? t('invoices.paid') + ' (teilw.)' : t(`invoices.status.${data.status}`)" />
+        </template>
+      </Column>
+      <Column :header="t('common.actions')">
+        <template #body="{ data }">
+          <AppIconButton v-if="data.status === 'draft'" icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await invoicesApi.remove(data.id); load() })" />
         </template>
       </Column>
       <template #card="{ row }">

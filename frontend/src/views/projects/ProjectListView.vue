@@ -13,14 +13,17 @@ import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
+import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
 import { projectsApi, type Project } from '../../api'
 import { useNotify } from '../../composables/useNotify'
+import { useConfirmDelete } from '../../composables/useConfirmDelete'
 
 const { t } = useI18n()
 const router = useRouter()
 const notify = useNotify()
+const confirmDelete = useConfirmDelete()
 const rows = ref<Project[]>([])
 const loading = ref(true)
 const modal = ref<InstanceType<typeof AppModal>>()
@@ -41,6 +44,7 @@ async function save() {
   try {
     await projectsApi.create(form.value)
     modal.value?.close()
+    form.value = { status: 'active' }
     notify.ok(t('projects.new'))
     load()
   } catch (e) {
@@ -71,6 +75,9 @@ async function save() {
       </Column>
       <Column :header="t('projects.budgetHours')">
         <template #body="{ data }"><AppNumberDisplay :value="data.budget_hours" /></template>
+      </Column>
+      <Column :header="t('common.actions')">
+        <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await projectsApi.remove(data.id); load() })" /></template>
       </Column>
       <template #card="{ row }">
         <div class="flex justify-between">

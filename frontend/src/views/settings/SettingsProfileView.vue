@@ -23,6 +23,8 @@ import {
   type BankAccount, type CompanyContact, type CompanyImage,
 } from '../../api'
 import { useNotify } from '../../composables/useNotify'
+import { useConfirmDelete } from '../../composables/useConfirmDelete'
+import AppIconButton from '../../components/ui/AppIconButton.vue'
 import { useFormattingStore } from '../../stores/formatting'
 import { currencies } from '../../currencies'
 
@@ -35,6 +37,7 @@ interface NumberScheme {
 const { t } = useI18n()
 const router = useRouter()
 const notify = useNotify()
+const confirmDelete = useConfirmDelete()
 const formatting = useFormattingStore()
 const form = ref<Record<string, unknown>>({})
 const saving = ref(false)
@@ -127,6 +130,7 @@ async function saveBankAccount() {
     }
     bankAccounts.value = (await bankAccountsApi.list()).results
     bankAccountModal.value?.close()
+    bankAccountForm.value = { is_active: true }
   } catch (e) {
     notify.error(e)
   }
@@ -141,10 +145,12 @@ async function setDefaultBankAccount(account: BankAccount) {
   }
 }
 
-async function removeBankAccount(account: BankAccount) {
-  await bankAccountsApi.remove(account.id)
-  bankAccounts.value = bankAccounts.value.filter((item) => item.id !== account.id)
-  if (form.value.default_bank_account === account.id) form.value.default_bank_account = null
+function removeBankAccount(account: BankAccount) {
+  confirmDelete(async () => {
+    await bankAccountsApi.remove(account.id)
+    bankAccounts.value = bankAccounts.value.filter((item) => item.id !== account.id)
+    if (form.value.default_bank_account === account.id) form.value.default_bank_account = null
+  })
 }
 
 function openContact(contact?: CompanyContact) {
@@ -162,14 +168,17 @@ async function saveContact() {
     }
     contacts.value = (await companyContactsApi.list()).results
     contactModal.value?.close()
+    contactForm.value = {}
   } catch (e) {
     notify.error(e)
   }
 }
 
-async function removeContact(contact: CompanyContact) {
-  await companyContactsApi.remove(contact.id)
-  contacts.value = contacts.value.filter((item) => item.id !== contact.id)
+function removeContact(contact: CompanyContact) {
+  confirmDelete(async () => {
+    await companyContactsApi.remove(contact.id)
+    contacts.value = contacts.value.filter((item) => item.id !== contact.id)
+  })
 }
 
 function imageFor(kind: string) {
@@ -209,9 +218,11 @@ async function uploadAdditionalImage() {
   }
 }
 
-async function removeImage(image: CompanyImage) {
-  await companyImagesApi.remove(image.id)
-  images.value = images.value.filter((item) => item.id !== image.id)
+function removeImage(image: CompanyImage) {
+  confirmDelete(async () => {
+    await companyImagesApi.remove(image.id)
+    images.value = images.value.filter((item) => item.id !== image.id)
+  })
 }
 
 async function save() {
@@ -332,7 +343,7 @@ async function save() {
                 </template>
               </Column>
               <Column :header="t('common.actions')">
-                <template #body="{ data }"><Button icon="pi pi-trash" text size="small" severity="danger" @click.stop="removeBankAccount(data)" /></template>
+                <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeBankAccount(data)" /></template>
               </Column>
             </AppDataTable>
           </div>
@@ -349,7 +360,7 @@ async function save() {
               <Column field="email" :header="t('common.email')" />
               <Column field="phone" :header="t('common.phone')" />
               <Column :header="t('common.actions')">
-                <template #body="{ data }"><Button icon="pi pi-trash" text size="small" severity="danger" @click.stop="removeContact(data)" /></template>
+                <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeContact(data)" /></template>
               </Column>
             </AppDataTable>
           </div>
@@ -368,7 +379,7 @@ async function save() {
                     <i class="pi pi-upload mr-2" />{{ t('settings.uploadImage') }}
                     <input type="file" accept="image/*" class="hidden" @change="uploadFixedImage(kind, $event)" />
                   </label>
-                  <Button v-if="imageFor(kind)" icon="pi pi-trash" severity="danger" text size="small" @click="removeImage(imageFor(kind)!)" />
+                  <AppIconButton v-if="imageFor(kind)" icon="pi pi-trash" severity="danger" @click="removeImage(imageFor(kind)!)" />
                 </div>
               </div>
             </div>
@@ -383,7 +394,7 @@ async function save() {
                   <img :src="image.url" :alt="image.name" class="w-full h-24 object-contain mb-2" />
                   <div class="font-medium text-sm truncate">{{ image.name }}</div>
                   <code class="text-xs text-surface-500">{{ image.key }}</code>
-                  <Button icon="pi pi-trash" severity="danger" text size="small" class="float-right" @click="removeImage(image)" />
+                  <AppIconButton icon="pi pi-trash" severity="danger" class="float-right" @click="removeImage(image)" />
                 </div>
               </div>
             </div>

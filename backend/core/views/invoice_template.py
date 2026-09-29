@@ -10,9 +10,10 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.models import CompanyContact, InvoiceTemplate
+from core.models import CompanyContact, CompanyImage, InvoiceTemplate
 from core.serializers import InvoiceTemplateSerializer
 from core.services.pdf import (
+    build_pdf_html,
     company_image_context,
     template_page_context,
     text_block_context,
@@ -86,7 +87,6 @@ class InvoiceTemplateViewSet(OwnedViewSet):
             InvoiceTemplate.objects.create(
                 owner=request.user,
                 name="Default (DIN A4)",
-                is_default=True,
                 body_html=SAMPLE_BODY,
                 css=(
                     "body { font-family: sans-serif; font-size: 10pt; }\n"
@@ -107,7 +107,7 @@ class InvoiceTemplateViewSet(OwnedViewSet):
     def export_template(self, request, pk=None):
         template = self.get_object()
         data = InvoiceTemplateSerializer(template, context={"request": request}).data
-        for field in ("id", "created_at", "updated_at", "is_default"):
+        for field in ("id", "created_at", "updated_at"):
             data.pop(field, None)
         payload = {
             "format": "projectmanager.invoice-template",
@@ -140,7 +140,7 @@ class InvoiceTemplateViewSet(OwnedViewSet):
                 {"detail": "Unsupported template format or version."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        data = {**payload["template"], "is_default": False}
+        data = {**payload["template"]}
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         template = serializer.save()
@@ -149,11 +149,8 @@ class InvoiceTemplateViewSet(OwnedViewSet):
             status=status.HTTP_201_CREATED,
         )
 
-    @xframe_options_exempt
-    @action(detail=True, methods=["get"])
-    def preview(self, request, pk=None):
-        """Render the template with sample data (HTML)."""
-        template = self.get_object()
+    def _build_preview_context(self, request, template):
+        """Build shared sample-data context for HTML and PDF previews."""
         invoice, items, customer, company = _sample_invoice(request)
         ctx = Context({
             "invoice": invoice, "items": items,
@@ -172,6 +169,14 @@ class InvoiceTemplateViewSet(OwnedViewSet):
             "page": template_page_context(template, "invoice"),
         })
         ctx["text_blocks"] = text_block_context(request.user, ctx)
+        return ctx
+
+    @xframe_options_exempt
+    @action(detail=True, methods=["get"])
+    def preview(self, request, pk=None):
+        """Render the template with sample data (HTML)."""
+        template = self.get_object()
+        ctx = self._build_preview_context(request, template)
         body = Template(template.body_html).render(ctx)
         header = Template(template.header_html).render(ctx)
         footer = Template(template.footer_html).render(ctx)
@@ -184,30 +189,56 @@ html, body {{ margin: 0; min-height: 100%; }}
 body {{
   padding: 24px;
   background: #e5e7eb;
-  font-family: sans-serif;
   box-sizing: border-box;
 }}
 .preview-page {{
   width: {page_width};
   height: {page_height};
   margin: 0 auto;
-  padding: {template.margin_top}mm {template.margin_right}mm {template.margin_bottom}mm {template.margin_left}mm;
   display: flex;
   flex-direction: column;
-  position: relative;
   overflow: hidden;
   background: #fff;
   border: 1px solid #9ca3af;
   box-sizing: border-box;
 }}
-.preview-page #page-content {{
-  min-height: 0;
-}}
-.preview-page #page-footer {{
-  width: auto;
-  margin: auto 0 0 0;
-}}
+.preview-page > #page-header, .preview-page > #page-footer {{ flex: 0 0 auto; min-height: 0; }}
+.preview-page > #page-content {{ flex: 1 1 auto; min-height: 0; }}
 </style></head><body>
-<div class="preview-page"><header id="page-header">{header}</header><main id="page-content">{body}</main><footer id="page-footer">{footer}</footer></div>
+<div class="preview-page"><div id="page-header">{header}</div><div id="page-content">{body}</div><div id="page-footer">{footer}</div></div>
 </body></html>"""
         return HttpResponse(html, content_type="text/html")
+
+    @action(detail=True, methods=["get"], url_path="preview-pdf")
+    def preview_pdf(self, request, pk=None):
+        """Render the template with sample data as a PDF (inline)."""
+        from io import BytesIO
+
+        template = self.get_object()
+        ctx = self._build_preview_context(request, template)
+
+        # Use PDF image paths instead of URLs for WeasyPrint
+        from pathlib import Path
+
+        ctx["images"] = {
+            img.key: Path(img.image.path).as_uri()
+            for img in CompanyImage.objects.filter(owner=request.user)
+        }
+
+        html = build_pdf_html(
+            template,
+            header=Template(template.header_html).render(ctx),
+            body=Template(template.body_html).render(ctx),
+            footer=Template(template.footer_html).render(ctx),
+            css=Template(template.css).render(ctx),
+        )
+
+        from weasyprint import HTML
+
+        pdf_io = BytesIO()
+        HTML(string=html).write_pdf(pdf_io)
+        return HttpResponse(
+            pdf_io.getvalue(),
+            content_type="application/pdf",
+            headers={"Content-Disposition": "inline"},
+        )

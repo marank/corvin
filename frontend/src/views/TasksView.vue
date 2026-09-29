@@ -9,6 +9,7 @@ import Textarea from 'primevue/textarea'
 import Checkbox from 'primevue/checkbox'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
 import AppDataTable from '../components/ui/AppDataTable.vue'
+import AppIconButton from '../components/ui/AppIconButton.vue'
 import AppStatusTag from '../components/ui/AppStatusTag.vue'
 import AppModal from '../components/ui/AppModal.vue'
 import AppFormField from '../components/ui/AppFormField.vue'
@@ -18,9 +19,11 @@ import CustomerSelect from '../components/CustomerSelect.vue'
 import ProjectSelect from '../components/ProjectSelect.vue'
 import { tasksApi, type Task } from '../api'
 import { useNotify } from '../composables/useNotify'
+import { useConfirmDelete } from '../composables/useConfirmDelete'
 
 const { t } = useI18n()
 const notify = useNotify()
+const confirmDelete = useConfirmDelete()
 const rows = ref<Task[]>([])
 const loading = ref(true)
 const modal = ref<InstanceType<typeof AppModal>>()
@@ -90,6 +93,9 @@ async function toggleDone(task: Task) {
       </Column>
       <Column :header="t('common.status')">
         <template #body="{ data }"><AppStatusTag :status="data.status" :label="t(`tasks.status.${data.status}`)" /></template>
+      </Column>
+      <Column :header="t('common.actions')">
+        <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await tasksApi.remove(data.id); load() })" /></template>
       </Column>
       <template #card="{ row }">
         <div class="flex items-center gap-2">

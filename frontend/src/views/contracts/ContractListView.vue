@@ -16,15 +16,18 @@ import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppCheckboxField from '../../components/ui/AppCheckboxField.vue'
+import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
 import ProjectSelect from '../../components/ProjectSelect.vue'
 import { contractsApi, type SupportContract } from '../../api'
 import { useNotify } from '../../composables/useNotify'
+import { useConfirmDelete } from '../../composables/useConfirmDelete'
 
 const { t } = useI18n()
 const router = useRouter()
 const notify = useNotify()
+const confirmDelete = useConfirmDelete()
 const rows = ref<SupportContract[]>([])
 const loading = ref(true)
 const modal = ref<InstanceType<typeof AppModal>>()
@@ -48,6 +51,11 @@ async function save() {
   try {
     await contractsApi.create(form.value)
     modal.value?.close()
+    form.value = {
+      period: 'monthly', included_hours: 10, fixed_price: 0,
+      bill_overage: false, active: true, start_date: new Date().toISOString().slice(0, 10),
+      next_billing_date: new Date().toISOString().slice(0, 10),
+    }
     load()
   } catch (e) {
     notify.error(e)
@@ -81,6 +89,9 @@ async function save() {
       <Column :header="t('contracts.nextBilling')"><template #body="{ data }"><AppDateTimeDisplay :value="data.next_billing_date" /></template></Column>
       <Column :header="t('common.status')">
         <template #body="{ data }"><AppStatusTag :status="data.active ? 'active' : 'cancelled'" :label="data.active ? t('customers.active') : '—'" /></template>
+      </Column>
+      <Column :header="t('common.actions')">
+        <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await contractsApi.remove(data.id); load() })" /></template>
       </Column>
       <template #card="{ row }">
         <div class="font-medium">{{ row.name }}</div>

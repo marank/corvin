@@ -43,3 +43,12 @@ body {
   border-radius: 0 !important;
   box-shadow: none !important;
 }
+
+/* Hide in-table icon buttons until the row is hovered */
+tr .app-icon-btn {
+  opacity: 0;
+  transition: opacity 0.1s ease, transform 0.15s ease;
+}
+tr:hover .app-icon-btn {
+  opacity: 1;
+}

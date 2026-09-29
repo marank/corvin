@@ -7,6 +7,7 @@ import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
 import AppDataTable from '../components/ui/AppDataTable.vue'
+import AppIconButton from '../components/ui/AppIconButton.vue'
 import AppDurationDisplay from '../components/ui/AppDurationDisplay.vue'
 import AppDateTimeDisplay from '../components/ui/AppDateTimeDisplay.vue'
 import AppModal from '../components/ui/AppModal.vue'
@@ -16,9 +17,11 @@ import ProjectSelect from '../components/ProjectSelect.vue'
 import { timeEntriesApi, type TimeEntry } from '../api'
 import { useTimerStore } from '../stores/timer'
 import { useNotify } from '../composables/useNotify'
+import { useConfirmDelete } from '../composables/useConfirmDelete'
 
 const { t } = useI18n()
 const notify = useNotify()
+const confirmDelete = useConfirmDelete()
 const timer = useTimerStore()
 const rows = ref<TimeEntry[]>([])
 const loading = ref(true)
@@ -88,6 +91,9 @@ async function startTimer() {
           <Tag v-if="data.invoice" :value="t('time.invoiced')" severity="info" />
           <Tag v-else-if="data.contract" :value="data.contract_name" severity="secondary" />
         </template>
+      </Column>
+      <Column :header="t('common.actions')">
+        <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await timeEntriesApi.remove(data.id); load() })" /></template>
       </Column>
       <template #card="{ row }">
         <div class="flex justify-between items-center">

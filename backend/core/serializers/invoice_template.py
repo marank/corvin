@@ -12,7 +12,7 @@ class InvoiceTemplateSerializer(OwnedSerializer):
             "font_size", "primary_font", "secondary_font",
             "primary_color", "secondary_color", "tertiary_color",
             "background_color", "text_color", "body_html", "css", "header_html", "footer_html",
-            "mail_subject", "mail_body", "is_default",
+            "mail_subject", "mail_body",
             "created_at", "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]
