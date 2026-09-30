@@ -75,15 +75,22 @@ class TimeEntry(OwnedModel):
                 )
 
     def _round_minutes(self, value: datetime, direction: str, increment: int) -> datetime:
-        total = value.hour * 60 + value.minute
+        total_seconds = (
+            value.hour * 3600 + value.minute * 60 + value.second
+        )
+        increment_seconds = increment * 60
         if direction == "forwards":
-            rounded = ((total + increment - 1) // increment) * increment
+            rounded = (
+                (total_seconds + increment_seconds - 1) // increment_seconds
+            ) * increment_seconds
         elif direction == "backwards":
-            rounded = (total // increment) * increment
+            rounded = (total_seconds // increment_seconds) * increment_seconds
         else:  # nearest
-            rounded = round(total / increment) * increment
-        delta = rounded - total
-        return value + timedelta(minutes=delta)
+            rounded = (
+                (total_seconds + increment_seconds // 2) // increment_seconds
+            ) * increment_seconds
+        midnight = value.replace(hour=0, minute=0, second=0, microsecond=0)
+        return midnight + timedelta(seconds=rounded)
 
     def _apply_rounding(self):
         company = getattr(self.owner, "company_settings", None)

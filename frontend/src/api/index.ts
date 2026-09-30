@@ -341,15 +341,15 @@ export const visitsApi = {
   remove: (id: string) => api.delete(`${base}/visits/${id}/`),
 }
 
-export const timeEntriesApi = {
-  list: (params = '') => api.get<Page<TimeEntry>>(`${base}/time-entries/?${params}`),
-  create: (d: Record<string, unknown>) => api.post<TimeEntry>(`${base}/time-entries/`, d),
+export const timeTrackingApi = {
+  list: (params = '') => api.get<Page<TimeEntry>>(`${base}/time-tracking/?${params}`),
+  create: (d: Record<string, unknown>) => api.post<TimeEntry>(`${base}/time-tracking/`, d),
   update: (id: string, d: Record<string, unknown>) =>
-    api.put<TimeEntry>(`${base}/time-entries/${id}/`, d),
-  remove: (id: string) => api.delete(`${base}/time-entries/${id}/`),
-  stop: () => api.post<TimeEntry>(`${base}/time-entries/stop/`),
-  pause: () => api.post<TimeEntry>(`${base}/time-entries/pause/`),
-  resume: () => api.post<TimeEntry>(`${base}/time-entries/resume/`),
+    api.put<TimeEntry>(`${base}/time-tracking/${id}/`, d),
+  remove: (id: string) => api.delete(`${base}/time-tracking/${id}/`),
+  stop: () => api.post<TimeEntry>(`${base}/time-tracking/stop/`),
+  pause: () => api.post<TimeEntry>(`${base}/time-tracking/pause/`),
+  resume: () => api.post<TimeEntry>(`${base}/time-tracking/resume/`),
 }
 
 export const ratesApi = {

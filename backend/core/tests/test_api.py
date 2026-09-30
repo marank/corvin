@@ -48,16 +48,16 @@ def test_owner_isolation(user, customer):
 
 @pytest.mark.django_db
 def test_timer_flow(client, customer, project):
-    r = client.post("/api/v1/time-entries/start_timer/", {
+    r = client.post("/api/v1/time-tracking/start/", {
         "customer": str(customer.id), "project": str(project.id),
         "description": "debugging",
     })
     assert r.status_code == 201
-    r2 = client.post("/api/v1/time-entries/stop/")
+    r2 = client.post("/api/v1/time-tracking/stop/")
     assert r2.status_code == 200
     assert r2.json()["is_running"] is False
     # customer-only timer (no project) works too
-    r3 = client.post("/api/v1/time-entries/start_timer/",
+    r3 = client.post("/api/v1/time-tracking/start/",
                      {"customer": str(customer.id)})
     assert r3.status_code == 201
 

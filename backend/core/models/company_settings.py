@@ -68,6 +68,11 @@ class CompanySettings(UuidModel):
         BACKWARDS = "backwards", "Backwards"
         FORWARDS = "forwards", "Forwards"
 
+    class OpenStoppedTimeEntry(models.TextChoices):
+        ASK = "ask", "Ask"
+        YES = "yes", "Yes"
+        NO = "no", "No"
+
     currency_space = models.BooleanField(default=True)
     theme = models.CharField(max_length=10, default="light")
     template_assignments = models.JSONField(default=dict, blank=True)
@@ -84,6 +89,12 @@ class CompanySettings(UuidModel):
     )
     time_rounding_end_minutes = models.PositiveIntegerField(default=5)
     timer_counts_during_break = models.BooleanField(default=False)
+    always_show_timer_widget = models.BooleanField(default=False)
+    open_stopped_time_entry = models.CharField(
+        max_length=3,
+        choices=OpenStoppedTimeEntry.choices,
+        default=OpenStoppedTimeEntry.ASK,
+    )
 
     def __str__(self):
         return f"Settings of {self.user}"

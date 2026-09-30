@@ -12,7 +12,7 @@ import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import ContractUsageBar from '../../components/ContractUsageBar.vue'
 import {
-  contractsApi, invoicesApi, timeEntriesApi,
+  contractsApi, invoicesApi, timeTrackingApi,
   type ContractUsage, type Invoice, type SupportContract, type TimeEntry,
 } from '../../api'
 import { useNotify } from '../../composables/useNotify'
@@ -34,7 +34,7 @@ const running = ref(false)
 async function load() {
   contract.value = await contractsApi.get(id)
   usage.value = await contractsApi.usage(id)
-  entries.value = (await timeEntriesApi.list(`contract=${id}&page_size=200`)).results
+  entries.value = (await timeTrackingApi.list(`contract=${id}&page_size=200`)).results
   invoices.value = (await invoicesApi.list(`contract=${id}&page_size=100`)).results
 }
 onMounted(load)

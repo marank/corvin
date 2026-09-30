@@ -11,7 +11,7 @@ import AppDurationDisplay from '../components/ui/AppDurationDisplay.vue'
 import AppDateTimeDisplay from '../components/ui/AppDateTimeDisplay.vue'
 import AppModal from '../components/ui/AppModal.vue'
 import TimeEntryForm from '../components/TimeEntryForm.vue'
-import { timeEntriesApi, type TimeEntry } from '../api'
+import { timeTrackingApi, type TimeEntry } from '../api'
 import { useTimerStore } from '../stores/timer'
 import { useNotify } from '../composables/useNotify'
 import { useConfirmDelete } from '../composables/useConfirmDelete'
@@ -33,7 +33,7 @@ const runningStart = computed(() => {
 
 async function load() {
   loading.value = true
-  rows.value = (await timeEntriesApi.list('page_size=500&ordering=-date,-start_time')).results
+  rows.value = (await timeTrackingApi.list('page_size=500&ordering=-start_datetime')).results
   timer.refresh()
   loading.value = false
 }
@@ -125,7 +125,7 @@ const startTimeText = computed(() => {
         </template>
       </Column>
       <Column :header="t('common.actions')">
-        <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await timeEntriesApi.remove(data.id); load() })" /></template>
+        <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await timeTrackingApi.remove(data.id); load() })" /></template>
       </Column>
       <template #card="{ row }">
         <div class="flex justify-between items-center">
@@ -138,7 +138,7 @@ const startTimeText = computed(() => {
       </template>
     </AppDataTable>
 
-    <AppModal ref="modal" :title="t('time.new')" size="lg" :show-footer="false">
+    <AppModal ref="modal" :title="editing ? t('time.editEntry') : t('time.new')" size="lg" :show-footer="false">
       <TimeEntryForm :entry="editing" @saved="modal?.close(); load()" @cancel="modal?.close()" />
     </AppModal>
   </div>

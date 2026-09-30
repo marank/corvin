@@ -106,7 +106,7 @@ async function toggleDone(task: Task) {
       </template>
     </AppDataTable>
 
-    <AppModal ref="modal" :title="t('tasks.new')" @confirm="save">
+    <AppModal ref="modal" :title="editing ? t('common.edit') : t('tasks.new')" @confirm="save">
       <div class="flex flex-col gap-4">
         <AppFormField v-if="editing" :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
         <AppFormField :label="t('common.name')" required><InputText v-model="form.title" class="w-full" /></AppFormField>

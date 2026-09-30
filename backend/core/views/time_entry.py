@@ -49,7 +49,7 @@ class TimeEntryViewSet(OwnedViewSet):
         )
 
     @action(detail=False, methods=["post"])
-    def start_timer(self, request):
+    def start(self, request):
         if self.get_queryset().filter(end_datetime__isnull=True).exists():
             return Response(
                 {"detail": "A timer is already running."},

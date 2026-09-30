@@ -52,6 +52,11 @@ const roundingDirections = [
   { label: t('settings.roundingDirections.backwards'), value: 'backwards' },
   { label: t('settings.roundingDirections.forwards'), value: 'forwards' },
 ]
+const openStoppedTimeEntryOptions = [
+  { label: t('common.ask'), value: 'ask' },
+  { label: t('common.yes'), value: 'yes' },
+  { label: t('common.no'), value: 'no' },
+]
 const defaultSchemes: Record<string, NumberScheme> = {
   customer: { format: 'K-{counter:4}', scope: [], start: 1000 },
   project: { format: 'P-{counter:4}', scope: ['customer'], start: 1 },
@@ -467,8 +472,18 @@ async function save() {
                   <InputNumber v-model="(form.time_rounding_end_minutes as number)" :min="1" class="w-full" />
                 </AppFormField>
               </div>
-              <div class="mt-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <AppCheckboxField v-model="(form.timer_counts_during_break as boolean)" :label="t('settings.timerCountsDuringBreak')" />
+                <AppCheckboxField v-model="(form.always_show_timer_widget as boolean)" :label="t('settings.alwaysShowTimerWidget')" />
+                <AppFormField :label="t('settings.openStoppedTimeEntry')">
+                  <Select
+                    v-model="form.open_stopped_time_entry"
+                    :options="openStoppedTimeEntryOptions"
+                    option-label="label"
+                    option-value="value"
+                    class="w-full"
+                  />
+                </AppFormField>
               </div>
             </fieldset>
           </div>

@@ -42,7 +42,7 @@ router.register("projects", ProjectViewSet, basename="project")
 router.register("tasks", TaskViewSet, basename="task")
 router.register("text-blocks", TextBlockViewSet, basename="text-block")
 router.register("visits", OnSiteVisitViewSet, basename="visit")
-router.register("time-entries", TimeEntryViewSet, basename="time-entry")
+router.register("time-tracking", TimeEntryViewSet, basename="time-tracking")
 router.register("hourly-rates", HourlyRateViewSet, basename="hourly-rate")
 router.register(
     "support-contracts", SupportContractViewSet, basename="support-contract"

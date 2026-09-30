@@ -21,7 +21,7 @@ import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
 import ProjectSelect from '../../components/ProjectSelect.vue'
 import {
-  bankAccountsApi, contactsApi, invoicesApi, timeEntriesApi,
+  bankAccountsApi, contactsApi, invoicesApi, timeTrackingApi,
   type BankAccount, type Contact, type TimeEntry,
 } from '../../api'
 import { useNotify } from '../../composables/useNotify'
@@ -100,7 +100,7 @@ watch([customerId, projectId, dateFrom, dateTo], async () => {
   if (projectId.value) params.set('project', String(projectId.value))
   if (dateFrom.value) params.set('date__gte', dateFrom.value)
   if (dateTo.value) params.set('date__lte', dateTo.value)
-  entries.value = (await timeEntriesApi.list(params.toString())).results
+  entries.value = (await timeTrackingApi.list(params.toString())).results
 })
 
 const totalHours = computed(() => entries.value.reduce((s, e) => s + e.duration_minutes, 0) / 60)

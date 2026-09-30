@@ -14,7 +14,7 @@ import CustomerSelect from './CustomerSelect.vue'
 import ProjectSelect from './ProjectSelect.vue'
 import {
   contractsApi,
-  timeEntriesApi,
+  timeTrackingApi,
   type SupportContract,
   type TimeEntry,
 } from '../api'
@@ -169,8 +169,8 @@ async function save() {
       billable: form.value.billable,
     }
     const saved = props.entry
-      ? await timeEntriesApi.update(props.entry.id, payload)
-      : await timeEntriesApi.create(payload)
+      ? await timeTrackingApi.update(props.entry.id, payload)
+      : await timeTrackingApi.create(payload)
     emit('saved', saved)
   } catch (e) {
     notify.error(e, t('common.save'))

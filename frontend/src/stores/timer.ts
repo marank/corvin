@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import type { TimeEntry } from '../api'
 import { api } from '../api/client'
 import { useSettingsStore } from './settings'
 
@@ -37,7 +38,7 @@ export const useTimerStore = defineStore('timer', {
   actions: {
     async refresh() {
       this.running = await api.get<RunningEntry | null>(
-        '/api/v1/time-entries/active/',
+        '/api/v1/time-tracking/active/',
       )
       this._tick()
     },
@@ -83,30 +84,31 @@ export const useTimerStore = defineStore('timer', {
     },
     async start(customer: string | null = null, project: string | null = null, description = '') {
       this.running = await api.post<RunningEntry>(
-        '/api/v1/time-entries/start_timer/',
+        '/api/v1/time-tracking/start/',
         { customer, project, description },
       )
       this.version++
       this._tick()
     },
-    async stop() {
-      if (!this.running) return
-      await api.post('/api/v1/time-entries/stop/')
+    async stop(): Promise<TimeEntry | null> {
+      if (!this.running) return null
+      const entry = await api.post<TimeEntry>('/api/v1/time-tracking/stop/')
       this.running = null
       this.elapsed = 0
       this.breakElapsed = 0
       this.version++
       if (this._interval) clearInterval(this._interval)
+      return entry
     },
     async pause() {
       if (!this.running) return
-      this.running = await api.post<RunningEntry>('/api/v1/time-entries/pause/')
+      this.running = await api.post<RunningEntry>('/api/v1/time-tracking/pause/')
       this.version++
       this._tick()
     },
     async resume() {
       if (!this.running) return
-      this.running = await api.post<RunningEntry>('/api/v1/time-entries/resume/')
+      this.running = await api.post<RunningEntry>('/api/v1/time-tracking/resume/')
       this.version++
       this._tick()
     },
