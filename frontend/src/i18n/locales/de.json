@@ -28,6 +28,7 @@
     "send": "Senden",
     "yes": "Ja",
     "no": "Nein",
+    "done": "Fertig",
     "ask": "Nachfragen",
     "empty": "Keine Einträge vorhanden",
     "total": "Gesamt",
@@ -49,6 +50,16 @@
     "password": "Passwort",
     "otpCode": "Authentifizierungscode",
     "loginFailed": "Anmeldung fehlgeschlagen"
+  },
+  "table": {
+    "select": "Auswählen",
+    "selected": "{count} ausgewählt",
+    "selectPage": "Seite auswählen",
+    "clearSelection": "Auswahl löschen",
+    "sortBy": "Sortieren nach",
+    "ascending": "Aufsteigend",
+    "descending": "Absteigend",
+    "pageReport": "{first}–{last} von {totalRecords}"
   },
   "customers": {
     "title": "Kunden",

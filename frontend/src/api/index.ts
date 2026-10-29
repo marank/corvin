@@ -300,7 +300,7 @@ export const customersApi = {
 
 export const addressesApi = {
   list: (customerId: string) =>
-    api.get<Page<Address>>(`${base}/addresses/?customer=${customerId}`),
+    api.get<Page<Address>>(`${base}/addresses/?customer=${customerId}&page_size=500`),
   create: (d: Partial<Address>) => api.post<Address>(`${base}/addresses/`, d),
   update: (id: string, d: Partial<Address>) =>
     api.put<Address>(`${base}/addresses/${id}/`, d),
@@ -309,7 +309,7 @@ export const addressesApi = {
 
 export const contactsApi = {
   list: (customerId: string) =>
-    api.get<Page<Contact>>(`${base}/contacts/?customer=${customerId}`),
+    api.get<Page<Contact>>(`${base}/contacts/?customer=${customerId}&page_size=500`),
   create: (d: Partial<Contact>) => api.post<Contact>(`${base}/contacts/`, d),
   update: (id: string, d: Partial<Contact>) =>
     api.put<Contact>(`${base}/contacts/${id}/`, d),
@@ -343,6 +343,8 @@ export const visitsApi = {
 
 export const timeTrackingApi = {
   list: (params = '') => api.get<Page<TimeEntry>>(`${base}/time-tracking/?${params}`),
+  summary: (params = '') =>
+    api.get<{ count: number; total_minutes: number }>(`${base}/time-tracking/summary/?${params}`),
   create: (d: Record<string, unknown>) => api.post<TimeEntry>(`${base}/time-tracking/`, d),
   update: (id: string, d: Record<string, unknown>) =>
     api.put<TimeEntry>(`${base}/time-tracking/${id}/`, d),
@@ -408,7 +410,7 @@ export const paymentsApi = {
 }
 
 export const textBlocksApi = {
-  list: () => api.get<Page<TextBlock>>(`${base}/text-blocks/?page_size=200`),
+  list: (params = 'page_size=200') => api.get<Page<TextBlock>>(`${base}/text-blocks/?${params}`),
   create: (d: Partial<TextBlock>) => api.post<TextBlock>(`${base}/text-blocks/`, d),
   update: (id: string, d: Partial<TextBlock>) =>
     api.put<TextBlock>(`${base}/text-blocks/${id}/`, d),
@@ -416,7 +418,7 @@ export const textBlocksApi = {
 }
 
 export const templatesApi = {
-  list: () => api.get<Page<DocumentTemplate>>(`${base}/document-templates/`),
+  list: (params = '') => api.get<Page<DocumentTemplate>>(`${base}/document-templates/?${params}`),
   get: (id: string) => api.get<DocumentTemplate>(`${base}/document-templates/${id}/`),
   create: (d: Partial<DocumentTemplate>) =>
     api.post<DocumentTemplate>(`${base}/document-templates/`, d),
@@ -435,7 +437,7 @@ export const attachmentsApi = {
     api.get<Record<string, number>>(`${base}/attachments/content_types/`),
   list: (contentType: number, objectId: string) =>
     api.get<Page<Attachment>>(
-      `${base}/attachments/?content_type=${contentType}&object_id=${objectId}`,
+      `${base}/attachments/?content_type=${contentType}&object_id=${objectId}&page_size=500`,
     ),
   upload: (contentType: number, objectId: string, file: File) => {
     const form = new FormData()

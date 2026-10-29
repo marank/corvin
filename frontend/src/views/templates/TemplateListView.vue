@@ -22,6 +22,8 @@ import {
 } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
+import { usePagination } from '../../composables/usePagination'
+import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -38,15 +40,33 @@ const loading = ref(true)
 const assignments = ref<Record<string, string | null>>({})
 const savingAssignments = ref(false)
 const reportTypes = ['invoice', 'credit_note', 'quote', 'order', 'delivery_note', 'timesheet']
+const textBlockPagination = usePagination(loadTextBlocks, 'name')
+const textBlockSortOptions = [
+  { label: t('common.name'), value: 'name' },
+  { label: t('designer.textBlockKey'), value: 'key' },
+]
+
+onMounted(load)
+
+async function loadTemplates() {
+  rows.value = (await templatesApi.list('page_size=500&ordering=name')).results
+}
+
+async function loadTextBlocks() {
+  const results = await textBlockPagination.fetchPage(textBlocksApi.list)
+  if (results) textBlocks.value = results
+}
 
 async function load() {
-  const [templatePage, textBlockPage, settings] = await Promise.all([
-    templatesApi.list(), textBlocksApi.list(), settingsApi.get(),
-  ])
-  rows.value = templatePage.results
-  textBlocks.value = textBlockPage.results
-  assignments.value = { ...settings.template_assignments as Record<string, string | null> }
-  loading.value = false
+  loading.value = true
+  try {
+    const [, , settings] = await Promise.all([
+      loadTemplates(), textBlockPagination.start(), settingsApi.get(),
+    ])
+    assignments.value = { ...settings.template_assignments as Record<string, string | null> }
+  } finally {
+    loading.value = false
+  }
 }
 
 async function saveAssignments() {
@@ -74,7 +94,7 @@ async function saveTextBlock() {
     } else {
       await textBlocksApi.create(textBlockForm.value)
     }
-    await load()
+    await loadTextBlocks()
     textBlockModal.value?.close()
     textBlockForm.value = {}
   } catch (error) {
@@ -85,18 +105,16 @@ async function saveTextBlock() {
 function removeTextBlock(textBlock: TextBlock) {
   confirmDelete(async () => {
     await textBlocksApi.remove(textBlock.id)
-    textBlocks.value = textBlocks.value.filter((item) => item.id !== textBlock.id)
+    await loadTextBlocks()
   })
 }
 
 function removeTemplate(template: DocumentTemplate) {
   confirmDelete(async () => {
     await templatesApi.remove(template.id)
-    rows.value = rows.value.filter((item) => item.id !== template.id)
+    await loadTemplates()
   })
 }
-
-onMounted(load)
 
 async function createTemplate() {
   try {
@@ -113,7 +131,7 @@ async function importTemplate(event: Event) {
   if (!file) return
   try {
     const imported = await templatesApi.importTemplate(JSON.parse(await file.text()))
-    await load()
+    await loadTemplates()
     notify.ok(t('designer.importSuccess'))
     router.push(`/templates/${imported.id}`)
   } catch (error) {
@@ -164,10 +182,14 @@ async function importTemplate(event: Event) {
           </div>
         </TabPanel>
         <TabPanel value="templates">
-          <AppDataTable :rows="rows" :loading="loading" @row-click="(r: DocumentTemplate) => router.push(`/templates/${r.id}`)">
-            <Column field="name" :header="t('common.name')" />
-            <Column field="page_size" :header="t('designer.pageSize')" />
-            <Column :header="t('common.actions')">
+          <AppDataTable
+            :rows="rows" :loading="loading"
+            :state-key="tableStateKeys.documentTemplates"
+            @row-click="(r: DocumentTemplate) => router.push(`/templates/${r.id}`)"
+          >
+            <Column field="name" :header="t('common.name')" sortable />
+            <Column field="page_size" :header="t('designer.pageSize')" sortable />
+            <Column :header="t('common.actions')" :reorderable-column="false">
               <template #body="{ data }">
                 <a :href="templatesApi.exportUrl(data.id)" download @click.stop>
                   <AppIconButton icon="pi pi-download" :aria-label="t('designer.exportTemplate')" />
@@ -178,10 +200,16 @@ async function importTemplate(event: Event) {
           </AppDataTable>
         </TabPanel>
         <TabPanel value="textBlocks">
-          <AppDataTable :rows="textBlocks" :loading="loading" @row-click="openTextBlock">
-            <Column field="name" :header="t('common.name')" />
-            <Column field="key" :header="t('designer.textBlockKey')" />
-            <Column :header="t('common.actions')">
+          <AppDataTable
+            :rows="textBlocks" :loading="textBlockPagination.loading.value" lazy
+            :total-records="textBlockPagination.totalRecords.value" :first="textBlockPagination.first.value"
+            :page-size="textBlockPagination.pageSize.value" :sort-field="textBlockPagination.sortField.value"
+            :sort-order="textBlockPagination.sortOrder.value" :sort-options="textBlockSortOptions"
+            :state-key="tableStateKeys.textBlocks" @state-restore="textBlockPagination.onRestore" @page="textBlockPagination.onPage" @sort="textBlockPagination.onSort" @row-click="openTextBlock"
+          >
+            <Column field="name" :header="t('common.name')" sortable />
+            <Column field="key" :header="t('designer.textBlockKey')" sortable />
+            <Column :header="t('common.actions')" :reorderable-column="false">
               <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeTextBlock(data)" /></template>
             </Column>
           </AppDataTable>

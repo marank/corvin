@@ -20,12 +20,13 @@ import ProjectSelect from '../components/ProjectSelect.vue'
 import { tasksApi, type Task } from '../api'
 import { useNotify } from '../composables/useNotify'
 import { useConfirmDelete } from '../composables/useConfirmDelete'
+import { usePagination } from '../composables/usePagination'
+import { tableStateKeys } from '../tableStateKeys'
 
 const { t } = useI18n()
 const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const rows = ref<Task[]>([])
-const loading = ref(true)
 const modal = ref<InstanceType<typeof AppModal>>()
 const editing = ref<Task | null>(null)
 const form = ref<Partial<Task>>({ priority: 'medium', status: 'open' })
@@ -33,14 +34,25 @@ const statusFilter = ref<string | null>(null)
 
 const priorities = ['low', 'medium', 'high']
 const statuses = ['open', 'in_progress', 'done']
+const pagination = usePagination(load, 'position')
+const sortOptions = [
+  { label: '#', value: 'number' },
+  { label: t('common.name'), value: 'title' },
+  { label: t('projects.customer'), value: 'customer__name' },
+  { label: t('nav.projects'), value: 'project__name' },
+  { label: t('tasks.dueDate'), value: 'due_date' },
+  { label: t('tasks.priority'), value: 'priority' },
+  { label: t('common.status'), value: 'status' },
+]
+
+onMounted(pagination.start)
 
 async function load() {
-  loading.value = true
-  const p = statusFilter.value ? `status=${statusFilter.value}&` : ''
-  rows.value = (await tasksApi.list(`${p}page_size=500`)).results
-  loading.value = false
+  const params = new URLSearchParams()
+  if (statusFilter.value) params.set('status', statusFilter.value)
+  const results = await pagination.fetchPage(tasksApi.list, params)
+  if (results) rows.value = results
 }
-onMounted(load)
 
 function openEdit(task?: Task) {
   editing.value = task ?? null
@@ -71,7 +83,7 @@ async function toggleDone(task: Task) {
   <div>
     <AppPageHeader :title="t('tasks.title')">
       <template #actions>
-        <Select v-model="statusFilter" :options="statuses" :placeholder="t('common.status')" show-clear class="w-40" @update:model-value="load">
+        <Select v-model="statusFilter" :options="statuses" :placeholder="t('common.status')" show-clear class="w-40" @update:model-value="pagination.refresh">
           <template #option="{ option }">{{ t(`tasks.status.${option}`) }}</template>
           <template #value="{ value }">{{ value ? t(`tasks.status.${value}`) : '' }}</template>
         </Select>
@@ -79,22 +91,28 @@ async function toggleDone(task: Task) {
       </template>
     </AppPageHeader>
 
-    <AppDataTable :rows="rows" :loading="loading" @row-click="openEdit">
-      <Column :header="''" class="w-8">
+    <AppDataTable
+      :rows="rows" :loading="pagination.loading.value" lazy selectable
+      :total-records="pagination.totalRecords.value" :first="pagination.first.value"
+      :page-size="pagination.pageSize.value" :sort-field="pagination.sortField.value"
+      :sort-order="pagination.sortOrder.value" :sort-options="sortOptions"
+      :state-key="tableStateKeys.tasks" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort" @row-click="openEdit"
+    >
+      <Column :header="''" class="w-8" :reorderable-column="false">
         <template #body="{ data }"><Checkbox :model-value="data.status === 'done'" binary @click.stop @change="toggleDone(data)" /></template>
       </Column>
-      <Column field="number" header="#" />
-      <Column field="title" :header="t('common.name')" />
-      <Column field="customer_name" :header="t('projects.customer')" />
-      <Column field="project_name" :header="t('nav.projects')" />
-      <Column :header="t('tasks.dueDate')"><template #body="{ data }"><AppDateTimeDisplay :value="data.due_date" /></template></Column>
-      <Column :header="t('tasks.priority')">
+      <Column field="number" header="#" sortable />
+      <Column field="title" :header="t('common.name')" sortable />
+      <Column field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
+      <Column field="project_name" sort-field="project__name" :header="t('nav.projects')" sortable />
+      <Column field="due_date" :header="t('tasks.dueDate')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.due_date" /></template></Column>
+      <Column field="priority" :header="t('tasks.priority')" sortable>
         <template #body="{ data }"><AppStatusTag :status="data.priority" :label="t(`tasks.priorities.${data.priority}`)" /></template>
       </Column>
-      <Column :header="t('common.status')">
+      <Column field="status" :header="t('common.status')" sortable>
         <template #body="{ data }"><AppStatusTag :status="data.status" :label="t(`tasks.status.${data.status}`)" /></template>
       </Column>
-      <Column :header="t('common.actions')">
+      <Column :header="t('common.actions')" :reorderable-column="false">
         <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await tasksApi.remove(data.id); load() })" /></template>
       </Column>
       <template #card="{ row }">

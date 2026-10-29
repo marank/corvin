@@ -12,7 +12,10 @@ class TaskViewSet(OwnedViewSet):
     serializer_class = TaskSerializer
     filterset_fields = ["customer", "project", "visit", "status", "priority"]
     search_fields = ["number", "title", "description"]
-    ordering_fields = ["number", "due_date", "priority", "position", "created_at"]
+    ordering_fields = [
+        "number", "title", "customer__name", "project__name", "due_date",
+        "priority", "status", "position", "created_at",
+    ]
 
     def perform_create(self, serializer):
         project = serializer.validated_data.get("project")

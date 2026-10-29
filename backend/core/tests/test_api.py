@@ -8,6 +8,7 @@ from rest_framework.test import APIClient
 from core.models import (
     CompanySettings,
     Contact,
+    Customer,
     HourlyRate,
     TimeEntry,
 )
@@ -44,6 +45,90 @@ def test_owner_isolation(user, customer):
     c.force_authenticate(other)
     r = c.get("/api/v1/customers/")
     assert r.json()["results"] == []
+
+
+@pytest.mark.django_db
+def test_customer_pagination_and_ordering(client, user):
+    Customer.objects.bulk_create([
+        Customer(owner=user, number=f"K-{index:03d}", name=f"Customer {index:03d}")
+        for index in range(55)
+    ])
+
+    first_page = client.get("/api/v1/customers/?ordering=number")
+    assert first_page.status_code == 200
+    assert first_page.json()["count"] == 55
+    assert len(first_page.json()["results"]) == 50
+    assert first_page.json()["results"][0]["number"] == "K-000"
+
+    second_page = client.get("/api/v1/customers/?page=2&page_size=10&ordering=-number")
+    assert second_page.status_code == 200
+    assert len(second_page.json()["results"]) == 10
+    assert second_page.json()["results"][0]["number"] == "K-044"
+
+    capped = client.get("/api/v1/customers/?page_size=10000")
+    assert len(capped.json()["results"]) == 55
+
+    assert client.get("/api/v1/customers/?page=99").status_code == 404
+
+
+@pytest.mark.django_db
+def test_customer_ordering_by_annotations(client, user, customer, project):
+    other = Customer.objects.create(owner=user, number="K-999", name="Zeta")
+    tz = timezone.get_current_timezone()
+    TimeEntry.objects.create(
+        owner=user, customer=other,
+        start_datetime=timezone.make_aware(datetime(2026, 9, 1, 9, 0), tz),
+        end_datetime=timezone.make_aware(datetime(2026, 9, 1, 12, 0), tz),
+    )
+
+    by_projects = client.get("/api/v1/customers/?ordering=-project_count").json()
+    assert by_projects["results"][0]["id"] == str(customer.id)
+    assert by_projects["count"] == 2
+
+    by_hours = client.get("/api/v1/customers/?ordering=-uninvoiced_hours").json()
+    assert by_hours["results"][0]["id"] == str(other.id)
+    assert by_hours["count"] == 2
+
+    ignored = client.get("/api/v1/customers/?ordering=is_active")
+    assert ignored.status_code == 200
+
+
+@pytest.mark.django_db
+def test_time_entry_date_range_filter(client, user, customer):
+    tz = timezone.get_current_timezone()
+    for day in (1, 15, 30):
+        TimeEntry.objects.create(
+            owner=user, customer=customer,
+            start_datetime=timezone.make_aware(datetime(2026, 9, day, 9, 0), tz),
+            end_datetime=timezone.make_aware(datetime(2026, 9, day, 10, 0), tz),
+        )
+    r = client.get(
+        "/api/v1/time-tracking/?start_datetime__date__gte=2026-09-15"
+        "&start_datetime__date__lte=2026-09-30"
+    )
+    assert r.status_code == 200
+    assert r.json()["count"] == 2
+
+
+@pytest.mark.django_db
+def test_time_entry_summary(client, user, customer):
+    tz = timezone.get_current_timezone()
+    for day in range(1, 4):
+        TimeEntry.objects.create(
+            owner=user, customer=customer,
+            start_datetime=timezone.make_aware(datetime(2026, 9, day, 9, 0), tz),
+            end_datetime=timezone.make_aware(datetime(2026, 9, day, 11, 0), tz),
+        )
+    TimeEntry.objects.create(
+        owner=user, customer=customer,
+        start_datetime=timezone.make_aware(datetime(2026, 9, 4, 9, 0), tz),
+    )
+    r = client.get(
+        f"/api/v1/time-tracking/summary/?customer={customer.id}"
+        "&end_datetime__isnull=false&start_datetime__date__gte=2026-09-02"
+    )
+    assert r.status_code == 200
+    assert r.json() == {"count": 2, "total_minutes": 240}
 
 
 @pytest.mark.django_db

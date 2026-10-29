@@ -19,25 +19,33 @@ import CustomerSelect from '../../components/CustomerSelect.vue'
 import { projectsApi, type Project } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
+import { usePagination } from '../../composables/usePagination'
+import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
 const router = useRouter()
 const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const rows = ref<Project[]>([])
-const loading = ref(true)
 const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
 const form = ref<Partial<Project>>({ status: 'active' })
 
 const statuses = ['active', 'on_hold', 'done']
+const pagination = usePagination(load, 'name')
+const sortOptions = [
+  { label: '#', value: 'number' },
+  { label: t('common.name'), value: 'name' },
+  { label: t('projects.customer'), value: 'customer__name' },
+  { label: t('common.status'), value: 'status' },
+]
+
+onMounted(pagination.start)
 
 async function load() {
-  loading.value = true
-  rows.value = (await projectsApi.list('page_size=500')).results
-  loading.value = false
+  const results = await pagination.fetchPage(projectsApi.list)
+  if (results) rows.value = results
 }
-onMounted(load)
 
 async function save() {
   saving.value = true
@@ -63,11 +71,18 @@ async function save() {
       </template>
     </AppPageHeader>
 
-    <AppDataTable :rows="rows" :loading="loading" @row-click="(r: Project) => router.push(`/projects/${r.id}`)">
-      <Column field="number" header="#" />
-      <Column field="name" :header="t('common.name')" />
-      <Column field="customer_name" :header="t('projects.customer')" />
-      <Column :header="t('common.status')">
+    <AppDataTable
+      :rows="rows" :loading="pagination.loading.value" lazy selectable
+      :total-records="pagination.totalRecords.value" :first="pagination.first.value"
+      :page-size="pagination.pageSize.value" :sort-field="pagination.sortField.value"
+      :sort-order="pagination.sortOrder.value" :sort-options="sortOptions"
+      :state-key="tableStateKeys.projects" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort"
+      @row-click="(r: Project) => router.push(`/projects/${r.id}`)"
+    >
+      <Column field="number" header="#" sortable />
+      <Column field="name" :header="t('common.name')" sortable />
+      <Column field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
+      <Column field="status" :header="t('common.status')" sortable>
         <template #body="{ data }"><AppStatusTag :status="data.status" :label="t(`projects.status.${data.status}`)" /></template>
       </Column>
       <Column :header="t('projects.usedHours')">
@@ -76,7 +91,7 @@ async function save() {
       <Column :header="t('projects.budgetHours')">
         <template #body="{ data }"><AppNumberDisplay :value="data.budget_hours" /></template>
       </Column>
-      <Column :header="t('common.actions')">
+      <Column :header="t('common.actions')" :reorderable-column="false">
         <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await projectsApi.remove(data.id); load() })" /></template>
       </Column>
       <template #card="{ row }">

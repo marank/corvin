@@ -12,7 +12,9 @@ class ProjectViewSet(OwnedViewSet):
     serializer_class = ProjectSerializer
     filterset_fields = ["customer", "status"]
     search_fields = ["number", "name", "customer__name"]
-    ordering_fields = ["number", "name", "status", "created_at"]
+    ordering_fields = [
+        "number", "name", "customer__name", "status", "created_at",
+    ]
 
     def perform_create(self, serializer):
         customer = serializer.validated_data["customer"]

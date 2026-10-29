@@ -28,6 +28,7 @@ import AppIconButton from '../../components/ui/AppIconButton.vue'
 import { useFormattingStore } from '../../stores/formatting'
 import { useSettingsStore } from '../../stores/settings'
 import { currencies } from '../../currencies'
+import { tableStateKeys } from '../../tableStateKeys'
 
 interface NumberScheme {
   format: string
@@ -346,19 +347,19 @@ async function save() {
             <div class="flex justify-end mb-3">
               <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openBankAccount()" />
             </div>
-            <AppDataTable :rows="bankAccounts" @row-click="openBankAccount">
-              <Column field="name" :header="t('common.name')" />
-              <Column field="bank_name" :header="t('settings.bankName')" />
-              <Column field="account_holder" :header="t('settings.accountHolder')" />
-              <Column field="iban" :header="t('settings.iban')" />
-              <Column field="bic" :header="t('settings.bic')" />
-              <Column :header="t('settings.defaultBankAccount')">
+            <AppDataTable :rows="bankAccounts" :state-key="tableStateKeys.settingsBankAccounts" @row-click="openBankAccount">
+              <Column field="name" :header="t('common.name')" sortable />
+              <Column field="bank_name" :header="t('settings.bankName')" sortable />
+              <Column field="account_holder" :header="t('settings.accountHolder')" sortable />
+              <Column field="iban" :header="t('settings.iban')" sortable />
+              <Column field="bic" :header="t('settings.bic')" sortable />
+              <Column :header="t('settings.defaultBankAccount')" :reorderable-column="false">
                 <template #body="{ data }">
                   <i v-if="form.default_bank_account === data.id" class="pi pi-check" />
                   <Button v-else-if="data.is_active" icon="pi pi-star" text size="small" @click.stop="setDefaultBankAccount(data)" />
                 </template>
               </Column>
-              <Column :header="t('common.actions')">
+              <Column :header="t('common.actions')" :reorderable-column="false">
                 <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeBankAccount(data)" /></template>
               </Column>
             </AppDataTable>
@@ -369,13 +370,13 @@ async function save() {
             <div class="flex justify-end mb-3">
               <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openContact()" />
             </div>
-            <AppDataTable :rows="contacts" @row-click="openContact">
-              <Column field="first_name" :header="t('customers.firstName')" />
-              <Column field="last_name" :header="t('customers.lastName')" />
-              <Column field="role" :header="t('customers.role')" />
-              <Column field="email" :header="t('common.email')" />
-              <Column field="phone" :header="t('common.phone')" />
-              <Column :header="t('common.actions')">
+            <AppDataTable :rows="contacts" :state-key="tableStateKeys.settingsCompanyContacts" @row-click="openContact">
+              <Column field="first_name" :header="t('customers.firstName')" sortable />
+              <Column field="last_name" :header="t('customers.lastName')" sortable />
+              <Column field="role" :header="t('customers.role')" sortable />
+              <Column field="email" :header="t('common.email')" sortable />
+              <Column field="phone" :header="t('common.phone')" sortable />
+              <Column :header="t('common.actions')" :reorderable-column="false">
                 <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeContact(data)" /></template>
               </Column>
             </AppDataTable>

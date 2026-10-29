@@ -18,23 +18,32 @@ import ProjectSelect from '../../components/ProjectSelect.vue'
 import { visitsApi, type Visit } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
+import { usePagination } from '../../composables/usePagination'
+import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
 const router = useRouter()
 const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const rows = ref<Visit[]>([])
-const loading = ref(true)
 const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
 const form = ref<Partial<Visit>>({ date: new Date().toISOString().slice(0, 10) })
+const pagination = usePagination(load, '-date')
+const sortOptions = [
+  { label: '#', value: 'number' },
+  { label: t('common.date'), value: 'date' },
+  { label: t('projects.customer'), value: 'customer__name' },
+  { label: t('nav.projects'), value: 'project__name' },
+  { label: t('visits.location'), value: 'location' },
+]
+
+onMounted(pagination.start)
 
 async function load() {
-  loading.value = true
-  rows.value = (await visitsApi.list('ordering=-date&page_size=500')).results
-  loading.value = false
+  const results = await pagination.fetchPage(visitsApi.list)
+  if (results) rows.value = results
 }
-onMounted(load)
 
 async function save() {
   saving.value = true
@@ -59,13 +68,20 @@ async function save() {
       </template>
     </AppPageHeader>
 
-    <AppDataTable :rows="rows" :loading="loading" @row-click="(r: Visit) => router.push(`/visits/${r.id}`)">
-      <Column field="number" header="#" />
-      <Column :header="t('common.date')"><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
-      <Column field="customer_name" :header="t('projects.customer')" />
-      <Column field="project_name" :header="t('nav.projects')" />
-      <Column field="location" :header="t('visits.location')" />
-      <Column :header="t('common.actions')">
+    <AppDataTable
+      :rows="rows" :loading="pagination.loading.value" lazy selectable
+      :total-records="pagination.totalRecords.value" :first="pagination.first.value"
+      :page-size="pagination.pageSize.value" :sort-field="pagination.sortField.value"
+      :sort-order="pagination.sortOrder.value" :sort-options="sortOptions"
+      :state-key="tableStateKeys.visits" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort"
+      @row-click="(r: Visit) => router.push(`/visits/${r.id}`)"
+    >
+      <Column field="number" header="#" sortable />
+      <Column field="date" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
+      <Column field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
+      <Column field="project_name" sort-field="project__name" :header="t('nav.projects')" sortable />
+      <Column field="location" :header="t('visits.location')" sortable />
+      <Column :header="t('common.actions')" :reorderable-column="false">
         <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await visitsApi.remove(data.id); load() })" /></template>
       </Column>
       <template #card="{ row }">

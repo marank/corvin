@@ -17,6 +17,7 @@ import {
 } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
+import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -34,8 +35,8 @@ const running = ref(false)
 async function load() {
   contract.value = await contractsApi.get(id)
   usage.value = await contractsApi.usage(id)
-  entries.value = (await timeTrackingApi.list(`contract=${id}&page_size=200`)).results
-  invoices.value = (await invoicesApi.list(`contract=${id}&page_size=100`)).results
+  entries.value = (await timeTrackingApi.list(`contract=${id}&page_size=500`)).results
+  invoices.value = (await invoicesApi.list(`contract=${id}&page_size=500`)).results
 }
 onMounted(load)
 
@@ -81,19 +82,19 @@ async function runNow() {
     </div>
 
     <h2 class="font-semibold mt-6 mb-2">{{ t('time.title') }}</h2>
-    <AppDataTable :rows="entries">
-      <Column :header="t('common.date')"><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
-      <Column field="description" :header="t('time.description')" />
-      <Column :header="t('time.duration')">
+    <AppDataTable :rows="entries" :state-key="tableStateKeys.contractTimeEntries">
+      <Column field="start_datetime" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template></Column>
+      <Column field="description" :header="t('time.description')" sortable />
+      <Column field="duration_minutes" :header="t('time.duration')" sortable>
         <template #body="{ data }"><AppDurationDisplay :minutes="data.duration_minutes" /></template>
       </Column>
     </AppDataTable>
 
     <h2 class="font-semibold mt-6 mb-2">{{ t('invoices.title') }}</h2>
-    <AppDataTable :rows="invoices" @row-click="(r: Invoice) => router.push(`/invoices/${r.id}`)">
-      <Column field="number" :header="t('invoices.number')" />
-      <Column :header="t('invoices.issueDate')"><template #body="{ data }"><AppDateTimeDisplay :value="data.issue_date" /></template></Column>
-      <Column :header="t('common.total')">
+    <AppDataTable :rows="invoices" :state-key="tableStateKeys.contractInvoices" @row-click="(r: Invoice) => router.push(`/invoices/${r.id}`)">
+      <Column field="number" :header="t('invoices.number')" sortable />
+      <Column field="issue_date" :header="t('invoices.issueDate')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.issue_date" /></template></Column>
+      <Column field="total" :header="t('common.total')" sortable>
         <template #body="{ data }"><AppMoneyDisplay :amount="data.total" /></template>
       </Column>
     </AppDataTable>

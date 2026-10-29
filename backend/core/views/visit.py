@@ -12,7 +12,10 @@ class OnSiteVisitViewSet(OwnedViewSet):
     serializer_class = OnSiteVisitSerializer
     filterset_fields = ["customer", "project", "date"]
     search_fields = ["number", "customer__name", "location", "notes"]
-    ordering_fields = ["number", "date", "created_at"]
+    ordering_fields = [
+        "number", "date", "customer__name", "project__name", "location",
+        "arrival", "departure", "created_at",
+    ]
 
     def perform_create(self, serializer):
         customer = serializer.validated_data["customer"]

@@ -18,7 +18,10 @@ class CustomerViewSet(OwnedViewSet):
     serializer_class = CustomerSerializer
     filterset_fields = ["is_active"]
     search_fields = ["number", "name", "email", "addresses__city"]
-    ordering_fields = ["number", "name", "created_at"]
+    ordering_fields = [
+        "number", "name", "email", "project_count", "uninvoiced_hours",
+        "created_at",
+    ]
 
     def perform_create(self, serializer):
         customer = SimpleNamespace(**serializer.validated_data)
@@ -54,9 +57,11 @@ class ContactViewSet(OwnedViewSet):
     serializer_class = ContactSerializer
     filterset_fields = ["customer"]
     search_fields = ["first_name", "last_name", "email", "role"]
+    ordering_fields = ["first_name", "last_name", "email", "role", "created_at"]
 
 
 class AddressViewSet(OwnedViewSet):
     queryset = Address.objects.select_related("customer")
     serializer_class = AddressSerializer
     filterset_fields = ["customer", "is_primary"]
+    ordering_fields = ["label", "street", "postal_code", "city", "country", "created_at"]

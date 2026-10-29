@@ -15,29 +15,38 @@ import { timeTrackingApi, type TimeEntry } from '../api'
 import { useTimerStore } from '../stores/timer'
 import { useNotify } from '../composables/useNotify'
 import { useConfirmDelete } from '../composables/useConfirmDelete'
+import { usePagination } from '../composables/usePagination'
+import { tableStateKeys } from '../tableStateKeys'
 
 const { t } = useI18n()
 const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const timer = useTimerStore()
 const rows = ref<TimeEntry[]>([])
-const loading = ref(true)
 const modal = ref<InstanceType<typeof AppModal>>()
 const editing = ref<TimeEntry | null>(null)
+const pagination = usePagination(load, '-start_datetime')
+const sortOptions = [
+  { label: t('time.start'), value: 'start_datetime' },
+  { label: t('time.end'), value: 'end_datetime' },
+  { label: t('nav.projects'), value: 'project__name' },
+  { label: t('projects.customer'), value: 'customer__name' },
+  { label: t('time.duration'), value: 'duration_minutes' },
+]
 
-const runningEntry = computed(() => rows.value.find((r) => r.is_running) ?? null)
+const runningEntry = computed(() => timer.running)
 const runningStart = computed(() => {
   if (!runningEntry.value) return null
   return new Date(runningEntry.value.start_datetime)
 })
 
+onMounted(pagination.start)
+
 async function load() {
-  loading.value = true
-  rows.value = (await timeTrackingApi.list('page_size=500&ordering=-start_datetime')).results
+  const results = await pagination.fetchPage(timeTrackingApi.list)
+  if (results) rows.value = results
   timer.refresh()
-  loading.value = false
 }
-onMounted(load)
 
 watch(() => timer.version, () => {
   load()
@@ -51,7 +60,6 @@ function openEdit(entry?: TimeEntry) {
 async function startTimer() {
   try {
     await timer.start()
-    load()
   } catch (e) {
     notify.error(e)
   }
@@ -61,7 +69,6 @@ async function stopTimer() {
   if (!runningEntry.value) return
   try {
     await timer.stop()
-    load()
   } catch (e) {
     notify.error(e)
   }
@@ -101,13 +108,19 @@ const startTimeText = computed(() => {
       </template>
     </AppPageHeader>
 
-    <AppDataTable :rows="rows" :loading="loading" @row-click="openEdit">
-      <Column :header="t('time.start')"><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template></Column>
-      <Column :header="t('time.end')"><template #body="{ data }"><AppDateTimeDisplay v-if="data.end_datetime" :value="data.end_datetime" type="datetime" /><span v-else class="text-surface-500">—</span></template></Column>
-      <Column field="project_name" :header="t('nav.projects')" />
-      <Column field="customer_name" :header="t('projects.customer')" />
+    <AppDataTable
+      :rows="rows" :loading="pagination.loading.value" lazy selectable
+      :total-records="pagination.totalRecords.value" :first="pagination.first.value"
+      :page-size="pagination.pageSize.value" :sort-field="pagination.sortField.value"
+      :sort-order="pagination.sortOrder.value" :sort-options="sortOptions"
+      :state-key="tableStateKeys.timeTracking" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort" @row-click="openEdit"
+    >
+      <Column field="start_datetime" :header="t('time.start')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template></Column>
+      <Column field="end_datetime" :header="t('time.end')" sortable><template #body="{ data }"><AppDateTimeDisplay v-if="data.end_datetime" :value="data.end_datetime" type="datetime" /><span v-else class="text-surface-500">—</span></template></Column>
+      <Column field="project_name" sort-field="project__name" :header="t('nav.projects')" sortable />
+      <Column field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
       <Column field="description" :header="t('time.description')" />
-      <Column :header="t('time.duration')">
+      <Column field="duration_minutes" :header="t('time.duration')" sortable>
         <template #body="{ data }">
           <Tag v-if="data.is_running" :value="t('time.timerRunning')" severity="warn" />
           <AppDurationDisplay v-else :minutes="data.duration_minutes" />
@@ -124,7 +137,7 @@ const startTimeText = computed(() => {
           <Tag v-else-if="data.contract" :value="data.contract_name" severity="secondary" />
         </template>
       </Column>
-      <Column :header="t('common.actions')">
+      <Column :header="t('common.actions')" :reorderable-column="false">
         <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await timeTrackingApi.remove(data.id); load() })" /></template>
       </Column>
       <template #card="{ row }">

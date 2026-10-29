@@ -18,6 +18,10 @@ class SupportContractViewSet(OwnedViewSet):
     serializer_class = SupportContractSerializer
     filterset_fields = ["customer", "project", "active", "period"]
     search_fields = ["number", "name", "customer__name"]
+    ordering_fields = [
+        "number", "name", "customer__name", "project__name", "period",
+        "fixed_price", "created_at",
+    ]
 
     def perform_create(self, serializer):
         customer = serializer.validated_data["customer"]

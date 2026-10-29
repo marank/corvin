@@ -23,6 +23,7 @@ import ProjectSelect from '../../components/ProjectSelect.vue'
 import { timeTrackingApi, visitsApi, type TimeEntry, type Visit } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
+import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -38,7 +39,7 @@ const saving = ref(false)
 async function load() {
   visit.value = await visitsApi.get(id)
   form.value = { ...visit.value }
-  entries.value = (await timeTrackingApi.list(`visit=${id}&page_size=200`)).results
+  entries.value = (await timeTrackingApi.list(`visit=${id}&page_size=500`)).results
 }
 onMounted(load)
 
@@ -83,10 +84,10 @@ async function save() {
         </TabList>
         <TabPanels>
           <TabPanel value="entries">
-            <AppDataTable :rows="entries">
-              <Column :header="t('common.date')"><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
-              <Column field="description" :header="t('time.description')" />
-              <Column :header="t('time.duration')">
+            <AppDataTable :rows="entries" :state-key="tableStateKeys.visitTimeEntries">
+              <Column field="start_datetime" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template></Column>
+              <Column field="description" :header="t('time.description')" sortable />
+              <Column field="duration_minutes" :header="t('time.duration')" sortable>
                 <template #body="{ data }"><AppDurationDisplay :minutes="data.duration_minutes" /></template>
               </Column>
             </AppDataTable>

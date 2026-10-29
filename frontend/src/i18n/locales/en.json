@@ -28,6 +28,7 @@
     "send": "Send",
     "yes": "Yes",
     "no": "No",
+    "done": "Done",
     "ask": "Ask",
     "empty": "No entries",
     "total": "Total",
@@ -49,6 +50,16 @@
     "password": "Password",
     "otpCode": "Authentication code",
     "loginFailed": "Login failed"
+  },
+  "table": {
+    "select": "Select",
+    "selected": "{count} selected",
+    "selectPage": "Select page",
+    "clearSelection": "Clear",
+    "sortBy": "Sort by",
+    "ascending": "Ascending",
+    "descending": "Descending",
+    "pageReport": "{first}–{last} of {totalRecords}"
   },
   "customers": {
     "title": "Customers",

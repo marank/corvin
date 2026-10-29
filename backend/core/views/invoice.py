@@ -76,7 +76,9 @@ class InvoiceViewSet(OwnedViewSet):
         "issue_date": ["gte", "lte"],
     }
     search_fields = ["number", "customer__name", "notes"]
-    ordering_fields = ["issue_date", "number", "total", "due_date"]
+    ordering_fields = [
+        "issue_date", "number", "customer__name", "status", "total", "due_date",
+    ]
 
     def perform_create(self, serializer):
         from core.services.numbering import next_number

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
@@ -16,24 +16,42 @@ import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import { customersApi, type Customer } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
+import { usePagination } from '../../composables/usePagination'
+import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
 const router = useRouter()
 const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const rows = ref<Customer[]>([])
-const loading = ref(true)
 const search = ref('')
 const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
 const form = ref({ name: '', email: '', phone: '', website: '', vat_id: '', buyer_reference: '', payment_terms_days: null as number | null, notes: '' })
+const pagination = usePagination(load, 'name')
+const sortOptions = [
+  { label: '#', value: 'number' },
+  { label: t('common.name'), value: 'name' },
+  { label: t('common.email'), value: 'email' },
+  { label: t('nav.projects'), value: 'project_count' },
+  { label: t('customers.uninvoicedHours'), value: 'uninvoiced_hours' },
+]
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+
+onMounted(pagination.start)
+onBeforeUnmount(() => clearTimeout(searchTimer))
 
 async function load() {
-  loading.value = true
-  rows.value = (await customersApi.list(`search=${search.value}&page_size=200`)).results
-  loading.value = false
+  const params = new URLSearchParams()
+  if (search.value.trim()) params.set('search', search.value.trim())
+  const results = await pagination.fetchPage(customersApi.list, params)
+  if (results) rows.value = results
 }
-onMounted(load)
+
+function searchChanged() {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(pagination.refresh, 300)
+}
 
 async function save() {
   saving.value = true
@@ -55,26 +73,42 @@ async function save() {
   <div>
     <AppPageHeader :title="t('customers.title')">
       <template #actions>
-        <InputText v-model="search" :placeholder="t('common.search')" class="w-48" @input="load" />
+        <InputText v-model="search" :placeholder="t('common.search')" class="w-48" @input="searchChanged" />
         <Button :label="t('customers.new')" icon="pi pi-plus" @click="modal?.open()" />
       </template>
     </AppPageHeader>
 
-    <AppDataTable :rows="rows" :loading="loading" @row-click="(r: Customer) => router.push(`/customers/${r.id}`)">
-      <Column field="number" header="#" />
-      <Column field="name" :header="t('common.name')" />
+    <AppDataTable
+      :rows="rows"
+      :loading="pagination.loading.value"
+      lazy
+      selectable
+      :total-records="pagination.totalRecords.value"
+      :first="pagination.first.value"
+      :page-size="pagination.pageSize.value"
+      :sort-field="pagination.sortField.value"
+      :sort-order="pagination.sortOrder.value"
+      :sort-options="sortOptions"
+      :state-key="tableStateKeys.customers"
+      @state-restore="pagination.onRestore"
+      @page="pagination.onPage"
+      @sort="pagination.onSort"
+      @row-click="(r: Customer) => router.push(`/customers/${r.id}`)"
+    >
+      <Column field="number" header="#" sortable />
+      <Column field="name" :header="t('common.name')" sortable />
       <Column :header="t('common.address')">
         <template #body="{ data }">{{ data.primary_address ? `${data.primary_address.postal_code} ${data.primary_address.city}` : '—' }}</template>
       </Column>
-      <Column field="email" :header="t('common.email')" />
-      <Column field="project_count" :header="t('nav.projects')" />
-      <Column :header="t('customers.uninvoicedHours')">
+      <Column field="email" :header="t('common.email')" sortable />
+      <Column field="project_count" :header="t('nav.projects')" sortable />
+      <Column field="uninvoiced_hours" :header="t('customers.uninvoicedHours')" sortable>
         <template #body="{ data }"><AppDurationDisplay :minutes="(data.uninvoiced_hours ?? 0) * 60" /></template>
       </Column>
       <Column :header="t('common.status')">
         <template #body="{ data }"><AppStatusTag :status="data.is_active ? 'active' : 'cancelled'" :label="data.is_active ? t('customers.active') : '—'" /></template>
       </Column>
-      <Column :header="t('common.actions')">
+      <Column :header="t('common.actions')" :reorderable-column="false">
         <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await customersApi.remove(data.id); load() })" /></template>
       </Column>
       <template #card="{ row }">

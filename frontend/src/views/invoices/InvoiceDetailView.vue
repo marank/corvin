@@ -28,6 +28,7 @@ import InvoicePreviewFrame from '../../components/InvoicePreviewFrame.vue'
 import { bankAccountsApi, invoicesApi, paymentsApi, type BankAccount, type Invoice } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
+import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -122,9 +123,9 @@ async function addPayment() {
           </div>
         </div>
 
-        <AppDataTable :rows="invoice.items">
-          <Column field="position" header="#" class="w-10" />
-          <Column field="description" :header="t('time.description')" />
+        <AppDataTable :rows="invoice.items" :state-key="tableStateKeys.invoiceItems">
+          <Column field="position" header="#" class="w-10" sortable />
+          <Column field="description" :header="t('time.description')" sortable />
           <Column :header="t('invoices.quantity')"><template #body="{ data }"><AppNumberDisplay :value="data.quantity" /></template></Column>
           <Column :header="t('invoices.unitPrice')">
             <template #body="{ data }"><AppMoneyDisplay :amount="data.unit_price" :currency="invoice!.currency" /></template>
@@ -154,13 +155,13 @@ async function addPayment() {
           </TabList>
           <TabPanels>
             <TabPanel value="payments">
-              <AppDataTable :rows="invoice.payments">
-                <Column :header="t('common.date')"><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
-                <Column :header="t('common.total')">
+              <AppDataTable :rows="invoice.payments" :state-key="tableStateKeys.invoicePayments">
+                <Column field="date" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
+                <Column field="amount" :header="t('common.total')" sortable>
                   <template #body="{ data }"><AppMoneyDisplay :amount="data.amount" :currency="invoice.currency" /></template>
                 </Column>
-                <Column field="note" :header="t('common.notes')" />
-                <Column :header="t('common.actions')">
+                <Column field="note" :header="t('common.notes')" sortable />
+                <Column :header="t('common.actions')" :reorderable-column="false">
                   <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await paymentsApi.remove(data.id); load() })" /></template>
                 </Column>
               </AppDataTable>

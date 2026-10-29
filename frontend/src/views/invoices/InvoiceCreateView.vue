@@ -25,6 +25,7 @@ import {
   type BankAccount, type Contact, type TimeEntry,
 } from '../../api'
 import { useNotify } from '../../composables/useNotify'
+import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -85,9 +86,13 @@ watch(customerId, async (value) => {
     .map((contact) => contact.id)
 })
 
+const entrySummary = ref({ count: 0, total_minutes: 0 })
+let entriesRequest = 0
 watch([customerId, projectId, dateFrom, dateTo], async () => {
+  const request = ++entriesRequest
   if (!customerId.value) {
     entries.value = []
+    entrySummary.value = { count: 0, total_minutes: 0 }
     return
   }
   const params = new URLSearchParams({
@@ -95,15 +100,23 @@ watch([customerId, projectId, dateFrom, dateTo], async () => {
     billable: 'true',
     invoice__isnull: 'true',
     contract__isnull: 'true',
-    page_size: '500',
+    end_datetime__isnull: 'false',
+    ordering: 'start_datetime',
   })
   if (projectId.value) params.set('project', String(projectId.value))
-  if (dateFrom.value) params.set('date__gte', dateFrom.value)
-  if (dateTo.value) params.set('date__lte', dateTo.value)
-  entries.value = (await timeTrackingApi.list(params.toString())).results
+  if (dateFrom.value) params.set('start_datetime__date__gte', dateFrom.value)
+  if (dateTo.value) params.set('start_datetime__date__lte', dateTo.value)
+  const query = params.toString()
+  const [page, summary] = await Promise.all([
+    timeTrackingApi.list(`${query}&page_size=500`),
+    timeTrackingApi.summary(query),
+  ])
+  if (request !== entriesRequest) return
+  entries.value = page.results
+  entrySummary.value = summary
 })
 
-const totalHours = computed(() => entries.value.reduce((s, e) => s + e.duration_minutes, 0) / 60)
+const totalHours = computed(() => entrySummary.value.total_minutes / 60)
 
 async function create() {
   if (!customerId.value) return
@@ -148,27 +161,27 @@ async function create() {
     </div>
 
     <div v-else-if="step === 1">
-      <p class="text-sm text-surface-500 mb-3"><AppNumberDisplay :value="entries.length" :maximum-fraction-digits="0" /> · <AppNumberDisplay :value="totalHours" :minimum-fraction-digits="2" />h</p>
-      <AppDataTable :rows="entries">
-        <Column :header="t('common.date')"><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
-        <Column field="project_name" :header="t('nav.projects')" />
-        <Column field="description" :header="t('time.description')" />
-        <Column :header="t('time.duration')">
+      <p class="text-sm text-surface-500 mb-3"><AppNumberDisplay :value="entrySummary.count" :maximum-fraction-digits="0" /> · <AppNumberDisplay :value="totalHours" :minimum-fraction-digits="2" />h</p>
+      <AppDataTable :rows="entries" :state-key="tableStateKeys.invoiceSourceEntries">
+        <Column field="start_datetime" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template></Column>
+        <Column field="project_name" :header="t('nav.projects')" sortable />
+        <Column field="description" :header="t('time.description')" sortable />
+        <Column field="duration_minutes" :header="t('time.duration')" sortable>
           <template #body="{ data }"><AppDurationDisplay :minutes="data.duration_minutes" /></template>
         </Column>
       </AppDataTable>
 
       <h3 class="font-medium mt-6 mb-2">{{ t('invoices.manualLines') }}</h3>
-      <AppDataTable v-if="manualLines.length" :rows="manualLines" class="mb-3">
-        <Column field="description" :header="t('time.description')" />
-        <Column field="quantity" :header="t('invoices.quantity')" />
+      <AppDataTable v-if="manualLines.length" :rows="manualLines" :state-key="tableStateKeys.invoiceManualLines" class="mb-3">
+        <Column field="description" :header="t('time.description')" sortable />
+        <Column field="quantity" :header="t('invoices.quantity')" sortable />
         <Column :header="t('invoices.unitPrice')">
           <template #body="{ data }"><AppMoneyDisplay :amount="data.unit_price" /></template>
         </Column>
         <Column :header="t('common.total')">
           <template #body="{ data }"><AppMoneyDisplay :amount="data.quantity * data.unit_price" /></template>
         </Column>
-        <Column :header="t('common.actions')">
+        <Column :header="t('common.actions')" :reorderable-column="false">
           <template #body="{ index }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="manualLines.splice(index, 1)" /></template>
         </Column>
       </AppDataTable>

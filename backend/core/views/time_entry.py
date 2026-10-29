@@ -1,3 +1,4 @@
+from django.db.models import Count, Sum
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.decorators import action
@@ -27,11 +28,25 @@ class TimeEntryViewSet(OwnedViewSet):
         "contract": ["exact", "isnull"],
         "invoice": ["exact", "isnull"],
         "billable": ["exact"],
-        "start_datetime": ["gte", "lte", "exact"],
+        "start_datetime": ["gte", "lte", "exact", "date__gte", "date__lte"],
+        "end_datetime": ["isnull"],
         "visit": ["exact"],
     }
     search_fields = ["description", "project__name", "customer__name"]
-    ordering_fields = ["start_datetime", "duration_minutes"]
+    ordering_fields = [
+        "start_datetime", "end_datetime", "customer__name", "project__name",
+        "duration_minutes",
+    ]
+
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        totals = self.filter_queryset(self.get_queryset()).order_by().aggregate(
+            count=Count("id"), total_minutes=Sum("duration_minutes"),
+        )
+        return Response({
+            "count": totals["count"],
+            "total_minutes": totals["total_minutes"] or 0,
+        })
 
     @action(detail=False, methods=["get"])
     def active(self, request):

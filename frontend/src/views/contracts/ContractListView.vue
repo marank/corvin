@@ -23,13 +23,14 @@ import ProjectSelect from '../../components/ProjectSelect.vue'
 import { contractsApi, type SupportContract } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
+import { usePagination } from '../../composables/usePagination'
+import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
 const router = useRouter()
 const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const rows = ref<SupportContract[]>([])
-const loading = ref(true)
 const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
 const periods = ['monthly', 'quarterly', 'yearly']
@@ -38,13 +39,21 @@ const form = ref<Partial<SupportContract>>({
   bill_overage: false, active: true, start_date: new Date().toISOString().slice(0, 10),
   next_billing_date: new Date().toISOString().slice(0, 10),
 })
+const pagination = usePagination(load, 'number')
+const sortOptions = [
+  { label: '#', value: 'number' },
+  { label: t('common.name'), value: 'name' },
+  { label: t('projects.customer'), value: 'customer__name' },
+  { label: t('contracts.period'), value: 'period' },
+  { label: t('contracts.fixedPrice'), value: 'fixed_price' },
+]
+
+onMounted(pagination.start)
 
 async function load() {
-  loading.value = true
-  rows.value = (await contractsApi.list('page_size=200')).results
-  loading.value = false
+  const results = await pagination.fetchPage(contractsApi.list)
+  if (results) rows.value = results
 }
-onMounted(load)
 
 async function save() {
   saving.value = true
@@ -73,24 +82,31 @@ async function save() {
       </template>
     </AppPageHeader>
 
-    <AppDataTable :rows="rows" :loading="loading" @row-click="(r: SupportContract) => router.push(`/contracts/${r.id}`)">
-      <Column field="number" header="#" />
-      <Column field="name" :header="t('common.name')" />
-      <Column field="customer_name" :header="t('projects.customer')" />
-      <Column :header="t('contracts.period')">
+    <AppDataTable
+      :rows="rows" :loading="pagination.loading.value" lazy selectable
+      :total-records="pagination.totalRecords.value" :first="pagination.first.value"
+      :page-size="pagination.pageSize.value" :sort-field="pagination.sortField.value"
+      :sort-order="pagination.sortOrder.value" :sort-options="sortOptions"
+      :state-key="tableStateKeys.contracts" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort"
+      @row-click="(r: SupportContract) => router.push(`/contracts/${r.id}`)"
+    >
+      <Column field="number" header="#" sortable />
+      <Column field="name" :header="t('common.name')" sortable />
+      <Column field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
+      <Column field="period" :header="t('contracts.period')" sortable>
         <template #body="{ data }">{{ t(`contracts.periods.${data.period}`) }}</template>
       </Column>
       <Column :header="t('contracts.includedHours')">
         <template #body="{ data }"><AppNumberDisplay :value="data.included_hours" />h</template>
       </Column>
-      <Column :header="t('contracts.fixedPrice')">
+      <Column field="fixed_price" :header="t('contracts.fixedPrice')" sortable>
         <template #body="{ data }"><AppMoneyDisplay :amount="data.fixed_price" /></template>
       </Column>
       <Column :header="t('contracts.nextBilling')"><template #body="{ data }"><AppDateTimeDisplay :value="data.next_billing_date" /></template></Column>
       <Column :header="t('common.status')">
         <template #body="{ data }"><AppStatusTag :status="data.active ? 'active' : 'cancelled'" :label="data.active ? t('customers.active') : '—'" /></template>
       </Column>
-      <Column :header="t('common.actions')">
+      <Column :header="t('common.actions')" :reorderable-column="false">
         <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await contractsApi.remove(data.id); load() })" /></template>
       </Column>
       <template #card="{ row }">

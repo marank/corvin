@@ -80,6 +80,7 @@ class DocumentTemplateViewSet(OwnedViewSet):
     queryset = DocumentTemplate.objects.all()
     serializer_class = DocumentTemplateSerializer
     search_fields = ["name"]
+    ordering_fields = ["name", "page_size", "created_at"]
 
     def list(self, request, *args, **kwargs):
         # auto-seed a default template on first access

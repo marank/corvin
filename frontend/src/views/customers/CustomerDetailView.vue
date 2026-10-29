@@ -30,6 +30,7 @@ import {
 } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
+import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -66,7 +67,7 @@ async function load() {
   form.value = { ...customer.value }
   contacts.value = (await contactsApi.list(id)).results
   addresses.value = (await addressesApi.list(id)).results
-  rates.value = (await ratesApi.list(`customer=${id}&page_size=100`)).results
+  rates.value = (await ratesApi.list(`customer=${id}&page_size=500`)).results
   bankAccounts.value = (await bankAccountsApi.list()).results.filter((account) => account.is_active)
 }
 onMounted(load)
@@ -147,7 +148,7 @@ function removeAddress(a: Address) {
 function removeRate(r: HourlyRate) {
   confirmDelete(async () => {
     await ratesApi.remove(r.id)
-    rates.value = (await ratesApi.list(`customer=${id}&page_size=100`)).results
+    rates.value = (await ratesApi.list(`customer=${id}&page_size=500`)).results
   })
 }
 
@@ -169,7 +170,7 @@ async function saveRate() {
     rateModal.value?.close()
     rateForm.value = { amount: 0, valid_from: '', valid_to: null }
     editingRate.value = null
-    rates.value = (await ratesApi.list(`customer=${id}&page_size=100`)).results
+    rates.value = (await ratesApi.list(`customer=${id}&page_size=500`)).results
   } catch (e) {
     notify.error(e)
   }
@@ -237,16 +238,16 @@ async function saveRate() {
           <div class="flex justify-end pt-4 mb-2">
             <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openContact()" />
           </div>
-          <AppDataTable :rows="contacts" @row-click="openContact">
-            <Column field="first_name" :header="t('customers.firstName')" />
-            <Column field="last_name" :header="t('customers.lastName')" />
-            <Column field="role" :header="t('customers.role')" />
-            <Column field="email" :header="t('common.email')" />
-            <Column field="phone" :header="t('common.phone')" />
+          <AppDataTable :rows="contacts" :state-key="tableStateKeys.customerContacts" @row-click="openContact">
+            <Column field="first_name" :header="t('customers.firstName')" sortable />
+            <Column field="last_name" :header="t('customers.lastName')" sortable />
+            <Column field="role" :header="t('customers.role')" sortable />
+            <Column field="email" :header="t('common.email')" sortable />
+            <Column field="phone" :header="t('common.phone')" sortable />
             <Column :header="t('customers.invoiceContact')">
               <template #body="{ data }"><i v-if="data.is_invoice_contact" class="pi pi-check" /></template>
             </Column>
-            <Column :header="t('common.actions')">
+            <Column :header="t('common.actions')" :reorderable-column="false">
               <template #body="{ data }">
                 <AppIconButton icon="pi pi-pencil" aria-label="Edit" @click.stop="openContact(data)" />
                 <AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeContact(data)" />
@@ -258,13 +259,13 @@ async function saveRate() {
           <div class="flex justify-end pt-4 mb-2">
             <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openAddress()" />
           </div>
-          <AppDataTable :rows="addresses">
-            <Column field="label" :header="t('customers.addressLabel')" />
-            <Column field="street" :header="t('customers.street')" />
+          <AppDataTable :rows="addresses" :state-key="tableStateKeys.customerAddresses">
+            <Column field="label" :header="t('customers.addressLabel')" sortable />
+            <Column field="street" :header="t('customers.street')" sortable />
             <Column :header="t('customers.postalCode') + ' / ' + t('customers.city')">
               <template #body="{ data }">{{ data.postal_code }} {{ data.city }}</template>
             </Column>
-            <Column field="country" :header="t('customers.country')" />
+            <Column field="country" :header="t('customers.country')" sortable />
             <Column :header="t('common.status')">
               <template #body="{ data }">
                 <div class="flex flex-wrap gap-1">
@@ -274,7 +275,7 @@ async function saveRate() {
                 </div>
               </template>
             </Column>
-            <Column :header="t('common.actions')">
+            <Column :header="t('common.actions')" :reorderable-column="false">
               <template #body="{ data }">
                 <AppIconButton icon="pi pi-pencil" aria-label="Edit" @click.stop="openAddress(data)" />
                 <AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeAddress(data)" />
@@ -286,15 +287,15 @@ async function saveRate() {
           <div class="flex justify-end pt-4 mb-2">
             <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openRate()" />
           </div>
-          <AppDataTable :rows="rates">
-            <Column :header="t('common.date')"><template #body="{ data }"><AppDateTimeDisplay :value="data.valid_from" /></template></Column>
+          <AppDataTable :rows="rates" :state-key="tableStateKeys.customerRates">
+            <Column field="valid_from" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.valid_from" /></template></Column>
             <Column :header="t('invoices.unitPrice')">
               <template #body="{ data }"><AppMoneyDisplay :amount="data.amount" />/h</template>
             </Column>
             <Column field="valid_to" :header="t('time.end')">
               <template #body="{ data }"><AppDateTimeDisplay :value="data.valid_to" /></template>
             </Column>
-            <Column :header="t('common.actions')">
+            <Column :header="t('common.actions')" :reorderable-column="false">
               <template #body="{ data }">
                 <AppIconButton icon="pi pi-pencil" aria-label="Edit" @click.stop="openRate(data)" />
                 <AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeRate(data)" />
