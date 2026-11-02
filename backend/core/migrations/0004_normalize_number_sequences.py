@@ -6,11 +6,15 @@ def normalize_sequences(apps, schema_editor):
     legacy = NumberSequence.objects.filter(scope_key__startswith="legacy:")
     for sequence in legacy:
         year = sequence.scope_key.rsplit(":", 1)[-1]
-        existing = NumberSequence.objects.filter(
-            owner_id=sequence.owner_id,
-            entity="invoice",
-            scope_key=year,
-        ).exclude(pk=sequence.pk).first()
+        existing = (
+            NumberSequence.objects.filter(
+                owner_id=sequence.owner_id,
+                entity="invoice",
+                scope_key=year,
+            )
+            .exclude(pk=sequence.pk)
+            .first()
+        )
         if existing:
             if sequence.last_number > existing.last_number:
                 existing.last_number = sequence.last_number

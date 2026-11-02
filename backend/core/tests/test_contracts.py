@@ -10,8 +10,8 @@ from core.services.contracts import contract_usage, process_due
 
 @pytest.mark.django_db
 def test_usage_counts_only_contract_entries(user, contract, make_entry):
-    make_entry(d=date(2026, 9, 5), contract=contract)       # 2h covered
-    make_entry(d=date(2026, 9, 6))                          # 2h not covered
+    make_entry(d=date(2026, 9, 5), contract=contract)  # 2h covered
+    make_entry(d=date(2026, 9, 6))  # 2h not covered
     usage = contract_usage(contract)
     assert usage["used_hours"] == Decimal("2.00")
     assert usage["included_hours"] == Decimal("10")
@@ -56,13 +56,13 @@ def test_wrong_customer_contract_rejected(user, customer, contract):
     from core.models import Customer, Project, TimeEntry
 
     other = Customer.objects.create(owner=user, name="Other GmbH")
-    other_project = Project.objects.create(
-        owner=user, customer=other, name="Other"
-    )
+    other_project = Project.objects.create(owner=user, customer=other, name="Other")
     with pytest.raises(ValidationError):
         tz = timezone.get_current_timezone()
         TimeEntry.objects.create(
-            owner=user, customer=customer, project=other_project,
+            owner=user,
+            customer=customer,
+            project=other_project,
             contract=contract,
             start_datetime=timezone.make_aware(datetime(2026, 9, 1, 9, 0), tz),
             end_datetime=timezone.make_aware(datetime(2026, 9, 1, 10, 0), tz),

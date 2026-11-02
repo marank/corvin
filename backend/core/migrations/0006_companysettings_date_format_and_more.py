@@ -4,25 +4,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0005_alter_invoice_status'),
+        ("core", "0005_alter_invoice_status"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='companysettings',
-            name='date_format',
-            field=models.CharField(default='DD.MM.YYYY', max_length=50),
+            model_name="companysettings",
+            name="date_format",
+            field=models.CharField(default="DD.MM.YYYY", max_length=50),
         ),
         migrations.AddField(
-            model_name='companysettings',
-            name='number_locale',
-            field=models.CharField(default='de-DE', max_length=20),
+            model_name="companysettings",
+            name="number_locale",
+            field=models.CharField(default="de-DE", max_length=20),
         ),
         migrations.AddField(
-            model_name='companysettings',
-            name='time_format',
-            field=models.CharField(default='HH:mm', max_length=50),
+            model_name="companysettings",
+            name="time_format",
+            field=models.CharField(default="HH:mm", max_length=50),
         ),
     ]

@@ -19,9 +19,8 @@ def migrate_company_bank_accounts(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0012_bankaccount_companysettings_default_bank_account_and_more'),
+        ("core", "0012_bankaccount_companysettings_default_bank_account_and_more"),
     ]
 
     operations = [

@@ -41,37 +41,24 @@ class TotpSetupView(APIView):
     def post(self, request):
         device = TOTPDevice.objects.filter(
             user=request.user, confirmed=False
-        ).first() or TOTPDevice.objects.create(
-            user=request.user, name="default", confirmed=False
-        )
+        ).first() or TOTPDevice.objects.create(user=request.user, name="default", confirmed=False)
         return Response({"config_url": device.config_url})
 
 
 class TotpConfirmView(APIView):
     def post(self, request):
         code = request.data.get("code", "")
-        device = TOTPDevice.objects.filter(
-            user=request.user, confirmed=False
-        ).first()
+        device = TOTPDevice.objects.filter(user=request.user, confirmed=False).first()
         if not device or not device.verify_token(code):
-            return Response(
-                {"code": ["Invalid code."]}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"code": ["Invalid code."]}, status=status.HTTP_400_BAD_REQUEST)
         device.confirmed = True
         device.save(update_fields=["confirmed"])
         # generate one-time backup codes
-        static, _ = StaticDevice.objects.get_or_create(
-            user=request.user, name="backup"
-        )
+        static, _ = StaticDevice.objects.get_or_create(user=request.user, name="backup")
         static.token_set.all().delete()
         alphabet = string.ascii_lowercase + string.digits
-        codes = [
-            "".join(secrets.choice(alphabet) for _ in range(10))
-            for _ in range(10)
-        ]
-        StaticToken.objects.bulk_create(
-            StaticToken(device=static, token=c) for c in codes
-        )
+        codes = ["".join(secrets.choice(alphabet) for _ in range(10)) for _ in range(10)]
+        StaticToken.objects.bulk_create(StaticToken(device=static, token=c) for c in codes)
         return Response({"backup_codes": codes})
 
 

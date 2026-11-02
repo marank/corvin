@@ -4,30 +4,45 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0025_make_time_entry_customer_optional'),
+        ("core", "0025_make_time_entry_customer_optional"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='companysettings',
-            name='time_rounding_end_direction',
-            field=models.CharField(choices=[('nearest', 'Nearest'), ('backwards', 'Backwards'), ('forwards', 'Forwards')], default='nearest', max_length=10),
+            model_name="companysettings",
+            name="time_rounding_end_direction",
+            field=models.CharField(
+                choices=[
+                    ("nearest", "Nearest"),
+                    ("backwards", "Backwards"),
+                    ("forwards", "Forwards"),
+                ],
+                default="nearest",
+                max_length=10,
+            ),
         ),
         migrations.AddField(
-            model_name='companysettings',
-            name='time_rounding_end_minutes',
+            model_name="companysettings",
+            name="time_rounding_end_minutes",
             field=models.PositiveIntegerField(default=5),
         ),
         migrations.AddField(
-            model_name='companysettings',
-            name='time_rounding_start_direction',
-            field=models.CharField(choices=[('nearest', 'Nearest'), ('backwards', 'Backwards'), ('forwards', 'Forwards')], default='nearest', max_length=10),
+            model_name="companysettings",
+            name="time_rounding_start_direction",
+            field=models.CharField(
+                choices=[
+                    ("nearest", "Nearest"),
+                    ("backwards", "Backwards"),
+                    ("forwards", "Forwards"),
+                ],
+                default="nearest",
+                max_length=10,
+            ),
         ),
         migrations.AddField(
-            model_name='companysettings',
-            name='time_rounding_start_minutes',
+            model_name="companysettings",
+            name="time_rounding_start_minutes",
             field=models.PositiveIntegerField(default=5),
         ),
     ]

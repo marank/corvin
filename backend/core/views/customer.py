@@ -19,15 +19,17 @@ class CustomerViewSet(OwnedViewSet):
     filterset_fields = ["is_active"]
     search_fields = ["number", "name", "email", "addresses__city"]
     ordering_fields = [
-        "number", "name", "email", "project_count", "uninvoiced_hours",
+        "number",
+        "name",
+        "email",
+        "project_count",
+        "uninvoiced_hours",
         "created_at",
     ]
 
     def perform_create(self, serializer):
         customer = SimpleNamespace(**serializer.validated_data)
-        serializer.save(number=next_number(
-            self.request.user, "customer", {"customer": customer}
-        ))
+        serializer.save(number=next_number(self.request.user, "customer", {"customer": customer}))
 
     def get_queryset(self):
         return (

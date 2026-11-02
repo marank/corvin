@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0031_add_open_stopped_time_entry_setting'),
+        ("core", "0031_add_open_stopped_time_entry_setting"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='companysettings',
-            name='always_show_timer_widget',
+            model_name="companysettings",
+            name="always_show_timer_widget",
             field=models.BooleanField(default=False),
         ),
     ]

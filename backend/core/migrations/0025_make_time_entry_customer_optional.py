@@ -5,15 +5,20 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0024_add_address_address_types'),
+        ("core", "0024_add_address_address_types"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='timeentry',
-            name='customer',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='time_entries', to='core.customer'),
+            model_name="timeentry",
+            name="customer",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="time_entries",
+                to="core.customer",
+            ),
         ),
     ]

@@ -9,7 +9,7 @@ Project management for IT consultants: customers, projects with budgets, tasks, 
 
 ## Local development (Windows, no Docker)
 
-Prerequisites: [uv](https://docs.astral.sh/uv/), Node 24 with corepack (pnpm version comes from `package.json`), Docker for production.
+Prerequisites: [uv](https://docs.astral.sh/uv/), Node 26 LTS with corepack (`npm install -g corepack`; the pnpm version comes from `package.json`), Docker for production.
 
 1. `scripts/setup-windows-dev.ps1` — one-time: installs MSYS2 + Pango (WeasyPrint native deps). Custom path? Set `MSYS2_BIN_DIR` in `backend/.env`.
 2. Backend:
@@ -35,14 +35,16 @@ Dev uses SQLite + console email backend. PDFs work once Pango is installed (`uv 
 cp .env.example .env   # every variable is explained there; set at least SECRET_KEY,
                        # ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS, POSTGRES_PASSWORD, TRUSTED_PROXIES, SMTP
 docker compose up -d --build
-docker compose exec backend uv run --no-sync python manage.py createsuperuser
+docker compose exec backend python manage.py createsuperuser
 ```
 
 | Service | Purpose |
 |---|---|
-| `db` | PostgreSQL 17 |
+| `db` | PostgreSQL 18 |
 | `backend` | gunicorn/Django, healthcheck on `/api/v1/health` |
 | `frontend` | nginx on `HTTP_PORT` (default 80): SPA + `/api` proxy, login rate limit |
+
+Backend, scheduler and frontend run as unprivileged users without capabilities on a read-only root filesystem; writable are only their volumes and `/tmp`.
 | `scheduler` | runs `process_recurring` daily at `RECURRING_TIME` (draft invoices for due support contracts; safe to run twice) |
 | `backup` | nightly database dump + uploads tarball at `BACKUP_TIME` |
 
@@ -74,13 +76,13 @@ docker compose start backend scheduler frontend
 VS Code tasks (`.vscode/tasks.json`, Terminal → Run Task): `dev`, `check` (everything CI runs), `django: makemigrations`/`migrate`, `docker: up`/`down`/`backup now`. Without VS Code:
 
 ```bash
-cd backend && uv sync --locked && uv run ruff check . && uv run deptry . \
+cd backend && uv sync --locked && uv run ruff check . && uv run ruff format --check . && uv run deptry . \
   && uv run python manage.py makemigrations --check --dry-run \
   && uv run python manage.py check --fail-level WARNING && uv run pytest -q --cov
 cd frontend && pnpm install --frozen-lockfile && pnpm build && pnpm check:licenses
 ```
 
-Pre-commit hooks (whitespace, YAML/JSON, ruff): `uv tool run pre-commit install` once.
+Pre-commit hooks (whitespace, YAML/JSON, ruff lint + format): `uv tool run pre-commit install` once.
 
 **Gitea CI** (`.gitea/workflows/build.yaml`) runs the backend checks against PostgreSQL, the frontend build, license checks, `pnpm audit`, Trivy scans of the repository and the images, a smoke test of the compose stack, and pushes `<registry>/<repo>/backend` and `/frontend` on `main` and `v*` tags. **Renovate** (`renovate.json`, `.gitea/workflows/renovate.yaml`) opens update PRs daily and merges green minor/patch updates itself. Setup in Gitea:
 
@@ -96,3 +98,7 @@ Conventions for contributors and coding agents: [AGENTS.md](AGENTS.md).
 - **Contract coverage**: `TimeEntry.contract` set = counts against included hours (+ overage if `bill_overage`); unset = normal billable pool invoiced separately via consolidation.
 - **GoBD**: `finalize` renders PDF/XML once into `DocumentArchive` with SHA-256 — immutable afterward.
 - **E-invoice**: `e_invoice_format` = `zugferd` (PDF/A-3 with embedded factur-x XML) or `xrechnung` (XML-only, needs customer `buyer_reference` / Leitweg-ID).
+
+## License
+
+GNU Affero General Public License v3.0 or later — see [LICENSE](LICENSE). Anyone who runs a modified version as a network service must offer its users the corresponding source code (AGPL section 13). Production dependencies must be AGPL-compatible; the CI license checks enforce that.

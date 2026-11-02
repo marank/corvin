@@ -23,7 +23,8 @@ class CompanySettings(UuidModel):
     """Per-user company profile used on invoices."""
 
     user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name="company_settings",
     )
     company_name = models.CharField(max_length=255, blank=True)
@@ -39,13 +40,14 @@ class CompanySettings(UuidModel):
     iban = models.CharField(max_length=34, blank=True)
     bic = models.CharField(max_length=11, blank=True)
     default_bank_account = models.ForeignKey(
-        "BankAccount", on_delete=models.SET_NULL, related_name="default_for_companies",
-        null=True, blank=True,
+        "BankAccount",
+        on_delete=models.SET_NULL,
+        related_name="default_for_companies",
+        null=True,
+        blank=True,
     )
     logo = models.ImageField(upload_to="logos/", null=True, blank=True)
-    default_vat_rate = models.DecimalField(
-        max_digits=5, decimal_places=2, default=19
-    )
+    default_vat_rate = models.DecimalField(max_digits=5, decimal_places=2, default=19)
     vat_enabled = models.BooleanField(default=True)
     numbering_schemes = models.JSONField(default=default_numbering_schemes)
     payment_terms_days = models.PositiveIntegerField(default=14)
@@ -56,13 +58,16 @@ class CompanySettings(UuidModel):
     thousands_separator = models.CharField(max_length=1, default=".")
     currency = models.CharField(max_length=3, default="EUR")
     currency_display = models.CharField(
-        max_length=10, choices=[("symbol", "Symbol"), ("code", "Code")],
+        max_length=10,
+        choices=[("symbol", "Symbol"), ("code", "Code")],
         default="symbol",
     )
     currency_position = models.CharField(
-        max_length=10, choices=[("before", "Before"), ("after", "After")],
+        max_length=10,
+        choices=[("before", "Before"), ("after", "After")],
         default="after",
     )
+
     class TimeRoundingDirection(models.TextChoices):
         NEAREST = "nearest", "Nearest"
         BACKWARDS = "backwards", "Backwards"

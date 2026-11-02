@@ -19,7 +19,11 @@ class OwnedViewSet(viewsets.ModelViewSet):
 # Served inline (viewable in the browser); everything else is forced to download
 # so user-uploaded HTML/SVG can never run as same-origin content.
 INLINE_CONTENT_TYPES = {
-    "application/pdf", "image/png", "image/jpeg", "image/gif", "image/webp",
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "image/gif",
+    "image/webp",
 }
 
 

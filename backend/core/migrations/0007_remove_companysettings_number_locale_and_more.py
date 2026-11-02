@@ -4,44 +4,47 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0006_companysettings_date_format_and_more'),
+        ("core", "0006_companysettings_date_format_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='companysettings',
-            name='number_locale',
+            model_name="companysettings",
+            name="number_locale",
         ),
         migrations.AddField(
-            model_name='companysettings',
-            name='currency',
-            field=models.CharField(default='EUR', max_length=3),
+            model_name="companysettings",
+            name="currency",
+            field=models.CharField(default="EUR", max_length=3),
         ),
         migrations.AddField(
-            model_name='companysettings',
-            name='currency_display',
-            field=models.CharField(choices=[('symbol', 'Symbol'), ('code', 'Code')], default='symbol', max_length=10),
+            model_name="companysettings",
+            name="currency_display",
+            field=models.CharField(
+                choices=[("symbol", "Symbol"), ("code", "Code")], default="symbol", max_length=10
+            ),
         ),
         migrations.AddField(
-            model_name='companysettings',
-            name='currency_position',
-            field=models.CharField(choices=[('before', 'Before'), ('after', 'After')], default='after', max_length=10),
+            model_name="companysettings",
+            name="currency_position",
+            field=models.CharField(
+                choices=[("before", "Before"), ("after", "After")], default="after", max_length=10
+            ),
         ),
         migrations.AddField(
-            model_name='companysettings',
-            name='currency_space',
+            model_name="companysettings",
+            name="currency_space",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='companysettings',
-            name='decimal_separator',
-            field=models.CharField(default=',', max_length=1),
+            model_name="companysettings",
+            name="decimal_separator",
+            field=models.CharField(default=",", max_length=1),
         ),
         migrations.AddField(
-            model_name='companysettings',
-            name='thousands_separator',
-            field=models.CharField(default='.', max_length=1),
+            model_name="companysettings",
+            name="thousands_separator",
+            field=models.CharField(default=".", max_length=1),
         ),
     ]

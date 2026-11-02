@@ -8,28 +8,60 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0007_remove_companysettings_number_locale_and_more'),
+        ("core", "0007_remove_companysettings_number_locale_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='CompanyImage',
+            name="CompanyImage",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('kind', models.CharField(choices=[('logo_light', 'Full logo light'), ('logo_dark', 'Full logo dark'), ('icon_light', 'Icon light'), ('icon_dark', 'Icon dark'), ('additional', 'Additional')], max_length=20)),
-                ('key', models.SlugField(max_length=100)),
-                ('name', models.CharField(max_length=255)),
-                ('image', models.ImageField(upload_to='company-images/')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "kind",
+                    models.CharField(
+                        choices=[
+                            ("logo_light", "Full logo light"),
+                            ("logo_dark", "Full logo dark"),
+                            ("icon_light", "Icon light"),
+                            ("icon_dark", "Icon dark"),
+                            ("additional", "Additional"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                ("key", models.SlugField(max_length=100)),
+                ("name", models.CharField(max_length=255)),
+                ("image", models.ImageField(upload_to="company-images/")),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['kind', 'name'],
-                'constraints': [models.UniqueConstraint(condition=models.Q(('kind', 'additional'), _negated=True), fields=('owner', 'kind'), name='unique_company_image_kind_per_owner'), models.UniqueConstraint(fields=('owner', 'key'), name='unique_company_image_key_per_owner')],
+                "ordering": ["kind", "name"],
+                "constraints": [
+                    models.UniqueConstraint(
+                        condition=models.Q(("kind", "additional"), _negated=True),
+                        fields=("owner", "kind"),
+                        name="unique_company_image_kind_per_owner",
+                    ),
+                    models.UniqueConstraint(
+                        fields=("owner", "key"), name="unique_company_image_key_per_owner"
+                    ),
+                ],
             },
         ),
     ]

@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0029_add_time_entry_breaks'),
+        ("core", "0029_add_time_entry_breaks"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='companysettings',
-            name='timer_counts_during_break',
+            model_name="companysettings",
+            name="timer_counts_during_break",
             field=models.BooleanField(default=False),
         ),
     ]

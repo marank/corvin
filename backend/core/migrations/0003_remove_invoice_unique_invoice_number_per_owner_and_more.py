@@ -7,122 +7,147 @@ import core.models.company_settings
 
 
 def migrate_number_sequences(apps, schema_editor):
-    NumberSequence = apps.get_model('core', 'NumberSequence')
+    NumberSequence = apps.get_model("core", "NumberSequence")
     groups = {}
-    for sequence in NumberSequence.objects.all().order_by('id'):
+    for sequence in NumberSequence.objects.all().order_by("id"):
         key = (sequence.owner_id, sequence.year)
         if key not in groups:
             sequence.scope_key = str(sequence.year)
-            sequence.save(update_fields=['scope_key'])
+            sequence.save(update_fields=["scope_key"])
             groups[key] = sequence
         else:
             primary = groups[key]
             if sequence.last_number > primary.last_number:
                 primary.last_number = sequence.last_number
-                primary.save(update_fields=['last_number'])
+                primary.save(update_fields=["last_number"])
             sequence.delete()
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0002_companysettings_vat_enabled_and_more'),
+        ("core", "0002_companysettings_vat_enabled_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.RemoveConstraint(
-            model_name='invoice',
-            name='unique_invoice_number_per_owner',
+            model_name="invoice",
+            name="unique_invoice_number_per_owner",
         ),
         migrations.RemoveConstraint(
-            model_name='numbersequence',
-            name='unique_sequence_per_owner_year_prefix',
+            model_name="numbersequence",
+            name="unique_sequence_per_owner_year_prefix",
         ),
         migrations.RemoveField(
-            model_name='companysettings',
-            name='invoice_prefix',
+            model_name="companysettings",
+            name="invoice_prefix",
         ),
         migrations.AddField(
-            model_name='companysettings',
-            name='numbering_schemes',
+            model_name="companysettings",
+            name="numbering_schemes",
             field=models.JSONField(default=core.models.company_settings.default_numbering_schemes),
         ),
         migrations.AddField(
-            model_name='customer',
-            name='number',
+            model_name="customer",
+            name="number",
             field=models.CharField(blank=True, db_index=True, max_length=50),
         ),
         migrations.AddField(
-            model_name='numbersequence',
-            name='entity',
-            field=models.CharField(default='invoice', max_length=30),
+            model_name="numbersequence",
+            name="entity",
+            field=models.CharField(default="invoice", max_length=30),
         ),
         migrations.AddField(
-            model_name='numbersequence',
-            name='scope_key',
-            field=models.CharField(blank=True, default='global', max_length=100),
+            model_name="numbersequence",
+            name="scope_key",
+            field=models.CharField(blank=True, default="global", max_length=100),
         ),
         migrations.AddField(
-            model_name='onsitevisit',
-            name='number',
+            model_name="onsitevisit",
+            name="number",
             field=models.CharField(blank=True, db_index=True, max_length=50),
         ),
         migrations.AddField(
-            model_name='project',
-            name='number',
+            model_name="project",
+            name="number",
             field=models.CharField(blank=True, db_index=True, max_length=50),
         ),
         migrations.AddField(
-            model_name='supportcontract',
-            name='number',
+            model_name="supportcontract",
+            name="number",
             field=models.CharField(blank=True, db_index=True, max_length=50),
         ),
         migrations.AddField(
-            model_name='task',
-            name='number',
+            model_name="task",
+            name="number",
             field=models.CharField(blank=True, db_index=True, max_length=50),
         ),
         migrations.AlterField(
-            model_name='invoice',
-            name='number',
+            model_name="invoice",
+            name="number",
             field=models.CharField(blank=True, db_index=True, max_length=50),
         ),
         migrations.RunPython(migrate_number_sequences, migrations.RunPython.noop),
         migrations.AddConstraint(
-            model_name='customer',
-            constraint=models.UniqueConstraint(condition=models.Q(('number', ''), _negated=True), fields=('owner', 'number'), name='unique_customer_number_per_owner'),
+            model_name="customer",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("number", ""), _negated=True),
+                fields=("owner", "number"),
+                name="unique_customer_number_per_owner",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='invoice',
-            constraint=models.UniqueConstraint(condition=models.Q(('number', ''), _negated=True), fields=('owner', 'number'), name='unique_invoice_number_per_owner'),
+            model_name="invoice",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("number", ""), _negated=True),
+                fields=("owner", "number"),
+                name="unique_invoice_number_per_owner",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='numbersequence',
-            constraint=models.UniqueConstraint(fields=('owner', 'entity', 'scope_key'), name='unique_number_sequence_scope'),
+            model_name="numbersequence",
+            constraint=models.UniqueConstraint(
+                fields=("owner", "entity", "scope_key"), name="unique_number_sequence_scope"
+            ),
         ),
         migrations.AddConstraint(
-            model_name='onsitevisit',
-            constraint=models.UniqueConstraint(condition=models.Q(('number', ''), _negated=True), fields=('owner', 'number'), name='unique_visit_number_per_owner'),
+            model_name="onsitevisit",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("number", ""), _negated=True),
+                fields=("owner", "number"),
+                name="unique_visit_number_per_owner",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='project',
-            constraint=models.UniqueConstraint(condition=models.Q(('number', ''), _negated=True), fields=('owner', 'number'), name='unique_project_number_per_owner'),
+            model_name="project",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("number", ""), _negated=True),
+                fields=("owner", "number"),
+                name="unique_project_number_per_owner",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='supportcontract',
-            constraint=models.UniqueConstraint(condition=models.Q(('number', ''), _negated=True), fields=('owner', 'number'), name='unique_contract_number_per_owner'),
+            model_name="supportcontract",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("number", ""), _negated=True),
+                fields=("owner", "number"),
+                name="unique_contract_number_per_owner",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='task',
-            constraint=models.UniqueConstraint(condition=models.Q(('number', ''), _negated=True), fields=('owner', 'number'), name='unique_task_number_per_owner'),
+            model_name="task",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("number", ""), _negated=True),
+                fields=("owner", "number"),
+                name="unique_task_number_per_owner",
+            ),
         ),
         migrations.RemoveField(
-            model_name='numbersequence',
-            name='prefix',
+            model_name="numbersequence",
+            name="prefix",
         ),
         migrations.RemoveField(
-            model_name='numbersequence',
-            name='year',
+            model_name="numbersequence",
+            name="year",
         ),
     ]

@@ -31,7 +31,10 @@ def _store(invoice: Invoice, kind: str, content: bytes, ext: str) -> DocumentArc
     digest = hashlib.sha256(content).hexdigest()
     ct = ContentType.objects.get_for_model(invoice)
     doc, created = DocumentArchive.objects.get_or_create(
-        owner=invoice.owner, content_type=ct, object_id=invoice.id, kind=kind,
+        owner=invoice.owner,
+        content_type=ct,
+        object_id=invoice.id,
+        kind=kind,
         defaults={
             "file": ContentFile(content, name=f"{invoice.number}{ext}"),
             "sha256": digest,

@@ -20,26 +20,31 @@ class Task(OwnedModel):
         HIGH = "high", "High"
 
     customer = models.ForeignKey(
-        Customer, on_delete=models.CASCADE, related_name="tasks",
-        null=True, blank=True,
+        Customer,
+        on_delete=models.CASCADE,
+        related_name="tasks",
+        null=True,
+        blank=True,
     )
     project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name="tasks",
-        null=True, blank=True,
+        Project,
+        on_delete=models.CASCADE,
+        related_name="tasks",
+        null=True,
+        blank=True,
     )
     visit = models.ForeignKey(
-        "core.OnSiteVisit", on_delete=models.SET_NULL, related_name="tasks",
-        null=True, blank=True,
+        "core.OnSiteVisit",
+        on_delete=models.SET_NULL,
+        related_name="tasks",
+        null=True,
+        blank=True,
     )
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     due_date = models.DateField(null=True, blank=True)
-    priority = models.CharField(
-        max_length=10, choices=Priority.choices, default=Priority.MEDIUM
-    )
-    status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.OPEN
-    )
+    priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.MEDIUM)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
     position = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -54,12 +59,8 @@ class Task(OwnedModel):
 
     def clean(self):
         super().clean()
-        if self.project and self.customer and (
-            self.project.customer_id != self.customer_id
-        ):
-            raise ValidationError(
-                {"project": "Project does not belong to the customer."}
-            )
+        if self.project and self.customer and (self.project.customer_id != self.customer_id):
+            raise ValidationError({"project": "Project does not belong to the customer."})
 
     def save(self, *args, **kwargs):
         if self.project and not self.customer_id:

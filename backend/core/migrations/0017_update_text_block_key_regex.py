@@ -5,15 +5,17 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0016_alter_textblock_options_and_more'),
+        ("core", "0016_alter_textblock_options_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='textblock',
-            name='key',
-            field=models.CharField(max_length=100, validators=[django.core.validators.RegexValidator('^[a-zA-Z][a-zA-Z0-9_]*$')]),
+            model_name="textblock",
+            name="key",
+            field=models.CharField(
+                max_length=100,
+                validators=[django.core.validators.RegexValidator("^[a-zA-Z][a-zA-Z0-9_]*$")],
+            ),
         ),
     ]

@@ -12,8 +12,14 @@ class CompanyImageSerializer(OwnedSerializer):
     class Meta:
         model = CompanyImage
         fields = [
-            "id", "kind", "key", "name", "image", "url",
-            "created_at", "updated_at",
+            "id",
+            "kind",
+            "key",
+            "name",
+            "image",
+            "url",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at", "url"]
 

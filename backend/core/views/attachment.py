@@ -26,10 +26,7 @@ class AttachmentViewSet(OwnedViewSet):
     @action(detail=False, methods=["get"])
     def content_types(self, request):
         return Response(
-            {
-                m: ContentType.objects.get(app_label="core", model=m).id
-                for m in ATTACHABLE_MODELS
-            }
+            {m: ContentType.objects.get(app_label="core", model=m).id for m in ATTACHABLE_MODELS}
         )
 
     @action(detail=True, methods=["get"])

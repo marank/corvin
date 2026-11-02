@@ -11,19 +11,30 @@ from core.services.pdf import render_invoice_html
 @pytest.mark.django_db
 def test_invoice_resolves_bank_account_overrides(user, customer):
     company_account = BankAccount.objects.create(
-        owner=user, name="Company", account_holder="Alice", iban="DE001",
+        owner=user,
+        name="Company",
+        account_holder="Alice",
+        iban="DE001",
     )
     customer_account = BankAccount.objects.create(
-        owner=user, name="Customer", account_holder="Alice", iban="DE002",
+        owner=user,
+        name="Customer",
+        account_holder="Alice",
+        iban="DE002",
     )
     invoice_account = BankAccount.objects.create(
-        owner=user, name="Invoice", account_holder="Alice", iban="DE003",
+        owner=user,
+        name="Invoice",
+        account_holder="Alice",
+        iban="DE003",
     )
     settings = user.company_settings
     settings.default_bank_account = company_account
     settings.save(update_fields=["default_bank_account"])
     invoice = Invoice.objects.create(
-        owner=user, customer=customer, issue_date=date(2026, 1, 1),
+        owner=user,
+        customer=customer,
+        issue_date=date(2026, 1, 1),
     )
 
     assert invoice.bank_account == company_account
@@ -40,7 +51,10 @@ def test_bank_account_api_is_owner_scoped(user):
     other = User.objects.create_user("other")
     CompanySettings.objects.create(user=other)
     foreign = BankAccount.objects.create(
-        owner=other, name="Foreign", account_holder="Other", iban="DE999",
+        owner=other,
+        name="Foreign",
+        account_holder="Other",
+        iban="DE999",
     )
     client = APIClient()
     client.force_authenticate(user)
@@ -56,16 +70,24 @@ def test_bank_account_api_is_owner_scoped(user):
 
 @pytest.mark.django_db
 def test_invoice_template_exposes_resolved_bank_account(
-    user, customer, invoice_template,
+    user,
+    customer,
+    invoice_template,
 ):
     account = BankAccount.objects.create(
-        owner=user, name="Main", bank_name="Example Bank",
-        account_holder="Alice Consulting", iban="DE123", bic="TESTBIC",
+        owner=user,
+        name="Main",
+        bank_name="Example Bank",
+        account_holder="Alice Consulting",
+        iban="DE123",
+        bic="TESTBIC",
     )
     customer.bank_account = account
     customer.save(update_fields=["bank_account"])
     invoice = Invoice.objects.create(
-        owner=user, customer=customer, issue_date=date(2026, 1, 1),
+        owner=user,
+        customer=customer,
+        issue_date=date(2026, 1, 1),
         template=invoice_template,
     )
     invoice_template.body_html = (

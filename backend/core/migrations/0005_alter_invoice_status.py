@@ -4,15 +4,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0004_normalize_number_sequences'),
+        ("core", "0004_normalize_number_sequences"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='invoice',
-            name='status',
-            field=models.CharField(choices=[('draft', 'Draft'), ('issued', 'Issued'), ('sent', 'Sent'), ('paid', 'Paid'), ('cancelled', 'Cancelled')], default='draft', max_length=15),
+            model_name="invoice",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("draft", "Draft"),
+                    ("issued", "Issued"),
+                    ("sent", "Sent"),
+                    ("paid", "Paid"),
+                    ("cancelled", "Cancelled"),
+                ],
+                default="draft",
+                max_length=15,
+            ),
         ),
     ]

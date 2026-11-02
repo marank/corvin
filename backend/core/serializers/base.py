@@ -25,8 +25,9 @@ class OwnedSerializer(serializers.ModelSerializer):
         # enforce same-owner integrity on FK fields
         for name in self.owner_fk_fields:
             rel = merged.get(name)
-            if rel is not None and getattr(rel, "owner_id", None) != self.context[
-                "request"
-            ].user.id:
+            if (
+                rel is not None
+                and getattr(rel, "owner_id", None) != self.context["request"].user.id
+            ):
                 raise serializers.ValidationError({name: "Invalid object."})
         return attrs

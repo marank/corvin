@@ -45,12 +45,8 @@ router.register("text-blocks", TextBlockViewSet, basename="text-block")
 router.register("visits", OnSiteVisitViewSet, basename="visit")
 router.register("time-tracking", TimeEntryViewSet, basename="time-tracking")
 router.register("hourly-rates", HourlyRateViewSet, basename="hourly-rate")
-router.register(
-    "support-contracts", SupportContractViewSet, basename="support-contract"
-)
-router.register(
-    "document-templates", DocumentTemplateViewSet, basename="document-template"
-)
+router.register("support-contracts", SupportContractViewSet, basename="support-contract")
+router.register("document-templates", DocumentTemplateViewSet, basename="document-template")
 router.register("invoices", InvoiceViewSet, basename="invoice")
 router.register("payments", PaymentViewSet, basename="payment")
 router.register("attachments", AttachmentViewSet, basename="attachment")

@@ -8,374 +8,928 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('contenttypes', '0002_remove_content_type_name'),
+        ("contenttypes", "0002_remove_content_type_name"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Attachment',
+            name="Attachment",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('file', models.FileField(upload_to='attachments/%Y/%m/')),
-                ('name', models.CharField(blank=True, max_length=255)),
-                ('uploaded_at', models.DateTimeField(auto_now_add=True)),
-                ('object_id', models.UUIDField()),
-                ('content_type', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='contenttypes.contenttype')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("file", models.FileField(upload_to="attachments/%Y/%m/")),
+                ("name", models.CharField(blank=True, max_length=255)),
+                ("uploaded_at", models.DateTimeField(auto_now_add=True)),
+                ("object_id", models.UUIDField()),
+                (
+                    "content_type",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="contenttypes.contenttype"
+                    ),
+                ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-uploaded_at'],
+                "ordering": ["-uploaded_at"],
             },
         ),
         migrations.CreateModel(
-            name='CompanySettings',
+            name="CompanySettings",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('company_name', models.CharField(blank=True, max_length=255)),
-                ('street', models.CharField(blank=True, max_length=255)),
-                ('postal_code', models.CharField(blank=True, max_length=20)),
-                ('city', models.CharField(blank=True, max_length=255)),
-                ('country', models.CharField(default='Deutschland', max_length=100)),
-                ('email', models.EmailField(blank=True, max_length=254)),
-                ('phone', models.CharField(blank=True, max_length=50)),
-                ('tax_id', models.CharField(blank=True, max_length=50)),
-                ('vat_id', models.CharField(blank=True, max_length=50)),
-                ('iban', models.CharField(blank=True, max_length=34)),
-                ('bic', models.CharField(blank=True, max_length=11)),
-                ('logo', models.ImageField(blank=True, null=True, upload_to='logos/')),
-                ('default_vat_rate', models.DecimalField(decimal_places=2, default=19, max_digits=5)),
-                ('invoice_prefix', models.CharField(default='RE', max_length=20)),
-                ('payment_terms_days', models.PositiveIntegerField(default=14)),
-                ('locale', models.CharField(default='de', max_length=5)),
-                ('theme', models.CharField(default='light', max_length=10)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='company_settings', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("company_name", models.CharField(blank=True, max_length=255)),
+                ("street", models.CharField(blank=True, max_length=255)),
+                ("postal_code", models.CharField(blank=True, max_length=20)),
+                ("city", models.CharField(blank=True, max_length=255)),
+                ("country", models.CharField(default="Deutschland", max_length=100)),
+                ("email", models.EmailField(blank=True, max_length=254)),
+                ("phone", models.CharField(blank=True, max_length=50)),
+                ("tax_id", models.CharField(blank=True, max_length=50)),
+                ("vat_id", models.CharField(blank=True, max_length=50)),
+                ("iban", models.CharField(blank=True, max_length=34)),
+                ("bic", models.CharField(blank=True, max_length=11)),
+                ("logo", models.ImageField(blank=True, null=True, upload_to="logos/")),
+                (
+                    "default_vat_rate",
+                    models.DecimalField(decimal_places=2, default=19, max_digits=5),
+                ),
+                ("invoice_prefix", models.CharField(default="RE", max_length=20)),
+                ("payment_terms_days", models.PositiveIntegerField(default=14)),
+                ("locale", models.CharField(default="de", max_length=5)),
+                ("theme", models.CharField(default="light", max_length=10)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="company_settings",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='Customer',
+            name="Customer",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('name', models.CharField(max_length=255)),
-                ('email', models.EmailField(blank=True, max_length=254)),
-                ('phone', models.CharField(blank=True, max_length=50)),
-                ('website', models.URLField(blank=True)),
-                ('vat_id', models.CharField(blank=True, max_length=50)),
-                ('notes', models.TextField(blank=True)),
-                ('buyer_reference', models.CharField(blank=True, help_text='Leitweg-ID (XRechnung)', max_length=255)),
-                ('rounding_increment_minutes', models.PositiveIntegerField(blank=True, help_text='Round time entries up to this increment', null=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("name", models.CharField(max_length=255)),
+                ("email", models.EmailField(blank=True, max_length=254)),
+                ("phone", models.CharField(blank=True, max_length=50)),
+                ("website", models.URLField(blank=True)),
+                ("vat_id", models.CharField(blank=True, max_length=50)),
+                ("notes", models.TextField(blank=True)),
+                (
+                    "buyer_reference",
+                    models.CharField(
+                        blank=True, help_text="Leitweg-ID (XRechnung)", max_length=255
+                    ),
+                ),
+                (
+                    "rounding_increment_minutes",
+                    models.PositiveIntegerField(
+                        blank=True, help_text="Round time entries up to this increment", null=True
+                    ),
+                ),
+                ("is_active", models.BooleanField(default=True)),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['name'],
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='Contact',
+            name="Contact",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('first_name', models.CharField(max_length=255)),
-                ('last_name', models.CharField(blank=True, max_length=255)),
-                ('role', models.CharField(blank=True, max_length=100)),
-                ('email', models.EmailField(blank=True, max_length=254)),
-                ('phone', models.CharField(blank=True, max_length=50)),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='contacts', to='core.customer')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("first_name", models.CharField(max_length=255)),
+                ("last_name", models.CharField(blank=True, max_length=255)),
+                ("role", models.CharField(blank=True, max_length=100)),
+                ("email", models.EmailField(blank=True, max_length=254)),
+                ("phone", models.CharField(blank=True, max_length=50)),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="contacts",
+                        to="core.customer",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['last_name', 'first_name'],
+                "ordering": ["last_name", "first_name"],
             },
         ),
         migrations.CreateModel(
-            name='Address',
+            name="Address",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('label', models.CharField(blank=True, help_text='e.g. Headquarters, Billing', max_length=100)),
-                ('street', models.CharField(blank=True, max_length=255)),
-                ('postal_code', models.CharField(blank=True, max_length=20)),
-                ('city', models.CharField(blank=True, max_length=255)),
-                ('country', models.CharField(default='Deutschland', max_length=100)),
-                ('is_primary', models.BooleanField(default=False)),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='addresses', to='core.customer')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "label",
+                    models.CharField(
+                        blank=True, help_text="e.g. Headquarters, Billing", max_length=100
+                    ),
+                ),
+                ("street", models.CharField(blank=True, max_length=255)),
+                ("postal_code", models.CharField(blank=True, max_length=20)),
+                ("city", models.CharField(blank=True, max_length=255)),
+                ("country", models.CharField(default="Deutschland", max_length=100)),
+                ("is_primary", models.BooleanField(default=False)),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="addresses",
+                        to="core.customer",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-is_primary', 'label', 'city'],
+                "ordering": ["-is_primary", "label", "city"],
             },
         ),
         migrations.CreateModel(
-            name='Invoice',
+            name="Invoice",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('number', models.CharField(max_length=50)),
-                ('issue_date', models.DateField()),
-                ('due_date', models.DateField(blank=True, null=True)),
-                ('status', models.CharField(choices=[('draft', 'Draft'), ('issued', 'Issued'), ('paid', 'Paid'), ('cancelled', 'Cancelled')], default='draft', max_length=15)),
-                ('vat_rate', models.DecimalField(decimal_places=2, default=19, max_digits=5)),
-                ('currency', models.CharField(default='EUR', max_length=3)),
-                ('e_invoice_format', models.CharField(choices=[('none', 'None'), ('zugferd', 'ZUGFeRD (PDF/A-3 + XML)'), ('xrechnung', 'XRechnung (XML only)')], default='none', max_length=15)),
-                ('notes', models.TextField(blank=True)),
-                ('subtotal', models.DecimalField(decimal_places=2, default=0, max_digits=12)),
-                ('vat_amount', models.DecimalField(decimal_places=2, default=0, max_digits=12)),
-                ('total', models.DecimalField(decimal_places=2, default=0, max_digits=12)),
-                ('sent_at', models.DateTimeField(blank=True, null=True)),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='invoices', to='core.customer')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("number", models.CharField(max_length=50)),
+                ("issue_date", models.DateField()),
+                ("due_date", models.DateField(blank=True, null=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("draft", "Draft"),
+                            ("issued", "Issued"),
+                            ("paid", "Paid"),
+                            ("cancelled", "Cancelled"),
+                        ],
+                        default="draft",
+                        max_length=15,
+                    ),
+                ),
+                ("vat_rate", models.DecimalField(decimal_places=2, default=19, max_digits=5)),
+                ("currency", models.CharField(default="EUR", max_length=3)),
+                (
+                    "e_invoice_format",
+                    models.CharField(
+                        choices=[
+                            ("none", "None"),
+                            ("zugferd", "ZUGFeRD (PDF/A-3 + XML)"),
+                            ("xrechnung", "XRechnung (XML only)"),
+                        ],
+                        default="none",
+                        max_length=15,
+                    ),
+                ),
+                ("notes", models.TextField(blank=True)),
+                ("subtotal", models.DecimalField(decimal_places=2, default=0, max_digits=12)),
+                ("vat_amount", models.DecimalField(decimal_places=2, default=0, max_digits=12)),
+                ("total", models.DecimalField(decimal_places=2, default=0, max_digits=12)),
+                ("sent_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="invoices",
+                        to="core.customer",
+                    ),
+                ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-issue_date', '-id'],
+                "ordering": ["-issue_date", "-id"],
             },
         ),
         migrations.CreateModel(
-            name='InvoiceLineItem',
+            name="InvoiceLineItem",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('position', models.PositiveIntegerField(default=0)),
-                ('description', models.CharField(max_length=500)),
-                ('quantity', models.DecimalField(decimal_places=2, default=1, max_digits=10)),
-                ('unit', models.CharField(choices=[('hours', 'Hours'), ('flat', 'Flat rate'), ('piece', 'Piece')], default='hours', max_length=10)),
-                ('unit_price', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('invoice', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='items', to='core.invoice')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("position", models.PositiveIntegerField(default=0)),
+                ("description", models.CharField(max_length=500)),
+                ("quantity", models.DecimalField(decimal_places=2, default=1, max_digits=10)),
+                (
+                    "unit",
+                    models.CharField(
+                        choices=[("hours", "Hours"), ("flat", "Flat rate"), ("piece", "Piece")],
+                        default="hours",
+                        max_length=10,
+                    ),
+                ),
+                ("unit_price", models.DecimalField(decimal_places=2, max_digits=10)),
+                (
+                    "invoice",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="items",
+                        to="core.invoice",
+                    ),
+                ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['position', 'id'],
+                "ordering": ["position", "id"],
             },
         ),
         migrations.CreateModel(
-            name='InvoiceTemplate',
+            name="InvoiceTemplate",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('name', models.CharField(max_length=255)),
-                ('page_size', models.CharField(choices=[('A4', 'DIN A4'), ('LETTER', 'US Letter')], default='A4', max_length=10)),
-                ('margin_top', models.PositiveIntegerField(default=20, help_text='mm')),
-                ('margin_right', models.PositiveIntegerField(default=20, help_text='mm')),
-                ('margin_bottom', models.PositiveIntegerField(default=20, help_text='mm')),
-                ('margin_left', models.PositiveIntegerField(default=25, help_text='mm')),
-                ('body_html', models.TextField(help_text='Django template markup: {{ invoice.number }}, {% for item in items %}...')),
-                ('css', models.TextField(blank=True)),
-                ('header_html', models.TextField(blank=True)),
-                ('footer_html', models.TextField(blank=True)),
-                ('mail_subject', models.CharField(blank=True, default='Invoice {{ invoice.number }}', max_length=255)),
-                ('mail_body', models.TextField(blank=True, default='Dear customer,\n\nplease find attached your invoice.')),
-                ('is_default', models.BooleanField(default=False)),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "page_size",
+                    models.CharField(
+                        choices=[("A4", "DIN A4"), ("LETTER", "US Letter")],
+                        default="A4",
+                        max_length=10,
+                    ),
+                ),
+                ("margin_top", models.PositiveIntegerField(default=20, help_text="mm")),
+                ("margin_right", models.PositiveIntegerField(default=20, help_text="mm")),
+                ("margin_bottom", models.PositiveIntegerField(default=20, help_text="mm")),
+                ("margin_left", models.PositiveIntegerField(default=25, help_text="mm")),
+                (
+                    "body_html",
+                    models.TextField(
+                        help_text="Django template markup: {{ invoice.number }}, {% for item in items %}..."
+                    ),
+                ),
+                ("css", models.TextField(blank=True)),
+                ("header_html", models.TextField(blank=True)),
+                ("footer_html", models.TextField(blank=True)),
+                (
+                    "mail_subject",
+                    models.CharField(
+                        blank=True, default="Invoice {{ invoice.number }}", max_length=255
+                    ),
+                ),
+                (
+                    "mail_body",
+                    models.TextField(
+                        blank=True, default="Dear customer,\n\nplease find attached your invoice."
+                    ),
+                ),
+                ("is_default", models.BooleanField(default=False)),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['name'],
+                "ordering": ["name"],
             },
         ),
         migrations.AddField(
-            model_name='invoice',
-            name='template',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='invoices', to='core.invoicetemplate'),
+            model_name="invoice",
+            name="template",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="invoices",
+                to="core.invoicetemplate",
+            ),
         ),
         migrations.CreateModel(
-            name='Payment',
+            name="Payment",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('date', models.DateField()),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=12)),
-                ('note', models.CharField(blank=True, max_length=255)),
-                ('invoice', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='payments', to='core.invoice')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("date", models.DateField()),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=12)),
+                ("note", models.CharField(blank=True, max_length=255)),
+                (
+                    "invoice",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="payments",
+                        to="core.invoice",
+                    ),
+                ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-date'],
+                "ordering": ["-date"],
             },
         ),
         migrations.CreateModel(
-            name='Project',
+            name="Project",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('name', models.CharField(max_length=255)),
-                ('description', models.TextField(blank=True)),
-                ('status', models.CharField(choices=[('active', 'Active'), ('on_hold', 'On hold'), ('done', 'Done')], default='active', max_length=20)),
-                ('budget_hours', models.DecimalField(blank=True, decimal_places=2, max_digits=8, null=True)),
-                ('budget_amount', models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True)),
-                ('rounding_increment_minutes', models.PositiveIntegerField(blank=True, null=True)),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='projects', to='core.customer')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("name", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[("active", "Active"), ("on_hold", "On hold"), ("done", "Done")],
+                        default="active",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "budget_hours",
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=8, null=True),
+                ),
+                (
+                    "budget_amount",
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
+                ),
+                ("rounding_increment_minutes", models.PositiveIntegerField(blank=True, null=True)),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="projects",
+                        to="core.customer",
+                    ),
+                ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['name'],
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='OnSiteVisit',
+            name="OnSiteVisit",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('date', models.DateField()),
-                ('location', models.CharField(blank=True, max_length=255)),
-                ('arrival', models.TimeField(blank=True, null=True)),
-                ('departure', models.TimeField(blank=True, null=True)),
-                ('notes', models.TextField(blank=True)),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='visits', to='core.customer')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
-                ('project', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='visits', to='core.project')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("date", models.DateField()),
+                ("location", models.CharField(blank=True, max_length=255)),
+                ("arrival", models.TimeField(blank=True, null=True)),
+                ("departure", models.TimeField(blank=True, null=True)),
+                ("notes", models.TextField(blank=True)),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="visits",
+                        to="core.customer",
+                    ),
+                ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "project",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="visits",
+                        to="core.project",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-date'],
+                "ordering": ["-date"],
             },
         ),
         migrations.AddField(
-            model_name='invoice',
-            name='project',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='invoices', to='core.project'),
+            model_name="invoice",
+            name="project",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="invoices",
+                to="core.project",
+            ),
         ),
         migrations.CreateModel(
-            name='HourlyRate',
+            name="HourlyRate",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('valid_from', models.DateField()),
-                ('valid_to', models.DateField(blank=True, null=True)),
-                ('customer', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='hourly_rates', to='core.customer')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
-                ('project', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='hourly_rates', to='core.project')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=10)),
+                ("valid_from", models.DateField()),
+                ("valid_to", models.DateField(blank=True, null=True)),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="hourly_rates",
+                        to="core.customer",
+                    ),
+                ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "project",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="hourly_rates",
+                        to="core.project",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-valid_from'],
+                "ordering": ["-valid_from"],
             },
         ),
         migrations.CreateModel(
-            name='SupportContract',
+            name="SupportContract",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('name', models.CharField(max_length=255)),
-                ('included_hours', models.DecimalField(decimal_places=2, default=0, help_text='Hours included per period (0 = flat fee only)', max_digits=6)),
-                ('period', models.CharField(choices=[('monthly', 'Monthly'), ('quarterly', 'Quarterly'), ('yearly', 'Yearly')], default='monthly', max_length=10)),
-                ('fixed_price', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('bill_overage', models.BooleanField(default=False, help_text='Bill hours beyond included_hours')),
-                ('overage_rate', models.DecimalField(blank=True, decimal_places=2, help_text='Rate for overage hours; empty = standard rate', max_digits=10, null=True)),
-                ('start_date', models.DateField()),
-                ('end_date', models.DateField(blank=True, null=True)),
-                ('next_billing_date', models.DateField()),
-                ('active', models.BooleanField(default=True)),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='contracts', to='core.customer')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
-                ('project', models.ForeignKey(blank=True, help_text='Limit coverage to this project; empty = whole customer', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='contracts', to='core.project')),
-                ('template', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='contracts', to='core.invoicetemplate')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "included_hours",
+                    models.DecimalField(
+                        decimal_places=2,
+                        default=0,
+                        help_text="Hours included per period (0 = flat fee only)",
+                        max_digits=6,
+                    ),
+                ),
+                (
+                    "period",
+                    models.CharField(
+                        choices=[
+                            ("monthly", "Monthly"),
+                            ("quarterly", "Quarterly"),
+                            ("yearly", "Yearly"),
+                        ],
+                        default="monthly",
+                        max_length=10,
+                    ),
+                ),
+                ("fixed_price", models.DecimalField(decimal_places=2, max_digits=10)),
+                (
+                    "bill_overage",
+                    models.BooleanField(
+                        default=False, help_text="Bill hours beyond included_hours"
+                    ),
+                ),
+                (
+                    "overage_rate",
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=2,
+                        help_text="Rate for overage hours; empty = standard rate",
+                        max_digits=10,
+                        null=True,
+                    ),
+                ),
+                ("start_date", models.DateField()),
+                ("end_date", models.DateField(blank=True, null=True)),
+                ("next_billing_date", models.DateField()),
+                ("active", models.BooleanField(default=True)),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="contracts",
+                        to="core.customer",
+                    ),
+                ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "project",
+                    models.ForeignKey(
+                        blank=True,
+                        help_text="Limit coverage to this project; empty = whole customer",
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="contracts",
+                        to="core.project",
+                    ),
+                ),
+                (
+                    "template",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="contracts",
+                        to="core.invoicetemplate",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['name'],
+                "ordering": ["name"],
             },
         ),
         migrations.AddField(
-            model_name='invoice',
-            name='contract',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='invoices', to='core.supportcontract'),
+            model_name="invoice",
+            name="contract",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="invoices",
+                to="core.supportcontract",
+            ),
         ),
         migrations.CreateModel(
-            name='Task',
+            name="Task",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('title', models.CharField(max_length=255)),
-                ('description', models.TextField(blank=True)),
-                ('due_date', models.DateField(blank=True, null=True)),
-                ('priority', models.CharField(choices=[('low', 'Low'), ('medium', 'Medium'), ('high', 'High')], default='medium', max_length=10)),
-                ('status', models.CharField(choices=[('open', 'Open'), ('in_progress', 'In progress'), ('done', 'Done')], default='open', max_length=20)),
-                ('position', models.PositiveIntegerField(default=0)),
-                ('customer', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='tasks', to='core.customer')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
-                ('project', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='tasks', to='core.project')),
-                ('visit', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='tasks', to='core.onsitevisit')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("title", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True)),
+                ("due_date", models.DateField(blank=True, null=True)),
+                (
+                    "priority",
+                    models.CharField(
+                        choices=[("low", "Low"), ("medium", "Medium"), ("high", "High")],
+                        default="medium",
+                        max_length=10,
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("open", "Open"),
+                            ("in_progress", "In progress"),
+                            ("done", "Done"),
+                        ],
+                        default="open",
+                        max_length=20,
+                    ),
+                ),
+                ("position", models.PositiveIntegerField(default=0)),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="tasks",
+                        to="core.customer",
+                    ),
+                ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "project",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="tasks",
+                        to="core.project",
+                    ),
+                ),
+                (
+                    "visit",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="tasks",
+                        to="core.onsitevisit",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['position', 'due_date', 'title'],
+                "ordering": ["position", "due_date", "title"],
             },
         ),
         migrations.CreateModel(
-            name='TimeEntry',
+            name="TimeEntry",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('date', models.DateField()),
-                ('start_time', models.TimeField()),
-                ('end_time', models.TimeField(blank=True, null=True)),
-                ('break_minutes', models.PositiveIntegerField(default=0)),
-                ('duration_minutes', models.PositiveIntegerField(default=0, editable=False)),
-                ('description', models.CharField(blank=True, max_length=500)),
-                ('billable', models.BooleanField(default=True)),
-                ('contract', models.ForeignKey(blank=True, help_text="Covered by this support contract's included hours (excluded from normal consolidation)", null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='time_entries', to='core.supportcontract')),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='time_entries', to='core.customer')),
-                ('invoice', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='time_entries', to='core.invoice')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
-                ('project', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='time_entries', to='core.project')),
-                ('visit', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='time_entries', to='core.onsitevisit')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("date", models.DateField()),
+                ("start_time", models.TimeField()),
+                ("end_time", models.TimeField(blank=True, null=True)),
+                ("break_minutes", models.PositiveIntegerField(default=0)),
+                ("duration_minutes", models.PositiveIntegerField(default=0, editable=False)),
+                ("description", models.CharField(blank=True, max_length=500)),
+                ("billable", models.BooleanField(default=True)),
+                (
+                    "contract",
+                    models.ForeignKey(
+                        blank=True,
+                        help_text="Covered by this support contract's included hours (excluded from normal consolidation)",
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="time_entries",
+                        to="core.supportcontract",
+                    ),
+                ),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="time_entries",
+                        to="core.customer",
+                    ),
+                ),
+                (
+                    "invoice",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="time_entries",
+                        to="core.invoice",
+                    ),
+                ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "project",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="time_entries",
+                        to="core.project",
+                    ),
+                ),
+                (
+                    "visit",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="time_entries",
+                        to="core.onsitevisit",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-date', '-start_time'],
+                "ordering": ["-date", "-start_time"],
             },
         ),
         migrations.CreateModel(
-            name='InvoiceDocument',
+            name="InvoiceDocument",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('kind', models.CharField(choices=[('pdf', 'PDF'), ('xml', 'XML (e-invoice)')], max_length=10)),
-                ('file', models.FileField(upload_to='invoice_docs/%Y/%m/')),
-                ('sha256', models.CharField(max_length=64)),
-                ('generated_at', models.DateTimeField(auto_now_add=True)),
-                ('invoice', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='core.invoice')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "kind",
+                    models.CharField(
+                        choices=[("pdf", "PDF"), ("xml", "XML (e-invoice)")], max_length=10
+                    ),
+                ),
+                ("file", models.FileField(upload_to="invoice_docs/%Y/%m/")),
+                ("sha256", models.CharField(max_length=64)),
+                ("generated_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "invoice",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="documents",
+                        to="core.invoice",
+                    ),
+                ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-generated_at'],
-                'constraints': [models.UniqueConstraint(fields=('invoice', 'kind'), name='unique_doc_kind_per_invoice')],
+                "ordering": ["-generated_at"],
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("invoice", "kind"), name="unique_doc_kind_per_invoice"
+                    )
+                ],
             },
         ),
         migrations.CreateModel(
-            name='NumberSequence',
+            name="NumberSequence",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('year', models.PositiveIntegerField()),
-                ('prefix', models.CharField(default='RE', max_length=20)),
-                ('last_number', models.PositiveIntegerField(default=0)),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("year", models.PositiveIntegerField()),
+                ("prefix", models.CharField(default="RE", max_length=20)),
+                ("last_number", models.PositiveIntegerField(default=0)),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
+                    ),
+                ),
             ],
             options={
-                'constraints': [models.UniqueConstraint(fields=('owner', 'year', 'prefix'), name='unique_sequence_per_owner_year_prefix')],
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("owner", "year", "prefix"),
+                        name="unique_sequence_per_owner_year_prefix",
+                    )
+                ],
             },
         ),
         migrations.AddConstraint(
-            model_name='invoice',
-            constraint=models.UniqueConstraint(fields=('owner', 'number'), name='unique_invoice_number_per_owner'),
+            model_name="invoice",
+            constraint=models.UniqueConstraint(
+                fields=("owner", "number"), name="unique_invoice_number_per_owner"
+            ),
         ),
     ]

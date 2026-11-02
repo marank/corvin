@@ -43,37 +43,48 @@ class _SampleObj:
 def _sample_invoice(request):
     company = getattr(request.user, "company_settings", None)
     items = [
-        _SampleObj(position=i, description=d, quantity=q, unit="hours",
-                   unit_price=p, total=q * p)
+        _SampleObj(position=i, description=d, quantity=q, unit="hours", unit_price=p, total=q * p)
         for i, (d, q, p) in enumerate(
-            [("Consulting services", Decimal("8"), Decimal("85")),
-             ("On-site support", Decimal("4"), Decimal("95"))],
+            [
+                ("Consulting services", Decimal("8"), Decimal("85")),
+                ("On-site support", Decimal("4"), Decimal("95")),
+            ],
             start=1,
         )
     ]
     subtotal = sum(i.total for i in items)
     vat = subtotal * Decimal("0.19")
-    return _SampleObj(
-        number="RE-2026-0042",
-        issue_date=timezone.localdate(),
-        due_date=timezone.localdate(),
-        subtotal=subtotal,
-        vat_rate=Decimal("19"),
-        vat_amount=vat,
-        total=subtotal + vat,
-        currency="EUR",
-        amount_paid=Decimal("0"),
-        remaining=subtotal + vat,
-        notes="",
-        bank_account=_SampleObj(
-            name="Geschäftskonto", bank_name="Musterbank",
-            account_holder="Musterfirma GmbH", iban="DE02120300000000202051",
-            bic="BYLADEM1001",
+    return (
+        _SampleObj(
+            number="RE-2026-0042",
+            issue_date=timezone.localdate(),
+            due_date=timezone.localdate(),
+            subtotal=subtotal,
+            vat_rate=Decimal("19"),
+            vat_amount=vat,
+            total=subtotal + vat,
+            currency="EUR",
+            amount_paid=Decimal("0"),
+            remaining=subtotal + vat,
+            notes="",
+            bank_account=_SampleObj(
+                name="Geschäftskonto",
+                bank_name="Musterbank",
+                account_holder="Musterfirma GmbH",
+                iban="DE02120300000000202051",
+                bic="BYLADEM1001",
+            ),
         ),
-    ), items, _SampleObj(
-        name="Musterkunde GmbH", street="Musterstraße 1",
-        postal_code="10115", city="Berlin", country="Deutschland",
-    ), company
+        items,
+        _SampleObj(
+            name="Musterkunde GmbH",
+            street="Musterstraße 1",
+            postal_code="10115",
+            city="Berlin",
+            country="Deutschland",
+        ),
+        company,
+    )
 
 
 class DocumentTemplateViewSet(OwnedViewSet):
@@ -119,9 +130,7 @@ class DocumentTemplateViewSet(OwnedViewSet):
         return HttpResponse(
             json.dumps(payload, ensure_ascii=False, indent=2),
             content_type="application/json",
-            headers={
-                "Content-Disposition": f'attachment; filename="{filename}.json"'
-            },
+            headers={"Content-Disposition": f'attachment; filename="{filename}.json"'},
         )
 
     @action(detail=False, methods=["post"], url_path="import")
@@ -153,22 +162,24 @@ class DocumentTemplateViewSet(OwnedViewSet):
     def _build_preview_context(self, request, template):
         """Build shared sample-data context for HTML and PDF previews."""
         invoice, items, customer, company = _sample_invoice(request)
-        ctx = Context({
-            "invoice": invoice, "items": items,
-            "customer": customer, "company": company,
-            "images": {
-                key: request.build_absolute_uri(url)
-                for key, url in company_image_context(request.user).items()
-            },
-            "company_contacts": list(
-                CompanyContact.objects.filter(owner=request.user)
-            ),
-            "invoice_contacts": [
-                _SampleObj(name="Erika Musterfrau"),
-                _SampleObj(name="Max Mustermann"),
-            ],
-            "page": template_page_context(template, "invoice"),
-        })
+        ctx = Context(
+            {
+                "invoice": invoice,
+                "items": items,
+                "customer": customer,
+                "company": company,
+                "images": {
+                    key: request.build_absolute_uri(url)
+                    for key, url in company_image_context(request.user).items()
+                },
+                "company_contacts": list(CompanyContact.objects.filter(owner=request.user)),
+                "invoice_contacts": [
+                    _SampleObj(name="Erika Musterfrau"),
+                    _SampleObj(name="Max Mustermann"),
+                ],
+                "page": template_page_context(template, "invoice"),
+            }
+        )
         ctx["text_blocks"] = text_block_context(request.user, ctx)
         return ctx
 

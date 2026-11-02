@@ -8,34 +8,52 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0028_use_datetime_for_time_entry'),
+        ("core", "0028_use_datetime_for_time_entry"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='timeentry',
-            options={'ordering': ['-start_datetime']},
+            name="timeentry",
+            options={"ordering": ["-start_datetime"]},
         ),
         migrations.RemoveField(
-            model_name='timeentry',
-            name='break_minutes',
+            model_name="timeentry",
+            name="break_minutes",
         ),
         migrations.CreateModel(
-            name='TimeEntryBreak',
+            name="TimeEntryBreak",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('start_datetime', models.DateTimeField()),
-                ('end_datetime', models.DateTimeField(blank=True, null=True)),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
-                ('time_entry', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='breaks', to='core.timeentry')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("start_datetime", models.DateTimeField()),
+                ("end_datetime", models.DateTimeField(blank=True, null=True)),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "time_entry",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="breaks",
+                        to="core.timeentry",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['start_datetime'],
+                "ordering": ["start_datetime"],
             },
         ),
     ]

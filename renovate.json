@@ -181,6 +181,45 @@
       "schedule": [
         "before 6am on monday"
       ]
+    },
+    {
+      "description": "PrimeVue 5 / @primeuix 3 switched to the commercial PrimeUI license; stay on the MIT lines until that is decided",
+      "matchPackageNames": [
+        "primevue",
+        "@primevue/**"
+      ],
+      "allowedVersions": "<5"
+    },
+    {
+      "description": "@primeuix/themes 3 is under the commercial PrimeUI license",
+      "matchPackageNames": [
+        "@primeuix/themes"
+      ],
+      "allowedVersions": "<3"
+    },
+    {
+      "description": "TypeScript 7 (native) has no JS API yet; vue-tsc needs it",
+      "matchPackageNames": [
+        "typescript"
+      ],
+      "allowedVersions": "<7"
+    },
+    {
+      "description": "Node 25+ ships without corepack; keep the global corepack install current",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchPackageNames": [
+        "corepack"
+      ],
+      "groupName": "Node runtime"
+    },
+    {
+      "description": "primeicons 8 is under the commercial PrimeUI license; 7 is MIT",
+      "matchPackageNames": [
+        "primeicons"
+      ],
+      "allowedVersions": "<8"
     }
   ],
   "customManagers": [
@@ -194,6 +233,18 @@
         "(?:TRIVY)_IMAGE: (?<depName>[\\w./-]+):(?<currentValue>[\\w.-]+)"
       ],
       "datasourceTemplate": "docker"
+    },
+    {
+      "description": "corepack installed with npm in the frontend Dockerfile and CI",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/",
+        "/^\\.gitea/workflows/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "npm install --global (?<depName>corepack)@(?<currentValue>[\\w.-]+)"
+      ],
+      "datasourceTemplate": "npm"
     }
   ]
 }

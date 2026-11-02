@@ -12,22 +12,34 @@ from .visit import OnSiteVisit
 
 class TimeEntry(OwnedModel):
     customer = models.ForeignKey(
-        Customer, on_delete=models.PROTECT, related_name="time_entries",
-        null=True, blank=True,
+        Customer,
+        on_delete=models.PROTECT,
+        related_name="time_entries",
+        null=True,
+        blank=True,
     )
     project = models.ForeignKey(
-        Project, on_delete=models.SET_NULL, related_name="time_entries",
-        null=True, blank=True,
+        Project,
+        on_delete=models.SET_NULL,
+        related_name="time_entries",
+        null=True,
+        blank=True,
     )
     visit = models.ForeignKey(
-        OnSiteVisit, on_delete=models.SET_NULL, related_name="time_entries",
-        null=True, blank=True,
+        OnSiteVisit,
+        on_delete=models.SET_NULL,
+        related_name="time_entries",
+        null=True,
+        blank=True,
     )
     contract = models.ForeignKey(
-        SupportContract, on_delete=models.SET_NULL, related_name="time_entries",
-        null=True, blank=True,
+        SupportContract,
+        on_delete=models.SET_NULL,
+        related_name="time_entries",
+        null=True,
+        blank=True,
         help_text="Covered by this support contract's included hours "
-                  "(excluded from normal consolidation)",
+        "(excluded from normal consolidation)",
     )
     start_datetime = models.DateTimeField()
     end_datetime = models.DateTimeField(null=True, blank=True)  # null = running timer
@@ -37,8 +49,11 @@ class TimeEntry(OwnedModel):
     description = models.CharField(max_length=500, blank=True)
     billable = models.BooleanField(default=True)
     invoice = models.ForeignKey(
-        "core.Invoice", on_delete=models.SET_NULL, related_name="time_entries",
-        null=True, blank=True,
+        "core.Invoice",
+        on_delete=models.SET_NULL,
+        related_name="time_entries",
+        null=True,
+        blank=True,
     )
 
     class Meta:
@@ -55,29 +70,17 @@ class TimeEntry(OwnedModel):
     def clean(self):
         if self.customer:
             if self.project and self.project.customer_id != self.customer_id:
-                raise ValidationError(
-                    {"project": "Project does not belong to the customer."}
-                )
+                raise ValidationError({"project": "Project does not belong to the customer."})
             if self.contract:
                 if self.contract.customer_id != self.customer_id:
-                    raise ValidationError(
-                        "Contract does not belong to the entry's customer."
-                    )
-                if self.contract.project_id and (
-                    self.contract.project_id != self.project_id
-                ):
-                    raise ValidationError(
-                        "Contract is limited to a different project."
-                    )
+                    raise ValidationError("Contract does not belong to the entry's customer.")
+                if self.contract.project_id and (self.contract.project_id != self.project_id):
+                    raise ValidationError("Contract is limited to a different project.")
             if self.visit and self.visit.customer_id != self.customer_id:
-                raise ValidationError(
-                    "Visit does not belong to the entry's customer."
-                )
+                raise ValidationError("Visit does not belong to the entry's customer.")
 
     def _round_minutes(self, value: datetime, direction: str, increment: int) -> datetime:
-        total_seconds = (
-            value.hour * 3600 + value.minute * 60 + value.second
-        )
+        total_seconds = value.hour * 3600 + value.minute * 60 + value.second
         increment_seconds = increment * 60
         if direction == "forwards":
             rounded = (
@@ -119,7 +122,13 @@ class TimeEntry(OwnedModel):
     def save(self, *args, **kwargs):
         self._apply_rounding()
         if self.normalized_start_datetime and self.normalized_end_datetime:
-            minutes = int((self.normalized_end_datetime - self.normalized_start_datetime).total_seconds() // 60) - self._break_minutes()
+            minutes = (
+                int(
+                    (self.normalized_end_datetime - self.normalized_start_datetime).total_seconds()
+                    // 60
+                )
+                - self._break_minutes()
+            )
             self.duration_minutes = max(minutes, 0)
         self.full_clean()
         super().save(*args, **kwargs)

@@ -4,15 +4,17 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0019_remove_template_is_default'),
+        ("core", "0019_remove_template_is_default"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='invoicetemplate',
-            name='body_html',
-            field=models.TextField(blank=True, help_text='Django template markup: {{ invoice.number }}, {% for item in items %}...'),
+            model_name="invoicetemplate",
+            name="body_html",
+            field=models.TextField(
+                blank=True,
+                help_text="Django template markup: {{ invoice.number }}, {% for item in items %}...",
+            ),
         ),
     ]

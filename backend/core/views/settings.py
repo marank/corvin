@@ -61,10 +61,6 @@ class NumberPreviewView(APIView):
             "contract": contract,
             "visit": visit,
             "task": task,
-            "invoice": SimpleNamespace(
-                customer=customer, project=project, issue_date=None
-            ),
+            "invoice": SimpleNamespace(customer=customer, project=project, issue_date=None),
         }
-        return Response({
-            "preview": preview_number(data["format"], data["start"], values)
-        })
+        return Response({"preview": preview_number(data["format"], data["start"], values)})

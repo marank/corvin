@@ -12,15 +12,11 @@ class InvoiceLineItem(OwnedModel):
         FLAT = "flat", "Flat rate"
         PIECE = "piece", "Piece"
 
-    invoice = models.ForeignKey(
-        Invoice, on_delete=models.CASCADE, related_name="items"
-    )
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="items")
     position = models.PositiveIntegerField(default=0)
     description = models.CharField(max_length=500)
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
-    unit = models.CharField(
-        max_length=10, choices=Unit.choices, default=Unit.HOURS
-    )
+    unit = models.CharField(max_length=10, choices=Unit.choices, default=Unit.HOURS)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:

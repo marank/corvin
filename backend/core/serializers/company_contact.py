@@ -16,7 +16,14 @@ class CompanyContactSerializer(OwnedSerializer):
     class Meta:
         model = CompanyContact
         fields = [
-            "id", "first_name", "last_name", "name", "role", "email", "phone",
-            "created_at", "updated_at",
+            "id",
+            "first_name",
+            "last_name",
+            "name",
+            "role",
+            "email",
+            "phone",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]

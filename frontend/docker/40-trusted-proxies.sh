@@ -3,7 +3,7 @@
 # includes used by nginx.conf. Run by the nginx image's entrypoint before nginx starts.
 set -eu
 
-dir=/etc/nginx/trusted
+dir=/tmp/nginx-trusted  # /tmp: the root filesystem is read-only
 mkdir -p "$dir"
 : > "$dir/realip.conf"
 : > "$dir/geo.conf"

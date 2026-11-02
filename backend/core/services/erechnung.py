@@ -6,9 +6,16 @@ from django.core.exceptions import ValidationError
 from core.models import Invoice
 
 COUNTRY_IDS = {
-    "deutschland": "DE", "germany": "DE", "österreich": "AT", "austria": "AT",
-    "schweiz": "CH", "switzerland": "CH", "france": "FR", "frankreich": "FR",
-    "netherlands": "NL", "niederlande": "NL",
+    "deutschland": "DE",
+    "germany": "DE",
+    "österreich": "AT",
+    "austria": "AT",
+    "schweiz": "CH",
+    "switzerland": "CH",
+    "france": "FR",
+    "frankreich": "FR",
+    "netherlands": "NL",
+    "niederlande": "NL",
 }
 
 UNIT_CODES = {"hours": "HUR", "flat": "C62", "piece": "H87"}
@@ -30,9 +37,7 @@ def _validate(invoice: Invoice, company) -> None:
     ):
         missing.append("customer.buyer_reference (Leitweg-ID)")
     if missing:
-        raise ValidationError(
-            {"e_invoice": f"Missing required fields: {', '.join(missing)}"}
-        )
+        raise ValidationError({"e_invoice": f"Missing required fields: {', '.join(missing)}"})
 
 
 def build_xrechnung_xml(invoice: Invoice) -> bytes:
@@ -86,12 +91,8 @@ def build_xrechnung_xml(invoice: Invoice) -> bytes:
         li.document.line_id = str(item.position)
         li.product.name = item.description
         li.agreement.net.amount = item.unit_price
-        li.agreement.net.basis_quantity = (
-            Decimal("1"), UNIT_CODES.get(item.unit, "C62")
-        )
-        li.delivery.billed_quantity = (
-            item.quantity, UNIT_CODES.get(item.unit, "C62")
-        )
+        li.agreement.net.basis_quantity = (Decimal("1"), UNIT_CODES.get(item.unit, "C62"))
+        li.delivery.billed_quantity = (item.quantity, UNIT_CODES.get(item.unit, "C62"))
         li.settlement.trade_tax.type_code = "VAT"
         li.settlement.trade_tax.category_code = "S"
         li.settlement.trade_tax.rate_applicable_percent = invoice.vat_rate

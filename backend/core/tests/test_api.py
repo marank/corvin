@@ -30,9 +30,7 @@ def test_me_requires_auth():
 @pytest.mark.django_db
 def test_register_and_login(user):
     c = APIClient()
-    r = c.post("/api/v1/auth/login", {
-        "username": "alice", "password": "testpass123"
-    })
+    r = c.post("/api/v1/auth/login", {"username": "alice", "password": "testpass123"})
     assert r.status_code == 200
     assert r.json()["username"] == "alice"
 
@@ -49,10 +47,12 @@ def test_owner_isolation(user, customer):
 
 @pytest.mark.django_db
 def test_customer_pagination_and_ordering(client, user):
-    Customer.objects.bulk_create([
-        Customer(owner=user, number=f"K-{index:03d}", name=f"Customer {index:03d}")
-        for index in range(55)
-    ])
+    Customer.objects.bulk_create(
+        [
+            Customer(owner=user, number=f"K-{index:03d}", name=f"Customer {index:03d}")
+            for index in range(55)
+        ]
+    )
 
     first_page = client.get("/api/v1/customers/?ordering=number")
     assert first_page.status_code == 200
@@ -76,7 +76,8 @@ def test_customer_ordering_by_annotations(client, user, customer, project):
     other = Customer.objects.create(owner=user, number="K-999", name="Zeta")
     tz = timezone.get_current_timezone()
     TimeEntry.objects.create(
-        owner=user, customer=other,
+        owner=user,
+        customer=other,
         start_datetime=timezone.make_aware(datetime(2026, 9, 1, 9, 0), tz),
         end_datetime=timezone.make_aware(datetime(2026, 9, 1, 12, 0), tz),
     )
@@ -98,7 +99,8 @@ def test_time_entry_date_range_filter(client, user, customer):
     tz = timezone.get_current_timezone()
     for day in (1, 15, 30):
         TimeEntry.objects.create(
-            owner=user, customer=customer,
+            owner=user,
+            customer=customer,
             start_datetime=timezone.make_aware(datetime(2026, 9, day, 9, 0), tz),
             end_datetime=timezone.make_aware(datetime(2026, 9, day, 10, 0), tz),
         )
@@ -115,12 +117,14 @@ def test_time_entry_summary(client, user, customer):
     tz = timezone.get_current_timezone()
     for day in range(1, 4):
         TimeEntry.objects.create(
-            owner=user, customer=customer,
+            owner=user,
+            customer=customer,
             start_datetime=timezone.make_aware(datetime(2026, 9, day, 9, 0), tz),
             end_datetime=timezone.make_aware(datetime(2026, 9, day, 11, 0), tz),
         )
     TimeEntry.objects.create(
-        owner=user, customer=customer,
+        owner=user,
+        customer=customer,
         start_datetime=timezone.make_aware(datetime(2026, 9, 4, 9, 0), tz),
     )
     r = client.get(
@@ -133,60 +137,77 @@ def test_time_entry_summary(client, user, customer):
 
 @pytest.mark.django_db
 def test_timer_flow(client, customer, project):
-    r = client.post("/api/v1/time-tracking/start/", {
-        "customer": str(customer.id), "project": str(project.id),
-        "description": "debugging",
-    })
+    r = client.post(
+        "/api/v1/time-tracking/start/",
+        {
+            "customer": str(customer.id),
+            "project": str(project.id),
+            "description": "debugging",
+        },
+    )
     assert r.status_code == 201
     r2 = client.post("/api/v1/time-tracking/stop/")
     assert r2.status_code == 200
     assert r2.json()["is_running"] is False
     # customer-only timer (no project) works too
-    r3 = client.post("/api/v1/time-tracking/start/",
-                     {"customer": str(customer.id)})
+    r3 = client.post("/api/v1/time-tracking/start/", {"customer": str(customer.id)})
     assert r3.status_code == 201
 
 
 @pytest.mark.django_db
 def test_consolidate_endpoint(client, user, customer, project):
     HourlyRate.objects.create(
-        owner=user, customer=customer, amount="80",
+        owner=user,
+        customer=customer,
+        amount="80",
         valid_from=date(2025, 1, 1),
     )
     tz = timezone.get_current_timezone()
     TimeEntry.objects.create(
-        owner=user, customer=customer, project=project,
+        owner=user,
+        customer=customer,
+        project=project,
         start_datetime=timezone.make_aware(datetime(2026, 9, 1, 9, 0), tz),
         end_datetime=timezone.make_aware(datetime(2026, 9, 1, 11, 0), tz),
     )
-    r = client.post("/api/v1/invoices/consolidate/", {
-        "customer_id": customer.id, "group_by": "project"
-    })
+    r = client.post(
+        "/api/v1/invoices/consolidate/", {"customer_id": customer.id, "group_by": "project"}
+    )
     assert r.status_code == 201
     assert r.json()["subtotal"] == "160.00"
 
 
 @pytest.mark.django_db
 def test_consolidate_validation_error_returns_400(client, customer):
-    r = client.post("/api/v1/invoices/consolidate/", {
-        "customer_id": str(customer.id), "group_by": "entry",
-    })
+    r = client.post(
+        "/api/v1/invoices/consolidate/",
+        {
+            "customer_id": str(customer.id),
+            "group_by": "entry",
+        },
+    )
     assert r.status_code == 400
     assert "No billable" in r.json()["detail"][0]
 
 
 @pytest.mark.django_db
 def test_manual_only_invoice(client, customer):
-    r = client.post("/api/v1/invoices/consolidate/", {
-        "customer_id": str(customer.id),
-        "group_by": "entry",
-        "extra_lines": [{
-            "description": "Hardware",
-            "quantity": "2.00",
-            "unit": "piece",
-            "unit_price": "25.00",
-        }],
-    }, format="json")
+    r = client.post(
+        "/api/v1/invoices/consolidate/",
+        {
+            "customer_id": str(customer.id),
+            "group_by": "entry",
+            "extra_lines": [
+                {
+                    "description": "Hardware",
+                    "quantity": "2.00",
+                    "unit": "piece",
+                    "unit_price": "25.00",
+                }
+            ],
+        },
+        format="json",
+    )
     assert r.status_code == 201
     assert r.json()["subtotal"] == "50.00"
     assert r.json()["items"][0]["description"] == "Hardware"
@@ -195,25 +216,31 @@ def test_manual_only_invoice(client, customer):
 @pytest.mark.django_db
 def test_invoice_contacts_default_and_override(client, user, customer):
     default = Contact.objects.create(
-        owner=user, customer=customer, first_name="Default",
+        owner=user,
+        customer=customer,
+        first_name="Default",
         is_invoice_contact=True,
     )
     Contact.objects.create(
-        owner=user, customer=customer, first_name="Optional",
+        owner=user,
+        customer=customer,
+        first_name="Optional",
     )
     payload = {
         "customer_id": str(customer.id),
         "group_by": "entry",
-        "extra_lines": [{
-            "description": "Service", "quantity": "1.00",
-            "unit": "flat", "unit_price": "100.00",
-        }],
+        "extra_lines": [
+            {
+                "description": "Service",
+                "quantity": "1.00",
+                "unit": "flat",
+                "unit_price": "100.00",
+            }
+        ],
     }
     response = client.post("/api/v1/invoices/consolidate/", payload, format="json")
     assert response.status_code == 201
-    assert [contact["id"] for contact in response.json()["contacts"]] == [
-        str(default.id)
-    ]
+    assert [contact["id"] for contact in response.json()["contacts"]] == [str(default.id)]
 
     payload["contact_ids"] = []
     response = client.post("/api/v1/invoices/consolidate/", payload, format="json")
@@ -222,9 +249,7 @@ def test_invoice_contacts_default_and_override(client, user, customer):
 
 
 @pytest.mark.django_db
-def test_invoice_uses_vat_setting_and_customer_payment_terms(
-    client, user, customer
-):
+def test_invoice_uses_vat_setting_and_customer_payment_terms(client, user, customer):
     settings = user.company_settings
     settings.vat_enabled = False
     settings.payment_terms_days = 30
@@ -233,14 +258,22 @@ def test_invoice_uses_vat_setting_and_customer_payment_terms(
     customer.payment_terms_days = 7
     customer.save(update_fields=["payment_terms_days"])
 
-    r = client.post("/api/v1/invoices/consolidate/", {
-        "customer_id": str(customer.id),
-        "group_by": "entry",
-        "extra_lines": [{
-            "description": "Service", "quantity": "1.00",
-            "unit": "flat", "unit_price": "100.00",
-        }],
-    }, format="json")
+    r = client.post(
+        "/api/v1/invoices/consolidate/",
+        {
+            "customer_id": str(customer.id),
+            "group_by": "entry",
+            "extra_lines": [
+                {
+                    "description": "Service",
+                    "quantity": "1.00",
+                    "unit": "flat",
+                    "unit_price": "100.00",
+                }
+            ],
+        },
+        format="json",
+    )
     assert r.status_code == 201
     assert r.json()["vat_rate"] == "0.00"
     assert r.json()["vat_amount"] == "0.00"
@@ -255,23 +288,32 @@ def test_invoice_uses_default_payment_terms(client, user, customer):
     settings.payment_terms_days = 30
     settings.save(update_fields=["payment_terms_days"])
 
-    r = client.post("/api/v1/invoices/consolidate/", {
-        "customer_id": str(customer.id),
-        "group_by": "entry",
-        "extra_lines": [{
-            "description": "Service", "quantity": "1.00",
-            "unit": "flat", "unit_price": "100.00",
-        }],
-    }, format="json")
+    r = client.post(
+        "/api/v1/invoices/consolidate/",
+        {
+            "customer_id": str(customer.id),
+            "group_by": "entry",
+            "extra_lines": [
+                {
+                    "description": "Service",
+                    "quantity": "1.00",
+                    "unit": "flat",
+                    "unit_price": "100.00",
+                }
+            ],
+        },
+        format="json",
+    )
     assert r.status_code == 201
     assert r.json()["due_date"] == str(date.today() + timedelta(days=30))
 
 
 @pytest.mark.django_db
 def test_password_change(client, user):
-    r = client.post("/api/v1/auth/password/change", {
-        "old_password": "testpass123", "new_password": "newpass1234"
-    })
+    r = client.post(
+        "/api/v1/auth/password/change",
+        {"old_password": "testpass123", "new_password": "newpass1234"},
+    )
     assert r.status_code == 204
     user.refresh_from_db()
     assert user.check_password("newpass1234")
@@ -279,22 +321,30 @@ def test_password_change(client, user):
 
 @pytest.mark.django_db
 def test_customer_address_crud(client, customer):
-    r = client.post("/api/v1/addresses/", {
-        "customer": str(customer.id),
-        "label": "Office",
-        "street": "Nebenstr. 2",
-        "postal_code": "80331",
-        "city": "München",
-        "is_primary": True,
-    })
+    r = client.post(
+        "/api/v1/addresses/",
+        {
+            "customer": str(customer.id),
+            "label": "Office",
+            "street": "Nebenstr. 2",
+            "postal_code": "80331",
+            "city": "München",
+            "is_primary": True,
+        },
+    )
     assert r.status_code == 201
     addr_id = r.json()["id"]
 
     # multiple addresses allowed
-    r = client.post("/api/v1/addresses/", {
-        "customer": str(customer.id), "street": "Weg 3",
-        "postal_code": "10115", "city": "Berlin",
-    })
+    r = client.post(
+        "/api/v1/addresses/",
+        {
+            "customer": str(customer.id),
+            "street": "Weg 3",
+            "postal_code": "10115",
+            "city": "Berlin",
+        },
+    )
     assert r.status_code == 201
 
     r = client.get(f"/api/v1/addresses/?customer={customer.id}")
@@ -310,20 +360,29 @@ def test_customer_address_crud(client, customer):
 
 @pytest.mark.django_db
 def test_contact_first_last_name(client, customer):
-    r = client.post("/api/v1/contacts/", {
-        "customer": str(customer.id),
-        "first_name": "Max", "last_name": "Mustermann",
-        "role": "CTO", "email": "max@acme.test",
-    })
+    r = client.post(
+        "/api/v1/contacts/",
+        {
+            "customer": str(customer.id),
+            "first_name": "Max",
+            "last_name": "Mustermann",
+            "role": "CTO",
+            "email": "max@acme.test",
+        },
+    )
     assert r.status_code == 201
     assert r.json()["name"] == "Max Mustermann"
 
 
 @pytest.mark.django_db
 def test_customer_website_vat_id(client, customer):
-    r = client.patch(f"/api/v1/customers/{customer.id}/", {
-        "website": "https://acme.example", "vat_id": "DE987654321",
-    })
+    r = client.patch(
+        f"/api/v1/customers/{customer.id}/",
+        {
+            "website": "https://acme.example",
+            "vat_id": "DE987654321",
+        },
+    )
     assert r.status_code == 200
     assert r.json()["website"] == "https://acme.example"
     assert r.json()["vat_id"] == "DE987654321"
@@ -339,26 +398,42 @@ def test_address_owner_isolation(user, customer):
     r = c.get(f"/api/v1/addresses/?customer={customer.id}")
     assert r.json()["results"] == []
     # bob cannot attach an address to alice's customer
-    r = c.post("/api/v1/addresses/", {
-        "customer": str(customer.id), "street": "X", "postal_code": "1", "city": "Y",
-    })
+    r = c.post(
+        "/api/v1/addresses/",
+        {
+            "customer": str(customer.id),
+            "street": "X",
+            "postal_code": "1",
+            "city": "Y",
+        },
+    )
     assert r.status_code == 400
 
 
 @pytest.mark.django_db
 def test_company_contact_crud(client):
-    response = client.post("/api/v1/company-contacts/", {
-        "first_name": "Alice", "last_name": "Admin",
-        "role": "Management", "email": "alice@example.com",
-    })
+    response = client.post(
+        "/api/v1/company-contacts/",
+        {
+            "first_name": "Alice",
+            "last_name": "Admin",
+            "role": "Management",
+            "email": "alice@example.com",
+        },
+    )
     assert response.status_code == 201
     assert response.json()["name"] == "Alice Admin"
     contact_id = response.json()["id"]
 
-    response = client.put(f"/api/v1/company-contacts/{contact_id}/", {
-        "first_name": "Alice", "last_name": "Admin",
-        "role": "Director", "email": "alice@example.com",
-    })
+    response = client.put(
+        f"/api/v1/company-contacts/{contact_id}/",
+        {
+            "first_name": "Alice",
+            "last_name": "Admin",
+            "role": "Director",
+            "email": "alice@example.com",
+        },
+    )
     assert response.status_code == 200
     assert response.json()["role"] == "Director"
 

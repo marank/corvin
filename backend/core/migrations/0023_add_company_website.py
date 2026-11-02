@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0022_rename_invoice_document_to_document_archive'),
+        ("core", "0022_rename_invoice_document_to_document_archive"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='companysettings',
-            name='website',
+            model_name="companysettings",
+            name="website",
             field=models.URLField(blank=True),
         ),
     ]

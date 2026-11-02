@@ -9,7 +9,12 @@ class PaymentSerializer(OwnedSerializer):
     class Meta:
         model = Payment
         fields = [
-            "id", "invoice", "date", "amount", "note",
-            "created_at", "updated_at",
+            "id",
+            "invoice",
+            "date",
+            "amount",
+            "note",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]

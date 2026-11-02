@@ -28,8 +28,6 @@ def budget_stats(project: Project) -> dict:
             else None
         ),
         "budget_amount_percent": (
-            round(float(amount / project.budget_amount * 100), 1)
-            if project.budget_amount
-            else None
+            round(float(amount / project.budget_amount * 100), 1) if project.budget_amount else None
         ),
     }

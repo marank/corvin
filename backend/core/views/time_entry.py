@@ -17,9 +17,9 @@ class StartTimerSerializer(serializers.Serializer):
 
 
 class TimeEntryViewSet(OwnedViewSet):
-    queryset = TimeEntry.objects.select_related(
-        "customer", "project", "contract"
-    ).prefetch_related("breaks")
+    queryset = TimeEntry.objects.select_related("customer", "project", "contract").prefetch_related(
+        "breaks"
+    )
     serializer_class = TimeEntrySerializer
     filterset_fields = {
         "customer": ["exact"],
@@ -34,33 +34,38 @@ class TimeEntryViewSet(OwnedViewSet):
     }
     search_fields = ["description", "project__name", "customer__name"]
     ordering_fields = [
-        "start_datetime", "end_datetime", "customer__name", "project__name",
+        "start_datetime",
+        "end_datetime",
+        "customer__name",
+        "project__name",
         "duration_minutes",
     ]
 
     @action(detail=False, methods=["get"])
     def summary(self, request):
-        totals = self.filter_queryset(self.get_queryset()).order_by().aggregate(
-            count=Count("id"), total_minutes=Sum("duration_minutes"),
+        totals = (
+            self.filter_queryset(self.get_queryset())
+            .order_by()
+            .aggregate(
+                count=Count("id"),
+                total_minutes=Sum("duration_minutes"),
+            )
         )
-        return Response({
-            "count": totals["count"],
-            "total_minutes": totals["total_minutes"] or 0,
-        })
+        return Response(
+            {
+                "count": totals["count"],
+                "total_minutes": totals["total_minutes"] or 0,
+            }
+        )
 
     @action(detail=False, methods=["get"])
     def active(self, request):
         """The running timer, if any."""
         entry = (
-            self.get_queryset()
-            .filter(end_datetime__isnull=True)
-            .prefetch_related("breaks")
-            .first()
+            self.get_queryset().filter(end_datetime__isnull=True).prefetch_related("breaks").first()
         )
         return Response(
-            TimeEntrySerializer(entry, context={"request": request}).data
-            if entry
-            else None
+            TimeEntrySerializer(entry, context={"request": request}).data if entry else None
         )
 
     @action(detail=False, methods=["post"])
@@ -84,9 +89,7 @@ class TimeEntryViewSet(OwnedViewSet):
                 )
         project = None
         if customer and ser.validated_data.get("project"):
-            project = customer.projects.filter(
-                pk=ser.validated_data["project"]
-            ).first()
+            project = customer.projects.filter(pk=ser.validated_data["project"]).first()
             if project is None:
                 return Response(
                     {"project": ["Invalid project."]},
@@ -117,15 +120,11 @@ class TimeEntryViewSet(OwnedViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         # close any open break before stopping
-        entry.breaks.filter(end_datetime__isnull=True).update(
-            end_datetime=timezone.localtime()
-        )
+        entry.breaks.filter(end_datetime__isnull=True).update(end_datetime=timezone.localtime())
         entry.end_datetime = timezone.localtime()
         entry.save()
         entry = TimeEntry.objects.prefetch_related("breaks").get(pk=entry.pk)
-        return Response(
-            TimeEntrySerializer(entry, context={"request": request}).data
-        )
+        return Response(TimeEntrySerializer(entry, context={"request": request}).data)
 
     @action(detail=False, methods=["post"])
     def pause(self, request):
@@ -172,6 +171,4 @@ class TimeEntryViewSet(OwnedViewSet):
         open_break.save()
         entry.save()
         entry = TimeEntry.objects.prefetch_related("breaks").get(pk=entry.pk)
-        return Response(
-            TimeEntrySerializer(entry, context={"request": request}).data
-        )
+        return Response(TimeEntrySerializer(entry, context={"request": request}).data)

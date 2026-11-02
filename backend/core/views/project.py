@@ -13,13 +13,20 @@ class ProjectViewSet(OwnedViewSet):
     filterset_fields = ["customer", "status"]
     search_fields = ["number", "name", "customer__name"]
     ordering_fields = [
-        "number", "name", "customer__name", "status", "created_at",
+        "number",
+        "name",
+        "customer__name",
+        "status",
+        "created_at",
     ]
 
     def perform_create(self, serializer):
         customer = serializer.validated_data["customer"]
         project = SimpleNamespace(**serializer.validated_data)
-        serializer.save(number=next_number(
-            self.request.user, "project",
-            {"customer": customer, "project": project},
-        ))
+        serializer.save(
+            number=next_number(
+                self.request.user,
+                "project",
+                {"customer": customer, "project": project},
+            )
+        )

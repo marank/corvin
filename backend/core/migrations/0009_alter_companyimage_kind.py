@@ -4,15 +4,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0008_companyimage'),
+        ("core", "0008_companyimage"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='companyimage',
-            name='kind',
-            field=models.CharField(choices=[('logo_light', 'Full logo light'), ('logo_dark', 'Full logo dark'), ('icon_light', 'Icon light'), ('icon_dark', 'Icon dark'), ('additional', 'Additional')], max_length=20),
+            model_name="companyimage",
+            name="kind",
+            field=models.CharField(
+                choices=[
+                    ("logo_light", "Full logo light"),
+                    ("logo_dark", "Full logo dark"),
+                    ("icon_light", "Icon light"),
+                    ("icon_dark", "Icon dark"),
+                    ("additional", "Additional"),
+                ],
+                max_length=20,
+            ),
         ),
     ]

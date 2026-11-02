@@ -19,10 +19,16 @@ def image_file(name="logo.png"):
 def test_company_image_upload_and_owner_scope(user):
     client = APIClient()
     client.force_authenticate(user)
-    response = client.post("/api/v1/company-images/", {
-        "kind": "logo_light", "key": "logo_light",
-        "name": "Light logo", "image": image_file(),
-    }, format="multipart")
+    response = client.post(
+        "/api/v1/company-images/",
+        {
+            "kind": "logo_light",
+            "key": "logo_light",
+            "name": "Light logo",
+            "image": image_file(),
+        },
+        format="multipart",
+    )
     assert response.status_code == 201
     assert response.json()["key"] == "logo_light"
     assert CompanyImage.objects.filter(owner=user, kind="logo_light").exists()
@@ -32,9 +38,15 @@ def test_company_image_upload_and_owner_scope(user):
 def test_additional_image_requires_key(user):
     client = APIClient()
     client.force_authenticate(user)
-    response = client.post("/api/v1/company-images/", {
-        "kind": "additional", "name": "Stamp", "image": image_file(),
-    }, format="multipart")
+    response = client.post(
+        "/api/v1/company-images/",
+        {
+            "kind": "additional",
+            "name": "Stamp",
+            "image": image_file(),
+        },
+        format="multipart",
+    )
     assert response.status_code == 400
 
 
@@ -45,7 +57,7 @@ def test_invoice_template_formatting_helpers(user):
     company.thousands_separator = "."
     company.currency = "EUR"
     company.save()
-    rendered = Template(
-        "{% display_number amount 2 2 %}|{% display_money amount %}"
-    ).render(Context({"amount": "1234.5", "company": company}))
+    rendered = Template("{% display_number amount 2 2 %}|{% display_money amount %}").render(
+        Context({"amount": "1234.5", "company": company})
+    )
     assert rendered == "1.234,50|1.234,50 €"

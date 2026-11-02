@@ -19,8 +19,11 @@ class Customer(OwnedModel):
     )
     payment_terms_days = models.PositiveIntegerField(null=True, blank=True)
     bank_account = models.ForeignKey(
-        "BankAccount", on_delete=models.SET_NULL, related_name="customers",
-        null=True, blank=True,
+        "BankAccount",
+        on_delete=models.SET_NULL,
+        related_name="customers",
+        null=True,
+        blank=True,
     )
     is_active = models.BooleanField(default=True)
 
@@ -36,10 +39,7 @@ class Customer(OwnedModel):
 
     @property
     def primary_address(self):
-        return (
-            self.addresses.filter(is_primary=True).first()
-            or self.addresses.first()
-        )
+        return self.addresses.filter(is_primary=True).first() or self.addresses.first()
 
     # Convenience proxies for invoice templates / e-invoicing —
     # resolve to the primary address.

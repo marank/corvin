@@ -22,9 +22,7 @@ class DocumentTemplate(OwnedModel):
         TABLOID = "TABLOID", "US Tabloid"
 
     name = models.CharField(max_length=255)
-    page_size = models.CharField(
-        max_length=10, choices=PageSize.choices, default=PageSize.A4
-    )
+    page_size = models.CharField(max_length=10, choices=PageSize.choices, default=PageSize.A4)
     margin_top = models.PositiveIntegerField(default=20, help_text="mm")
     margin_right = models.PositiveIntegerField(default=20, help_text="mm")
     margin_bottom = models.PositiveIntegerField(default=20, help_text="mm")
@@ -39,19 +37,20 @@ class DocumentTemplate(OwnedModel):
     text_color = models.CharField(max_length=20, default="#161616")
     body_html = models.TextField(
         blank=True,
-        help_text="Django template markup: {{ invoice.number }}, "
-                  "{% for item in items %}..."
+        help_text="Django template markup: {{ invoice.number }}, {% for item in items %}...",
     )
     css = models.TextField(blank=True)
     header_html = models.TextField(blank=True)
     footer_html = models.TextField(blank=True)
     mail_subject = models.CharField(
-        max_length=255, blank=True,
+        max_length=255,
+        blank=True,
         default="Invoice {{ invoice.number }}",
     )
     mail_body = models.TextField(
         blank=True, default="Dear customer,\n\nplease find attached your invoice."
     )
+
     class Meta:
         ordering = ["name"]
 

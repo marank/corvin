@@ -130,7 +130,8 @@ def render_invoice_html(
         tid = assignments.get("invoice")
         if tid:
             template = DocumentTemplate.objects.filter(
-                id=tid, owner=invoice.owner,
+                id=tid,
+                owner=invoice.owner,
             ).first()
     if template is None:
         template = DocumentTemplate.objects.filter(owner=invoice.owner).first()

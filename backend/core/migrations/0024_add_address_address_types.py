@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0023_add_company_website'),
+        ("core", "0023_add_company_website"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='address',
-            name='is_delivery_address',
+            model_name="address",
+            name="is_delivery_address",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='address',
-            name='is_invoice_address',
+            model_name="address",
+            name="is_invoice_address",
             field=models.BooleanField(default=False),
         ),
     ]

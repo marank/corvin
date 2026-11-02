@@ -22,7 +22,10 @@ def contract_usage(contract: SupportContract) -> dict:
     """Used/included/overage hours of the current billing period."""
     start, end = contract.current_period()
     qs = TimeEntry.objects.filter(
-        contract=contract, start_datetime__date__gte=start, start_datetime__date__lt=end, end_datetime__isnull=False
+        contract=contract,
+        start_datetime__date__gte=start,
+        start_datetime__date__lt=end,
+        end_datetime__isnull=False,
     )
     minutes = sum(e.duration_minutes for e in qs)
     used = Decimal(minutes) / 60
@@ -32,9 +35,7 @@ def contract_usage(contract: SupportContract) -> dict:
         "period_end": end,
         "used_hours": used.quantize(Decimal("0.01")),
         "included_hours": included,
-        "overage_hours": max(used - included, Decimal("0")).quantize(
-            Decimal("0.01")
-        ),
+        "overage_hours": max(used - included, Decimal("0")).quantize(Decimal("0.01")),
     }
 
 
@@ -50,26 +51,34 @@ def generate_invoice(contract: SupportContract) -> Invoice:
     payment_terms_days = (
         contract.customer.payment_terms_days
         if contract.customer.payment_terms_days is not None
-        else company.payment_terms_days if company else 14
+        else company.payment_terms_days
+        if company
+        else 14
     )
     vat_rate = (
         company.default_vat_rate
         if company and company.vat_enabled
-        else Decimal("0") if company else Decimal("19")
+        else Decimal("0")
+        if company
+        else Decimal("19")
     )
     invoice = Invoice.objects.create(
         owner=owner,
-        number=next_number(owner, "invoice", {
-            "customer": contract.customer,
-            "project": contract.project,
-            "contract": contract,
-            "invoice": SimpleNamespace(
-                customer=contract.customer,
-                project=contract.project,
-                contract=contract,
-                issue_date=issue_date,
-            ),
-        }),
+        number=next_number(
+            owner,
+            "invoice",
+            {
+                "customer": contract.customer,
+                "project": contract.project,
+                "contract": contract,
+                "invoice": SimpleNamespace(
+                    customer=contract.customer,
+                    project=contract.project,
+                    contract=contract,
+                    issue_date=issue_date,
+                ),
+            },
+        ),
         customer=contract.customer,
         project=contract.project,
         contract=contract,
@@ -80,19 +89,14 @@ def generate_invoice(contract: SupportContract) -> Invoice:
         template=contract.template,
     )
 
-    invoice.contacts.set(
-        contract.customer.contacts.filter(is_invoice_contact=True)
-    )
+    invoice.contacts.set(contract.customer.contacts.filter(is_invoice_contact=True))
 
     label = PERIOD_LABELS[contract.period]
     InvoiceLineItem.objects.create(
         owner=owner,
         invoice=invoice,
         position=1,
-        description=(
-            f"{contract.name} — {label} support "
-            f"({start} – {end})"
-        ),
+        description=(f"{contract.name} — {label} support ({start} – {end})"),
         quantity=1,
         unit=InvoiceLineItem.Unit.FLAT,
         unit_price=contract.fixed_price,
@@ -111,10 +115,7 @@ def generate_invoice(contract: SupportContract) -> Invoice:
             owner=owner,
             invoice=invoice,
             position=2,
-            description=(
-                f"{contract.name} — additional hours beyond "
-                f"{contract.included_hours}h"
-            ),
+            description=(f"{contract.name} — additional hours beyond {contract.included_hours}h"),
             quantity=usage["overage_hours"],
             unit=InvoiceLineItem.Unit.HOURS,
             unit_price=rate,
@@ -122,8 +123,11 @@ def generate_invoice(contract: SupportContract) -> Invoice:
 
     # link covered entries to the generated invoice for traceability
     TimeEntry.objects.filter(
-        contract=contract, start_datetime__date__gte=start, start_datetime__date__lt=end,
-        end_datetime__isnull=False, invoice__isnull=True,
+        contract=contract,
+        start_datetime__date__gte=start,
+        start_datetime__date__lt=end,
+        end_datetime__isnull=False,
+        invoice__isnull=True,
     ).update(invoice=invoice)
 
     invoice.recalc_totals()
@@ -143,9 +147,7 @@ def process_due(owner=None, today: date | None = None) -> list[Invoice]:
             contract.end_date is None or contract.next_billing_date <= contract.end_date
         ):
             invoices.append(generate_invoice(contract))
-            contract.next_billing_date = add_periods(
-                contract.next_billing_date, contract.period
-            )
+            contract.next_billing_date = add_periods(contract.next_billing_date, contract.period)
             contract.save(update_fields=["next_billing_date", "updated_at"])
             if contract.end_date and contract.next_billing_date > contract.end_date:
                 contract.active = False

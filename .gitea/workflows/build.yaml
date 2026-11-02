@@ -36,10 +36,10 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/astral-sh/uv:python3.14-trixie-slim
+      image: ghcr.io/astral-sh/uv:python3.15-trixie-slim
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:18
         env:
           POSTGRES_DB: ci
           POSTGRES_USER: ci
@@ -74,13 +74,16 @@ jobs:
         run: uv sync --locked
 
       - name: Lint
-        run: uv run ruff check --output-format=concise .
+        run: |
+          uv run ruff check --output-format=concise .
+          uv run ruff format --check .
 
       # Every declared package is imported, every imported one declared.
       - name: Unused dependencies
         run: uv run deptry .
 
-      # Production dependencies only; GPL, AGPL and SSPL would bind the whole app.
+      # Production dependencies only: must be compatible with the app's AGPL-3.0-or-later
+      # (no GPL-2.0-only, SSPL, proprietary, …; details in scripts/check_licenses.py).
       - name: Licenses
         run: |
           LICENSE_DIR=$(mktemp -d)
@@ -115,7 +118,7 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     container:
-      image: node:24-trixie-slim
+      image: node:26-trixie-slim
     defaults:
       run:
         working-directory: frontend
@@ -126,9 +129,11 @@ jobs:
 
       - uses: builtin:checkout
 
-      # pnpm in the version of package.json's "packageManager" field, like the Dockerfile.
+      # pnpm in the version of package.json's "packageManager" field, like the Dockerfile
+      # (Node 25+ no longer ships corepack).
       - name: Install dependencies
         run: |
+          npm install --global corepack@0.36.0
           corepack enable
           pnpm install --frozen-lockfile
 
@@ -277,7 +282,7 @@ jobs:
             # wget exits non-zero on 4xx, so its status line is read from the output.
             status=$( (docker compose exec -T frontend wget -S -q -O /dev/null \
               --header "Host: app.example.com" --header "X-Forwarded-Proto: https" "$@" \
-              "http://127.0.0.1$path" 2>&1 || true) | awk '/HTTP\//{print $2; exit}')
+              "http://127.0.0.1:8080$path" 2>&1 || true) | awk '/HTTP\//{print $2; exit}')
             echo "$path: $status"
             [ "$status" = "$expected" ]
           }

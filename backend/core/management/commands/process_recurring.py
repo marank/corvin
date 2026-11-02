@@ -9,7 +9,5 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         invoices = process_due()
         for inv in invoices:
-            self.stdout.write(
-                f"Created invoice {inv.number} for {inv.customer.name}"
-            )
+            self.stdout.write(f"Created invoice {inv.number} for {inv.customer.name}")
         self.stdout.write(f"{len(invoices)} invoice(s) generated.")

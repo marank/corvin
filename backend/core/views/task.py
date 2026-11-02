@@ -13,8 +13,15 @@ class TaskViewSet(OwnedViewSet):
     filterset_fields = ["customer", "project", "visit", "status", "priority"]
     search_fields = ["number", "title", "description"]
     ordering_fields = [
-        "number", "title", "customer__name", "project__name", "due_date",
-        "priority", "status", "position", "created_at",
+        "number",
+        "title",
+        "customer__name",
+        "project__name",
+        "due_date",
+        "priority",
+        "status",
+        "position",
+        "created_at",
     ]
 
     def perform_create(self, serializer):
@@ -24,8 +31,15 @@ class TaskViewSet(OwnedViewSet):
             customer = project.customer
         task_data = {**serializer.validated_data, "customer": customer}
         task = SimpleNamespace(**task_data)
-        serializer.save(number=next_number(
-            self.request.user, "task",
-            {"customer": customer, "project": project, "task": task,
-             "visit": serializer.validated_data.get("visit")},
-        ))
+        serializer.save(
+            number=next_number(
+                self.request.user,
+                "task",
+                {
+                    "customer": customer,
+                    "project": project,
+                    "task": task,
+                    "visit": serializer.validated_data.get("visit"),
+                },
+            )
+        )

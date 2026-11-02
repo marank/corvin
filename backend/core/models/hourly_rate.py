@@ -15,12 +15,18 @@ class HourlyRate(OwnedModel):
     """
 
     customer = models.ForeignKey(
-        Customer, on_delete=models.CASCADE, related_name="hourly_rates",
-        null=True, blank=True,
+        Customer,
+        on_delete=models.CASCADE,
+        related_name="hourly_rates",
+        null=True,
+        blank=True,
     )
     project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name="hourly_rates",
-        null=True, blank=True,
+        Project,
+        on_delete=models.CASCADE,
+        related_name="hourly_rates",
+        null=True,
+        blank=True,
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     valid_from = models.DateField()

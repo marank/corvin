@@ -11,9 +11,7 @@ import urllib.request
 
 host = os.environ.get("ALLOWED_HOSTS", "localhost").split(",")[0].strip() or "localhost"
 host = host.lstrip(".")  # ".example.com" wildcard entries
-request = urllib.request.Request(
-    "http://127.0.0.1:8000/api/v1/health", headers={"Host": host}
-)
+request = urllib.request.Request("http://127.0.0.1:8000/api/v1/health", headers={"Host": host})
 try:
     with urllib.request.urlopen(request, timeout=5) as response:
         sys.exit(0 if response.status == 200 else 1)

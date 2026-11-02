@@ -12,9 +12,7 @@ def resolve_rate(
     Specificity: project > customer > company default.
     Within a scope the row with the latest valid_from <= on_date wins.
     """
-    qs = HourlyRate.objects.filter(owner=owner, valid_from__lte=on_date).order_by(
-        "-valid_from"
-    )
+    qs = HourlyRate.objects.filter(owner=owner, valid_from__lte=on_date).order_by("-valid_from")
     if project is not None:
         rate = qs.filter(project=project).first()
         if rate:

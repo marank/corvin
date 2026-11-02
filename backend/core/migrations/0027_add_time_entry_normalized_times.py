@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0026_add_time_rounding_settings'),
+        ("core", "0026_add_time_rounding_settings"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='timeentry',
-            name='normalized_end_time',
+            model_name="timeentry",
+            name="normalized_end_time",
             field=models.TimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='timeentry',
-            name='normalized_start_time',
+            model_name="timeentry",
+            name="normalized_start_time",
             field=models.TimeField(blank=True, null=True),
         ),
     ]

@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0001_initial'),
+        ("core", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='companysettings',
-            name='vat_enabled',
+            model_name="companysettings",
+            name="vat_enabled",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='customer',
-            name='payment_terms_days',
+            model_name="customer",
+            name="payment_terms_days",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
     ]

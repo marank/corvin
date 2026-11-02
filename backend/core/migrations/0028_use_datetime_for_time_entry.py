@@ -16,17 +16,18 @@ def migrate_to_datetimes(apps, schema_editor):
                 entry.date, entry.normalized_start_time
             )
         if entry.normalized_end_time:
-            entry.normalized_end_datetime = datetime.combine(
-                entry.date, entry.normalized_end_time
-            )
-        entry.save(update_fields=[
-            "start_datetime", "end_datetime",
-            "normalized_start_datetime", "normalized_end_datetime",
-        ])
+            entry.normalized_end_datetime = datetime.combine(entry.date, entry.normalized_end_time)
+        entry.save(
+            update_fields=[
+                "start_datetime",
+                "end_datetime",
+                "normalized_start_datetime",
+                "normalized_end_datetime",
+            ]
+        )
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("core", "0027_add_time_entry_normalized_times"),
     ]

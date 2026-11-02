@@ -15,15 +15,9 @@ class TimeEntryBreakSerializer(serializers.ModelSerializer):
 class TimeEntrySerializer(OwnedSerializer):
     owner_fk_fields = ("customer", "project", "visit", "contract")
 
-    project_name = serializers.CharField(
-        source="project.name", read_only=True, default=None
-    )
-    customer_name = serializers.CharField(
-        source="customer.name", read_only=True, default=None
-    )
-    contract_name = serializers.CharField(
-        source="contract.name", read_only=True, default=None
-    )
+    project_name = serializers.CharField(source="project.name", read_only=True, default=None)
+    customer_name = serializers.CharField(source="customer.name", read_only=True, default=None)
+    contract_name = serializers.CharField(source="contract.name", read_only=True, default=None)
     hours = serializers.FloatField(read_only=True)
     is_running = serializers.BooleanField(read_only=True)
     breaks = TimeEntryBreakSerializer(many=True, required=False)
@@ -66,12 +60,28 @@ class TimeEntrySerializer(OwnedSerializer):
     class Meta:
         model = TimeEntry
         fields = [
-            "id", "customer", "customer_name", "project", "project_name",
-            "visit", "contract", "contract_name",
-            "start_datetime", "end_datetime",
-            "normalized_start_datetime", "normalized_end_datetime",
-            "breaks", "break_minutes", "duration_minutes", "hours", "is_running", "is_paused",
-            "description", "billable", "invoice",
-            "created_at", "updated_at",
+            "id",
+            "customer",
+            "customer_name",
+            "project",
+            "project_name",
+            "visit",
+            "contract",
+            "contract_name",
+            "start_datetime",
+            "end_datetime",
+            "normalized_start_datetime",
+            "normalized_end_datetime",
+            "breaks",
+            "break_minutes",
+            "duration_minutes",
+            "hours",
+            "is_running",
+            "is_paused",
+            "description",
+            "billable",
+            "invoice",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["duration_minutes", "created_at", "updated_at"]

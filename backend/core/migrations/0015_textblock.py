@@ -9,28 +9,63 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0014_invoicetemplate_background_color_and_more'),
+        ("core", "0014_invoicetemplate_background_color_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='TextBlock',
+            name="TextBlock",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid7, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('name', models.CharField(max_length=255)),
-                ('key', models.CharField(max_length=100, validators=[django.core.validators.RegexValidator('^[a-z][a-z0-9_]*$')])),
-                ('document_type', models.CharField(choices=[('all', 'All documents'), ('invoice', 'Invoice'), ('credit_note', 'Credit note'), ('order', 'Order'), ('quote', 'Quote')], default='all', max_length=20)),
-                ('content', models.TextField()),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid7, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "key",
+                    models.CharField(
+                        max_length=100,
+                        validators=[django.core.validators.RegexValidator("^[a-z][a-z0-9_]*$")],
+                    ),
+                ),
+                (
+                    "document_type",
+                    models.CharField(
+                        choices=[
+                            ("all", "All documents"),
+                            ("invoice", "Invoice"),
+                            ("credit_note", "Credit note"),
+                            ("order", "Order"),
+                            ("quote", "Quote"),
+                        ],
+                        default="all",
+                        max_length=20,
+                    ),
+                ),
+                ("content", models.TextField()),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_set",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['document_type', 'name'],
-                'constraints': [models.UniqueConstraint(fields=('owner', 'document_type', 'key'), name='unique_text_block_key_per_owner_and_document_type')],
+                "ordering": ["document_type", "name"],
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("owner", "document_type", "key"),
+                        name="unique_text_block_key_per_owner_and_document_type",
+                    )
+                ],
             },
         ),
     ]

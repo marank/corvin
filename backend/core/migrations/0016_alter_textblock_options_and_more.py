@@ -17,11 +17,14 @@ def normalize_duplicate_keys(apps, schema_editor):
             base = f"{block.key}_{block.document_type}"[:100]
             key = base
             counter = 2
-            while key in used or TextBlock.objects.filter(
-                owner_id=block.owner_id, key=key
-            ).exclude(pk=block.pk).exists():
+            while (
+                key in used
+                or TextBlock.objects.filter(owner_id=block.owner_id, key=key)
+                .exclude(pk=block.pk)
+                .exists()
+            ):
                 suffix = f"_{counter}"
-                key = f"{base[:100 - len(suffix)]}{suffix}"
+                key = f"{base[: 100 - len(suffix)]}{suffix}"
                 counter += 1
             block.key = key
             block.save(update_fields=["key"])
@@ -29,28 +32,29 @@ def normalize_duplicate_keys(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0015_textblock'),
+        ("core", "0015_textblock"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='textblock',
-            options={'ordering': ['name']},
+            name="textblock",
+            options={"ordering": ["name"]},
         ),
         migrations.RemoveConstraint(
-            model_name='textblock',
-            name='unique_text_block_key_per_owner_and_document_type',
+            model_name="textblock",
+            name="unique_text_block_key_per_owner_and_document_type",
         ),
         migrations.RunPython(normalize_duplicate_keys, migrations.RunPython.noop),
         migrations.AddConstraint(
-            model_name='textblock',
-            constraint=models.UniqueConstraint(fields=('owner', 'key'), name='unique_text_block_key_per_owner'),
+            model_name="textblock",
+            constraint=models.UniqueConstraint(
+                fields=("owner", "key"), name="unique_text_block_key_per_owner"
+            ),
         ),
         migrations.RemoveField(
-            model_name='textblock',
-            name='document_type',
+            model_name="textblock",
+            name="document_type",
         ),
     ]

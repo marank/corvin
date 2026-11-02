@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0018_add_template_assignments'),
+        ("core", "0018_add_template_assignments"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='invoicetemplate',
-            name='is_default',
+            model_name="invoicetemplate",
+            name="is_default",
         ),
     ]

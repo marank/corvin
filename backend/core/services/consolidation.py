@@ -40,11 +40,7 @@ def _line_for_entries(owner, entries, description: str) -> dict:
         total_minutes += minutes
         total_amount += Decimal(minutes) / 60 * rate
     quantity = (Decimal(total_minutes) / 60).quantize(Decimal("0.01"))
-    unit_price = (
-        (total_amount / quantity).quantize(Decimal("0.01"))
-        if quantity
-        else Decimal("0")
-    )
+    unit_price = (total_amount / quantity).quantize(Decimal("0.01")) if quantity else Decimal("0")
     return {
         "description": description,
         "quantity": quantity,
@@ -106,22 +102,30 @@ def consolidate(
     payment_terms_days = (
         customer.payment_terms_days
         if customer.payment_terms_days is not None
-        else company.payment_terms_days if company else 14
+        else company.payment_terms_days
+        if company
+        else 14
     )
     default_vat_rate = (
         company.default_vat_rate
         if company and company.vat_enabled
-        else Decimal("0") if company else Decimal("19")
+        else Decimal("0")
+        if company
+        else Decimal("19")
     )
     invoice = Invoice.objects.create(
         owner=owner,
-        number=next_number(owner, "invoice", {
-            "customer": customer,
-            "project": project,
-            "invoice": SimpleNamespace(
-                customer=customer, project=project, issue_date=issue_date
-            ),
-        }),
+        number=next_number(
+            owner,
+            "invoice",
+            {
+                "customer": customer,
+                "project": project,
+                "invoice": SimpleNamespace(
+                    customer=customer, project=project, issue_date=issue_date
+                ),
+            },
+        ),
         customer=customer,
         project=project,
         issue_date=issue_date,
@@ -134,9 +138,7 @@ def consolidate(
     )
 
     invoice.contacts.set(
-        contacts if contacts is not None else customer.contacts.filter(
-            is_invoice_contact=True
-        )
+        contacts if contacts is not None else customer.contacts.filter(is_invoice_contact=True)
     )
 
     for position, (_, group) in enumerate(sorted(groups.items(), key=lambda g: g[0]), start=1):
@@ -149,9 +151,7 @@ def consolidate(
         else:
             desc = f"{scope} — consulting services"
         line = _line_for_entries(owner, group, desc)
-        InvoiceLineItem.objects.create(
-            owner=owner, invoice=invoice, position=position, **line
-        )
+        InvoiceLineItem.objects.create(owner=owner, invoice=invoice, position=position, **line)
 
     position = invoice.items.count()
     for line in extra_lines or []:

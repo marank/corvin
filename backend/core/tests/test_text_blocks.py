@@ -16,9 +16,7 @@ def test_text_blocks_render_in_templates(user, customer, invoice_template):
         key="greeting",
         content="<p>Invoice {{ invoice.number }} for {{ customer.name }}</p>",
     )
-    invoice_template.body_html = (
-        "{{ page.document_type }}|{{ text_blocks.greeting }}"
-    )
+    invoice_template.body_html = "{{ page.document_type }}|{{ text_blocks.greeting }}"
     invoice_template.save(update_fields=["body_html"])
     invoice = Invoice.objects.create(
         owner=user,
@@ -37,9 +35,7 @@ def test_text_blocks_render_in_templates(user, customer, invoice_template):
 def test_text_block_api_is_owner_scoped(user):
     other = User.objects.create_user("text-block-other")
     CompanySettings.objects.create(user=other)
-    TextBlock.objects.create(
-        owner=other, name="Foreign", key="foreign", content="Hidden"
-    )
+    TextBlock.objects.create(owner=other, name="Foreign", key="foreign", content="Hidden")
     client = APIClient()
     client.force_authenticate(user)
 

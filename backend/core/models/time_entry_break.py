@@ -4,9 +4,7 @@ from .base import OwnedModel
 
 
 class TimeEntryBreak(OwnedModel):
-    time_entry = models.ForeignKey(
-        "TimeEntry", on_delete=models.CASCADE, related_name="breaks"
-    )
+    time_entry = models.ForeignKey("TimeEntry", on_delete=models.CASCADE, related_name="breaks")
     start_datetime = models.DateTimeField()
     end_datetime = models.DateTimeField(null=True, blank=True)
 

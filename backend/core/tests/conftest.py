@@ -52,9 +52,7 @@ def customer(user):
 
 @pytest.fixture
 def project(user, customer):
-    return Project.objects.create(
-        owner=user, customer=customer, name="Migration"
-    )
+    return Project.objects.create(owner=user, customer=customer, name="Migration")
 
 
 @pytest.fixture

@@ -17,9 +17,7 @@ class DashboardStatsView(APIView):
         year_ago = today - timedelta(days=365)
 
         entries = TimeEntry.objects.filter(owner=user, end_datetime__isnull=False)
-        invoices = Invoice.objects.filter(owner=user).exclude(
-            status=Invoice.Status.CANCELLED
-        )
+        invoices = Invoice.objects.filter(owner=user).exclude(status=Invoice.Status.CANCELLED)
 
         revenue_by_month = (
             invoices.filter(issue_date__gte=year_ago)
@@ -44,13 +42,13 @@ class DashboardStatsView(APIView):
             hours=Sum("duration_minutes")
         )
 
-        open_invoices = invoices.exclude(
-            status=Invoice.Status.PAID
-        ).aggregate(total=Sum("total"), count=Count("id"))
-        overdue = invoices.filter(
-            due_date__lt=today
-        ).exclude(status=Invoice.Status.PAID).aggregate(
+        open_invoices = invoices.exclude(status=Invoice.Status.PAID).aggregate(
             total=Sum("total"), count=Count("id")
+        )
+        overdue = (
+            invoices.filter(due_date__lt=today)
+            .exclude(status=Invoice.Status.PAID)
+            .aggregate(total=Sum("total"), count=Count("id"))
         )
 
         contracts = []
@@ -64,27 +62,23 @@ class DashboardStatsView(APIView):
             from core.services.budgets import budget_stats
 
             s = budget_stats(p)
-            if (s["budget_hours_percent"] or 0) >= 80 or (
-                s["budget_amount_percent"] or 0
-            ) >= 80:
+            if (s["budget_hours_percent"] or 0) >= 80 or (s["budget_amount_percent"] or 0) >= 80:
                 budget_warnings.append(
                     {"id": p.id, "name": p.name, "customer": p.customer.name, **s}
                 )
 
-        running = TimeEntry.objects.filter(
-            owner=user, end_datetime__isnull=True
-        ).first()
+        running = TimeEntry.objects.filter(owner=user, end_datetime__isnull=True).first()
 
-        return Response({
-            "revenue_by_month": list(revenue_by_month),
-            "hours_by_customer": list(hours_by_customer),
-            "uninvoiced_hours": (
-                (uninvoiced["hours"] or 0) / 60
-            ),
-            "week_hours": (week_hours["hours"] or 0) / 60,
-            "open_invoices": open_invoices,
-            "overdue": overdue,
-            "contracts": contracts,
-            "budget_warnings": budget_warnings,
-            "timer_running": running.id if running else None,
-        })
+        return Response(
+            {
+                "revenue_by_month": list(revenue_by_month),
+                "hours_by_customer": list(hours_by_customer),
+                "uninvoiced_hours": ((uninvoiced["hours"] or 0) / 60),
+                "week_hours": (week_hours["hours"] or 0) / 60,
+                "open_invoices": open_invoices,
+                "overdue": overdue,
+                "contracts": contracts,
+                "budget_warnings": budget_warnings,
+                "timer_running": running.id if running else None,
+            }
+        )

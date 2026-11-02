@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0017_update_text_block_key_regex'),
+        ("core", "0017_update_text_block_key_regex"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='companysettings',
-            name='template_assignments',
+            model_name="companysettings",
+            name="template_assignments",
             field=models.JSONField(blank=True, default=dict),
         ),
     ]

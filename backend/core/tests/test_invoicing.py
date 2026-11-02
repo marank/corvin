@@ -16,12 +16,16 @@ from core.services.consolidation import consolidate
 @pytest.fixture
 def draft_invoice(user, customer, project, invoice_template):
     HourlyRate.objects.create(
-        owner=user, customer=customer, amount=Decimal("80"),
+        owner=user,
+        customer=customer,
+        amount=Decimal("80"),
         valid_from=date(2025, 1, 1),
     )
     tz = timezone.get_current_timezone()
     TimeEntry.objects.create(
-        owner=user, customer=customer, project=project,
+        owner=user,
+        customer=customer,
+        project=project,
         start_datetime=timezone.make_aware(datetime(2026, 9, 1, 9, 0), tz),
         end_datetime=timezone.make_aware(datetime(2026, 9, 1, 11, 0), tz),
     )
@@ -71,17 +75,26 @@ def test_partial_payments(user, draft_invoice):
     c.force_authenticate(user)
     c.post(f"/api/v1/invoices/{draft_invoice.id}/finalize/")
     total = draft_invoice.total
-    c.post("/api/v1/payments/", {
-        "invoice": draft_invoice.id, "date": "2026-09-20",
-        "amount": str(total / 2), "note": "half",
-    })
+    c.post(
+        "/api/v1/payments/",
+        {
+            "invoice": draft_invoice.id,
+            "date": "2026-09-20",
+            "amount": str(total / 2),
+            "note": "half",
+        },
+    )
     draft_invoice.refresh_from_db()
     assert draft_invoice.partially_paid
     assert draft_invoice.status != Invoice.Status.PAID
-    c.post("/api/v1/payments/", {
-        "invoice": draft_invoice.id, "date": "2026-09-21",
-        "amount": str(total - total / 2),
-    })
+    c.post(
+        "/api/v1/payments/",
+        {
+            "invoice": draft_invoice.id,
+            "date": "2026-09-21",
+            "amount": str(total - total / 2),
+        },
+    )
     draft_invoice.refresh_from_db()
     assert draft_invoice.status == Invoice.Status.PAID
 

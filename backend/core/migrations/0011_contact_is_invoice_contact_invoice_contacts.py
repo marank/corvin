@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0010_companycontact'),
+        ("core", "0010_companycontact"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='contact',
-            name='is_invoice_contact',
+            model_name="contact",
+            name="is_invoice_contact",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='invoice',
-            name='contacts',
-            field=models.ManyToManyField(blank=True, related_name='invoices', to='core.contact'),
+            model_name="invoice",
+            name="contacts",
+            field=models.ManyToManyField(blank=True, related_name="invoices", to="core.contact"),
         ),
     ]

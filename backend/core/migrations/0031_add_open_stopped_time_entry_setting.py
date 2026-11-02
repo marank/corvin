@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0030_add_timer_counts_during_break'),
+        ("core", "0030_add_timer_counts_during_break"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='companysettings',
-            name='open_stopped_time_entry',
-            field=models.CharField(choices=[('ask', 'Ask'), ('yes', 'Yes'), ('no', 'No')], default='ask', max_length=3),
+            model_name="companysettings",
+            name="open_stopped_time_entry",
+            field=models.CharField(
+                choices=[("ask", "Ask"), ("yes", "Yes"), ("no", "No")], default="ask", max_length=3
+            ),
         ),
     ]

@@ -25,29 +25,30 @@ class Invoice(OwnedModel):
         XRECHNUNG = "xrechnung", "XRechnung (XML only)"
 
     number = models.CharField(max_length=50, blank=True, db_index=True)
-    customer = models.ForeignKey(
-        Customer, on_delete=models.PROTECT, related_name="invoices"
-    )
-    contacts = models.ManyToManyField(
-        Contact, blank=True, related_name="invoices"
-    )
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="invoices")
+    contacts = models.ManyToManyField(Contact, blank=True, related_name="invoices")
     project = models.ForeignKey(
-        Project, on_delete=models.SET_NULL, related_name="invoices",
-        null=True, blank=True,
+        Project,
+        on_delete=models.SET_NULL,
+        related_name="invoices",
+        null=True,
+        blank=True,
     )
     contract = models.ForeignKey(
-        SupportContract, on_delete=models.SET_NULL, related_name="invoices",
-        null=True, blank=True,
+        SupportContract,
+        on_delete=models.SET_NULL,
+        related_name="invoices",
+        null=True,
+        blank=True,
     )
     issue_date = models.DateField()
     due_date = models.DateField(null=True, blank=True)
-    status = models.CharField(
-        max_length=15, choices=Status.choices, default=Status.DRAFT
-    )
+    status = models.CharField(max_length=15, choices=Status.choices, default=Status.DRAFT)
     vat_rate = models.DecimalField(max_digits=5, decimal_places=2, default=19)
     currency = models.CharField(max_length=3, default="EUR")
     e_invoice_format = models.CharField(
-        max_length=15, choices=EInvoiceFormat.choices,
+        max_length=15,
+        choices=EInvoiceFormat.choices,
         default=EInvoiceFormat.NONE,
     )
     notes = models.TextField(blank=True)
@@ -56,12 +57,18 @@ class Invoice(OwnedModel):
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     sent_at = models.DateTimeField(null=True, blank=True)
     template = models.ForeignKey(
-        DocumentTemplate, on_delete=models.SET_NULL, related_name="invoices",
-        null=True, blank=True,
+        DocumentTemplate,
+        on_delete=models.SET_NULL,
+        related_name="invoices",
+        null=True,
+        blank=True,
     )
     bank_account_override = models.ForeignKey(
-        "BankAccount", on_delete=models.SET_NULL, related_name="invoices",
-        null=True, blank=True,
+        "BankAccount",
+        on_delete=models.SET_NULL,
+        related_name="invoices",
+        null=True,
+        blank=True,
     )
     documents = GenericRelation(
         "DocumentArchive", content_type_field="content_type", object_id_field="object_id"
@@ -100,9 +107,7 @@ class Invoice(OwnedModel):
 
     def recalc_totals(self):
         self.subtotal = sum(i.total for i in self.items.all())
-        self.vat_amount = (self.subtotal * self.vat_rate / 100).quantize(
-            Decimal("0.01")
-        )
+        self.vat_amount = (self.subtotal * self.vat_rate / 100).quantize(Decimal("0.01"))
         self.total = self.subtotal + self.vat_amount
         self.save(update_fields=["subtotal", "vat_amount", "total", "updated_at"])
 

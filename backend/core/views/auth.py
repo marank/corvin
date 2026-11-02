@@ -20,10 +20,7 @@ class LoginThrottle(AnonRateThrottle):
 
 
 def _verify_otp(user, code: str) -> bool:
-    return any(
-        device.verify_token(code)
-        for device in devices_for_user(user, confirmed=True)
-    )
+    return any(device.verify_token(code) for device in devices_for_user(user, confirmed=True))
 
 
 def _has_totp(user) -> bool:
@@ -51,9 +48,7 @@ class LoginView(APIView):
             )
         if _has_totp(user):
             if not otp_code:
-                return Response(
-                    {"requires_otp": True}, status=status.HTTP_401_UNAUTHORIZED
-                )
+                return Response({"requires_otp": True}, status=status.HTTP_401_UNAUTHORIZED)
             if not _verify_otp(user, otp_code):
                 return Response(
                     {"detail": "Invalid code.", "requires_otp": True},
@@ -78,9 +73,7 @@ class MeView(APIView):
     def get(self, request):
         get_token(request)
         if not request.user.is_authenticated:
-            return Response(
-                {"authenticated": False}, status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response({"authenticated": False}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(_me_payload(request.user))
 
 

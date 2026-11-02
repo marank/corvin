@@ -6,9 +6,18 @@ from django.utils import timezone
 register = template.Library()
 
 CURRENCY_SYMBOLS = {
-    "EUR": "€", "USD": "$", "GBP": "£", "JPY": "¥", "CNY": "¥",
-    "CHF": "CHF", "INR": "₹", "KRW": "₩", "PLN": "zł", "RUB": "₽",
-    "TRY": "₺", "UAH": "₴",
+    "EUR": "€",
+    "USD": "$",
+    "GBP": "£",
+    "JPY": "¥",
+    "CNY": "¥",
+    "CHF": "CHF",
+    "INR": "₹",
+    "KRW": "₩",
+    "PLN": "zł",
+    "RUB": "₽",
+    "TRY": "₺",
+    "UAH": "₴",
 }
 
 
@@ -19,8 +28,13 @@ def _company(context):
 def _date_pattern(pattern):
     result = pattern
     for source, target in (
-        ("YYYY", "%Y"), ("YY", "%y"), ("MM", "%m"), ("DD", "%d"),
-        ("HH", "%H"), ("mm", "%M"), ("ss", "%S"),
+        ("YYYY", "%Y"),
+        ("YY", "%y"),
+        ("MM", "%m"),
+        ("DD", "%d"),
+        ("HH", "%H"),
+        ("mm", "%M"),
+        ("ss", "%S"),
     ):
         result = result.replace(source, target)
     return result
@@ -29,7 +43,7 @@ def _date_pattern(pattern):
 def _number(value, company, minimum=0, maximum=2):
     try:
         number = Decimal(str(value))
-    except (InvalidOperation, TypeError, ValueError):
+    except InvalidOperation, TypeError, ValueError:
         return "—"
     text = f"{number:,.{maximum}f}"
     integer, _, decimals = text.partition(".")

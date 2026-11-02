@@ -72,14 +72,14 @@ def render_number(
             return resolver(param, ctx)
         try:
             value = Variable(name).resolve(ctx.values)
-        except (VariableDoesNotExist, AttributeError, KeyError, TypeError):
+        except VariableDoesNotExist, AttributeError, KeyError, TypeError:
             return ""
         if value is None:
             return ""
         if param:
             try:
                 return format(value, param)
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 return str(value)
         return str(value)
 

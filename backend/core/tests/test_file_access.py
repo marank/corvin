@@ -43,9 +43,7 @@ def attach(user, customer, name, content=b"data"):
 
 @pytest.mark.django_db
 def test_company_image_served_inline_to_owner_only(user, other_user):
-    image = CompanyImage.objects.create(
-        owner=user, kind="logo_light", name="Logo", image=png()
-    )
+    image = CompanyImage.objects.create(owner=user, kind="logo_light", name="Logo", image=png())
     url = f"/api/v1/company-images/{image.id}/file/"
 
     response = client_for(user).get(url)
@@ -99,7 +97,7 @@ def test_health_is_public_and_responses_carry_csp():
 def test_throttle_uses_last_forwarded_address(user):
     from core.views.auth import LoginThrottle
 
-    request = APIClient().get(
-        "/api/v1/health", HTTP_X_FORWARDED_FOR="6.6.6.6, 203.0.113.7"
-    ).wsgi_request
+    request = (
+        APIClient().get("/api/v1/health", HTTP_X_FORWARDED_FOR="6.6.6.6, 203.0.113.7").wsgi_request
+    )
     assert LoginThrottle().get_ident(request) == "203.0.113.7"

@@ -12,9 +12,7 @@ def test_template_export_import_round_trip(user, invoice_template):
     invoice_template.header_html = "<header>{{ company.company_name }}</header>"
     invoice_template.save(update_fields=["primary_color", "header_html"])
 
-    exported = client.get(
-        f"/api/v1/document-templates/{invoice_template.id}/export/"
-    )
+    exported = client.get(f"/api/v1/document-templates/{invoice_template.id}/export/")
 
     assert exported.status_code == 200
     assert exported["Content-Disposition"].endswith('.json"')
@@ -25,9 +23,7 @@ def test_template_export_import_round_trip(user, invoice_template):
     assert "id" not in payload["template"]
     assert "created_at" not in payload["template"]
 
-    imported = client.post(
-        "/api/v1/document-templates/import/", payload, format="json"
-    )
+    imported = client.post("/api/v1/document-templates/import/", payload, format="json")
 
     assert imported.status_code == 201
     imported_template = DocumentTemplate.objects.get(pk=imported.json()["id"])

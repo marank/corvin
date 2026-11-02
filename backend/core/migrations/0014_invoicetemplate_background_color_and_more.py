@@ -4,55 +4,65 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0013_migrate_company_bank_accounts'),
+        ("core", "0013_migrate_company_bank_accounts"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='invoicetemplate',
-            name='background_color',
-            field=models.CharField(default='#ffffff', max_length=20),
+            model_name="invoicetemplate",
+            name="background_color",
+            field=models.CharField(default="#ffffff", max_length=20),
         ),
         migrations.AddField(
-            model_name='invoicetemplate',
-            name='font_size',
+            model_name="invoicetemplate",
+            name="font_size",
             field=models.DecimalField(decimal_places=2, default=10, max_digits=5),
         ),
         migrations.AddField(
-            model_name='invoicetemplate',
-            name='primary_color',
-            field=models.CharField(default='#161616', max_length=20),
+            model_name="invoicetemplate",
+            name="primary_color",
+            field=models.CharField(default="#161616", max_length=20),
         ),
         migrations.AddField(
-            model_name='invoicetemplate',
-            name='primary_font',
-            field=models.CharField(default='Arial', max_length=255),
+            model_name="invoicetemplate",
+            name="primary_font",
+            field=models.CharField(default="Arial", max_length=255),
         ),
         migrations.AddField(
-            model_name='invoicetemplate',
-            name='secondary_color',
-            field=models.CharField(default='#555555', max_length=20),
+            model_name="invoicetemplate",
+            name="secondary_color",
+            field=models.CharField(default="#555555", max_length=20),
         ),
         migrations.AddField(
-            model_name='invoicetemplate',
-            name='secondary_font',
-            field=models.CharField(default='Helvetica', max_length=255),
+            model_name="invoicetemplate",
+            name="secondary_font",
+            field=models.CharField(default="Helvetica", max_length=255),
         ),
         migrations.AddField(
-            model_name='invoicetemplate',
-            name='tertiary_color',
-            field=models.CharField(default='#999999', max_length=20),
+            model_name="invoicetemplate",
+            name="tertiary_color",
+            field=models.CharField(default="#999999", max_length=20),
         ),
         migrations.AddField(
-            model_name='invoicetemplate',
-            name='text_color',
-            field=models.CharField(default='#161616', max_length=20),
+            model_name="invoicetemplate",
+            name="text_color",
+            field=models.CharField(default="#161616", max_length=20),
         ),
         migrations.AlterField(
-            model_name='invoicetemplate',
-            name='page_size',
-            field=models.CharField(choices=[('A3', 'DIN A3'), ('A4', 'DIN A4'), ('A5', 'DIN A5'), ('LETTER', 'US Letter'), ('LEGAL', 'US Legal'), ('TABLOID', 'US Tabloid')], default='A4', max_length=10),
+            model_name="invoicetemplate",
+            name="page_size",
+            field=models.CharField(
+                choices=[
+                    ("A3", "DIN A3"),
+                    ("A4", "DIN A4"),
+                    ("A5", "DIN A5"),
+                    ("LETTER", "US Letter"),
+                    ("LEGAL", "US Legal"),
+                    ("TABLOID", "US Tabloid"),
+                ],
+                default="A4",
+                max_length=10,
+            ),
         ),
     ]
