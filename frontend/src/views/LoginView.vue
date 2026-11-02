@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Button from 'primevue/button'
+import AppLogo from '../components/ui/AppLogo.vue'
 import { useAuthStore } from '../stores/auth'
 
 const { t } = useI18n()
@@ -41,7 +42,7 @@ async function submit() {
 <template>
   <div class="min-h-full flex items-center justify-center p-4">
     <form class="w-full max-w-sm flex flex-col gap-4 border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-6" @submit.prevent="submit">
-      <h1 class="text-xl font-semibold">{{ t('app.title') }}</h1>
+      <h1 class="flex justify-center py-2"><AppLogo size="lg" /></h1>
       <InputText v-model="username" :placeholder="t('auth.username')" required autocomplete="username" />
       <Password v-model="password" :placeholder="t('auth.password')" required :feedback="false" toggle-mask autocomplete="current-password" class="w-full" input-class="w-full" />
       <InputText v-if="needsOtp" v-model="otpCode" :placeholder="t('auth.otpCode')" autocomplete="one-time-code" />

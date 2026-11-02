@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class CoreConfig(AppConfig):
     name = "core"
-    verbose_name = "Project Manager"
+    verbose_name = "Corvin"

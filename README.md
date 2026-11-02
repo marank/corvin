@@ -1,4 +1,4 @@
-# ProjectManager
+# Corvin
 
 Project management for IT consultants: customers, projects with budgets, tasks, time tracking (live timer + rounding), on-site visit reports, support contracts with included-hours retainers, invoices (A4/Letter PDF, ZUGFeRD/XRechnung e-invoicing, email delivery, GoBD archiving, partial payments), TOTP security, analytics dashboard — German/English, dark mode, mobile responsive.
 
@@ -6,6 +6,10 @@ Project management for IT consultants: customers, projects with budgets, tasks, 
 
 - **Backend**: Django 6.1 + DRF, single `core` app with split `models/` `serializers/` `views/` `services/` packages, `uv`-managed, SQLite dev / Postgres prod, WeasyPrint PDFs, drafthorse EN-16931 XML.
 - **Frontend**: Vue 3.5 + TS + Vite, `pnpm`, PrimeVue + Tailwind, flat square UI, `vue-i18n` (de/en), Pinia, Chart.js.
+
+## Branding
+
+Name **Corvin**, from Latin *corvus*, the raven: Odin's ravens Hugin and Munin stand for thought and memory, and the *Bibliotheca Corviniana* was one of the great archives of the Renaissance. Mark: a raven head from basic shapes, a half circle in violet and blue with a cyan beak (`branding/corvin-mark.svg`). Wordmark in Josefin Sans 600 (OFL-1.1, self-hosted via `@fontsource/josefin-sans`). In the app: `src/components/ui/AppLogo.vue`; `frontend/public/favicon.svg` adapts to dark mode, `apple-touch-icon.png` is rendered from the mark on white.
 
 ## Local development (Windows, no Docker)
 

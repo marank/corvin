@@ -1,4 +1,4 @@
-# ProjectManager — conventions for contributors and coding agents
+# Corvin — conventions for contributors and coding agents
 
 Licensed under AGPL-3.0-or-later (`LICENSE`).
 

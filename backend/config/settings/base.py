@@ -89,6 +89,9 @@ AUTH_PASSWORD_VALIDATORS = [
     )
 ]
 
+# Name authenticator apps show next to the TOTP code.
+OTP_TOTP_ISSUER = "Corvin"
+
 LANGUAGE_CODE = "de"
 TIME_ZONE = env("TIME_ZONE")
 USE_I18N = True

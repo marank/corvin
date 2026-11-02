@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import AppIconButton from '../components/ui/AppIconButton.vue'
+import AppLogo from '../components/ui/AppLogo.vue'
 import { useAuthStore } from '../stores/auth'
 import { useFormattingStore } from '../stores/formatting'
 import { setLocale, i18n } from '../i18n'
@@ -91,8 +92,8 @@ async function logout() {
   <div class="flex h-full">
     <!-- Desktop sidebar (unchanged) -->
     <aside class="hidden lg:flex w-56 shrink-0 flex-col border-r border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900">
-      <div class="h-14 flex items-center px-4 border-b border-surface-200 dark:border-surface-800 font-semibold">
-        {{ t('app.title') }}
+      <div class="h-14 flex items-center px-4 border-b border-surface-200 dark:border-surface-800">
+        <AppLogo />
       </div>
       <nav ref="sidebarNav" class="relative flex-1 overflow-y-auto py-2">
         <div
@@ -121,7 +122,7 @@ async function logout() {
         class="fixed inset-0 z-50 bg-white dark:bg-surface-950 flex flex-col"
       >
         <div class="h-14 flex items-center px-4 border-b border-surface-200 dark:border-surface-800">
-          <span class="font-semibold">{{ t('app.title') }}</span>
+          <AppLogo />
           <AppIconButton icon="pi pi-times" class="ms-auto" aria-label="close" @click="menuOpen = false" />
         </div>
         <div class="flex-1 overflow-y-auto p-4 sm:p-8">
