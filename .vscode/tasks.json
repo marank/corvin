@@ -1,0 +1,109 @@
+{
+  // Everyday commands. The "check" tasks run what CI runs (.gitea/workflows/build.yaml);
+  // keep both in sync. Commands use only `&&` chaining and task options for cwd/env, so
+  // they work in bash, zsh, cmd and PowerShell 7.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev",
+      "detail": "Django (:8000) and Vite (:5173) dev servers",
+      "dependsOn": ["dev: backend", "dev: frontend"],
+      "dependsOrder": "parallel",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: backend",
+      "type": "shell",
+      "command": "uv run python manage.py runserver",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "isBackground": true,
+      "presentation": { "group": "dev", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: frontend",
+      "type": "shell",
+      "command": "pnpm dev",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "isBackground": true,
+      "presentation": { "group": "dev", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "check",
+      "detail": "Everything CI checks, backend and frontend",
+      "dependsOn": ["check: backend", "check: deploy settings", "check: frontend"],
+      "dependsOrder": "sequence",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "check: backend",
+      "detail": "ruff, deptry, migrations, Django checks, pytest with coverage",
+      "type": "shell",
+      "command": "uv sync --locked && uv run ruff check . && uv run deptry . && uv run python manage.py makemigrations --check --dry-run && uv run python manage.py check --fail-level WARNING && uv run pytest -q --cov",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "check: deploy settings",
+      "detail": "Django deploy checks with the production settings",
+      "type": "shell",
+      "command": "uv run python manage.py check --deploy --fail-level WARNING",
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "DJANGO_SETTINGS_MODULE": "config.settings.production",
+          "SECRET_KEY": "local-deploy-check-not-secret-but-long-and-random-enough-0123456789abcdef",
+          "ALLOWED_HOSTS": "app.example.com",
+          "CSRF_TRUSTED_ORIGINS": "https://app.example.com"
+        }
+      },
+      "hide": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "check: frontend",
+      "detail": "type-check, build, licenses",
+      "type": "shell",
+      "command": "pnpm install --frozen-lockfile && pnpm build && pnpm check:licenses",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "django: makemigrations",
+      "type": "shell",
+      "command": "uv run python manage.py makemigrations",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "django: migrate",
+      "type": "shell",
+      "command": "uv run python manage.py migrate",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: up",
+      "detail": "Build and start the production stack (needs .env)",
+      "type": "shell",
+      "command": "docker compose up -d --build",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: down",
+      "type": "shell",
+      "command": "docker compose down",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: backup now",
+      "detail": "Database dump + uploads tarball into the backups volume",
+      "type": "shell",
+      "command": "docker compose exec backup sh /backup.sh now",
+      "problemMatcher": []
+    }
+  ]
+}

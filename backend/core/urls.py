@@ -12,6 +12,7 @@ from core.views.customer import (
     CustomerViewSet,
 )
 from core.views.document_template import DocumentTemplateViewSet
+from core.views.health import HealthView
 from core.views.hourly_rate import HourlyRateViewSet
 from core.views.invoice import InvoiceViewSet
 from core.views.payment import PaymentViewSet
@@ -55,6 +56,7 @@ router.register("payments", PaymentViewSet, basename="payment")
 router.register("attachments", AttachmentViewSet, basename="attachment")
 
 urlpatterns = [
+    path("health", HealthView.as_view()),
     path("auth/login", LoginView.as_view()),
     path("auth/logout", LogoutView.as_view()),
     path("auth/me", MeView.as_view()),

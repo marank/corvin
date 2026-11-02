@@ -44,6 +44,8 @@ class CustomerViewSet(OwnedViewSet):
                         time_entries__end_datetime__isnull=False,
                         time_entries__contract__isnull=True,
                     ),
+                    # 0, not NULL: PostgreSQL sorts NULL first when descending.
+                    default=0,
                 )
                 / 60.0,
             )

@@ -17,4 +17,6 @@ RUN uv run --no-sync python manage.py collectstatic --noinput \
     --settings=config.settings.production
 
 EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD ["python", "scripts/healthcheck.py"]
 CMD ["sh", "-c", "uv run --no-sync python manage.py migrate --settings=config.settings.production && uv run --no-sync gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"]

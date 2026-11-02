@@ -4,17 +4,16 @@ version = "0.1.0"
 description = "Project management app for IT consultants — Django backend"
 requires-python = ">=3.14"
 dependencies = [
-    "django>=6.1,<7.0",
+    "django[argon2]>=6.1,<7.0",
     "djangorestframework>=3.16",
     "django-filter>=25.1",
-    "django-cors-headers>=4.6",
     "django-environ>=0.12",
     "django-otp>=1.6",
-    "qrcode[pil]>=8.0",
     "weasyprint>=66.0",
     "drafthorse>=2025.1",
     "psycopg[binary]>=3.2",
     "gunicorn>=23.0; sys_platform != 'win32'",
+    "pillow>=13.0",
 ]
 
 [dependency-groups]
@@ -23,6 +22,8 @@ dev = [
     "pytest-django>=4.11",
     "factory-boy>=3.3",
     "ruff>=0.9",
+    "pytest-cov>=7.1.0",
+    "deptry>=0.25.1",
 ]
 
 [tool.uv]
@@ -40,3 +41,23 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP", "B", "SIM"]
 ignore = ["E501"]
+
+[tool.deptry]
+# Tests may import dev dependencies (pytest, factory-boy).
+extend_exclude = [".*/tests/.*"]
+
+[tool.deptry.per_rule_ignores]
+# Used at runtime but never imported: DB driver (DATABASE_URL), WSGI server,
+# Pillow (needed by ImageField) and django-filter (referenced by path strings in
+# settings).
+DEP002 = ["psycopg", "gunicorn", "pillow", "django-filter"]
+
+[tool.coverage.run]
+source = ["core", "config"]
+omit = ["*/migrations/*", "config/asgi.py", "config/wsgi.py", "manage.py"]
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true
+# Current level; raise it as tests are added, never lower it.
+fail_under = 85

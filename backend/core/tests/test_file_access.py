@@ -85,3 +85,21 @@ def test_login_requires_csrf_token(user):
     token = client.cookies["csrftoken"].value
     response = client.post("/api/v1/auth/login", credentials, HTTP_X_CSRFTOKEN=token)
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_health_is_public_and_responses_carry_csp():
+    response = APIClient().get("/api/v1/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert "frame-ancestors 'self'" in response["Content-Security-Policy"]
+
+
+@pytest.mark.django_db
+def test_throttle_uses_last_forwarded_address(user):
+    from core.views.auth import LoginThrottle
+
+    request = APIClient().get(
+        "/api/v1/health", HTTP_X_FORWARDED_FOR="6.6.6.6, 203.0.113.7"
+    ).wsgi_request
+    assert LoginThrottle().get_ident(request) == "203.0.113.7"

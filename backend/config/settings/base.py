@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import environ
+from django.utils.csp import CSP
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -28,7 +29,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "django_filters",
-    "corsheaders",
     "django_otp",
     "django_otp.plugins.otp_totp",
     "django_otp.plugins.otp_static",
@@ -37,8 +37,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -68,6 +68,16 @@ TEMPLATES = [
 ]
 
 DATABASES = {"default": env.db_url("DATABASE_URL")}
+
+# Argon2 first (Django's recommendation); the others stay so existing hashes keep
+# working and get upgraded on the next login.
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": f"django.contrib.auth.password_validation.{v}"}
@@ -106,6 +116,23 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "core.pagination.StandardPageNumberPagination",
     "PAGE_SIZE": 50,
     "DEFAULT_THROTTLE_RATES": {"login": "10/min"},
+    # Django sits behind exactly one nginx, which sets X-Forwarded-For to the real
+    # client address (see frontend/nginx.conf), so throttling can't be dodged by
+    # sending a forged header.
+    "NUM_PROXIES": 1,
+}
+
+# Content Security Policy for Django's own responses (admin, invoice/template
+# previews, PDFs). Inline styles are needed by the user-editable document templates.
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "img-src": [CSP.SELF, "data:", "blob:"],
+    "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
+    "font-src": [CSP.SELF, "data:"],
+    "base-uri": [CSP.SELF],
+    "form-action": [CSP.SELF],
+    # The SPA embeds the previews in iframes.
+    "frame-ancestors": [CSP.SELF],
 }
 
 SESSION_COOKIE_HTTPONLY = True

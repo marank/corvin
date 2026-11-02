@@ -5,6 +5,10 @@ __pycache__/
 backend/db.sqlite3
 backend/media/
 backend/staticfiles/
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/
 
 # Node
 node_modules/
@@ -18,4 +22,6 @@ frontend/dist/
 .DS_Store
 Thumbs.db
 .idea/
-.vscode/
+.vscode/*
+!.vscode/tasks.json
+!.vscode/extensions.json

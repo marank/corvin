@@ -9,6 +9,8 @@ Project management for IT consultants: customers, projects with budgets, tasks, 
 
 ## Local development (Windows, no Docker)
 
+Prerequisites: [uv](https://docs.astral.sh/uv/), Node 24 with corepack (pnpm version comes from `package.json`), Docker for production.
+
 1. `scripts/setup-windows-dev.ps1` — one-time: installs MSYS2 + Pango (WeasyPrint native deps). Custom path? Set `MSYS2_BIN_DIR` in `backend/.env`.
 2. Backend:
    ```powershell
@@ -30,33 +32,67 @@ Dev uses SQLite + console email backend. PDFs work once Pango is installed (`uv 
 ## Production (Linux, Docker Compose)
 
 ```bash
-cp .env.example .env   # set SECRET_KEY, ALLOWED_HOSTS, POSTGRES_PASSWORD, SMTP…
+cp .env.example .env   # every variable is explained there; set at least SECRET_KEY,
+                       # ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS, POSTGRES_PASSWORD, TRUSTED_PROXIES, SMTP
 docker compose up -d --build
+docker compose exec backend uv run --no-sync python manage.py createsuperuser
 ```
 
-Serves the built Vue app via nginx on :80; `/api` proxied to gunicorn/Django on Postgres.
+| Service | Purpose |
+|---|---|
+| `db` | PostgreSQL 17 |
+| `backend` | gunicorn/Django, healthcheck on `/api/v1/health` |
+| `frontend` | nginx on `HTTP_PORT` (default 80): SPA + `/api` proxy, login rate limit |
+| `scheduler` | runs `process_recurring` daily at `RECURRING_TIME` (draft invoices for due support contracts; safe to run twice) |
+| `backup` | nightly database dump + uploads tarball at `BACKUP_TIME` |
 
-### Recurring invoices (support contracts)
+**TLS.** Put a TLS proxy (Caddy, Traefik, …) in front of `frontend` and list its address in `TRUSTED_PROXIES`. Only then does nginx take over the proxy's `X-Forwarded-For`/`-Proto`. Without it, Django sees every request as plain http and redirects it to https in a loop, and all users share one login rate limit. Uploaded files are only served to their owner through the API (`/api/v1/attachments/<id>/file/`, `/api/v1/company-images/<id>/file/`); there is no public `/media/`.
 
-Schedule daily:
+### Backups
+
+The `backup` service writes `<db>-<timestamp>.dump` (pg_dump, custom format) and `media-<timestamp>.tar.gz` (uploads, archived invoice PDFs) into the `backups` volume and deletes files older than `BACKUP_KEEP_DAYS`.
 
 ```bash
-docker compose exec backend uv run --no-sync python manage.py process_recurring
-# or locally: uv run python manage.py process_recurring
+docker compose exec backup sh /backup.sh now                          # backup right now
+docker compose cp backup:/var/lib/postgresql/backups ./backups        # copy off the host
 ```
 
-Creates draft invoices for due active contracts (fixed price + optional overage hours).
+Backups on the same host don't protect against losing the host — copy them somewhere else regularly (or point your host backup at the `backups` volume). Check the time zone once with `docker compose exec backup date`.
 
-## Tests / checks
+Restore into a fresh stack (stop the app first so nothing writes meanwhile):
 
-```powershell
-cd backend;  uv run pytest; uv run ruff check
-cd frontend; pnpm exec vue-tsc -b; pnpm build
+```bash
+docker compose stop backend scheduler frontend
+docker compose exec -T backup sh -c 'pg_restore --clean --if-exists -d "$PGDATABASE"' < backups/<db>-<timestamp>.dump
+docker compose run --rm -T --no-deps -v ./backups:/restore:ro backend \
+  sh -c 'tar -xzf /restore/media-<timestamp>.tar.gz -C /app/media'
+docker compose start backend scheduler frontend
 ```
+
+## Checks, tooling, CI
+
+VS Code tasks (`.vscode/tasks.json`, Terminal → Run Task): `dev`, `check` (everything CI runs), `django: makemigrations`/`migrate`, `docker: up`/`down`/`backup now`. Without VS Code:
+
+```bash
+cd backend && uv sync --locked && uv run ruff check . && uv run deptry . \
+  && uv run python manage.py makemigrations --check --dry-run \
+  && uv run python manage.py check --fail-level WARNING && uv run pytest -q --cov
+cd frontend && pnpm install --frozen-lockfile && pnpm build && pnpm check:licenses
+```
+
+Pre-commit hooks (whitespace, YAML/JSON, ruff): `uv tool run pre-commit install` once.
+
+**Gitea CI** (`.gitea/workflows/build.yaml`) runs the backend checks against PostgreSQL, the frontend build, license checks, `pnpm audit`, Trivy scans of the repository and the images, a smoke test of the compose stack, and pushes `<registry>/<repo>/backend` and `/frontend` on `main` and `v*` tags. **Renovate** (`renovate.json`, `.gitea/workflows/renovate.yaml`) opens update PRs daily and merges green minor/patch updates itself. Setup in Gitea:
+
+1. **Branch protection on `main` with required status checks** `backend`, `frontend`, `repository`, `image`. Do this first: Renovate's automerge relies on it — without required checks Gitea merges immediately, even with red CI.
+2. Secrets: `REGISTRY_USER`, `REGISTRY_TOKEN` (scope `write:package`) for the build; `RENOVATE_TOKEN` (`write:repository`, `write:issue`, `read:organization`, `read:user`, `read:package`) and optionally `GH_COM_TOKEN` (read-only github.com token) for Renovate.
+3. Actions enabled for the repository; the runner needs Docker.
+
+Conventions for contributors and coding agents: [AGENTS.md](AGENTS.md).
 
 ## Key concepts
 
 - **Ledger hourly rates**: `HourlyRate` rows with `valid_from`, scoped project > customer > company default; resolved per entry date at consolidation and snapshotted onto line items.
 - **Contract coverage**: `TimeEntry.contract` set = counts against included hours (+ overage if `bill_overage`); unset = normal billable pool invoiced separately via consolidation.
-- **GoBD**: `finalize` renders PDF/XML once into `InvoiceDocument` with SHA-256 — immutable afterward.
+- **GoBD**: `finalize` renders PDF/XML once into `DocumentArchive` with SHA-256 — immutable afterward.
 - **E-invoice**: `e_invoice_format` = `zugferd` (PDF/A-3 with embedded factur-x XML) or `xrechnung` (XML-only, needs customer `buyer_reference` / Leitweg-ID).
