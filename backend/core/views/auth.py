@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django_otp import devices_for_user
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
@@ -32,6 +32,9 @@ def _has_totp(user) -> bool:
     )
 
 
+# DRF's SessionAuthentication only enforces CSRF for authenticated users, so
+# the anonymous auth endpoints opt in explicitly (prevents login CSRF).
+@method_decorator(csrf_protect, name="dispatch")
 class LoginView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [LoginThrottle]
@@ -102,6 +105,7 @@ class RegisterSerializer(serializers.Serializer):
         return value
 
 
+@method_decorator(csrf_protect, name="dispatch")
 class RegisterView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [LoginThrottle]

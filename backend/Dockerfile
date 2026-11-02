@@ -14,7 +14,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 COPY . .
 RUN uv run --no-sync python manage.py collectstatic --noinput \
-    --settings=config.settings.production || true
+    --settings=config.settings.production
 
 EXPOSE 8000
 CMD ["sh", "-c", "uv run --no-sync python manage.py migrate --settings=config.settings.production && uv run --no-sync gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"]

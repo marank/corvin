@@ -1,3 +1,4 @@
+from django.urls import reverse
 from rest_framework import serializers
 
 from core.models import CompanyImage
@@ -18,7 +19,8 @@ class CompanyImageSerializer(OwnedSerializer):
 
     def get_url(self, obj):
         request = self.context.get("request")
-        return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        url = reverse("company-image-file", args=[obj.pk])
+        return request.build_absolute_uri(url) if request else url
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

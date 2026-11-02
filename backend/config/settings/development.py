@@ -18,7 +18,7 @@ if sys.platform == "win32":
             os.add_dll_directory(_dll_dir)
             break
 
-# Dev frontend runs on vite :5173 and proxies /api + /media — same origin,
+# Dev frontend runs on vite :5173 and proxies /api — same origin,
 # so CSRF/CORS stay simple. Trusted origins anyway for flexibility.
 # Vite proxy rewrites Origin to the backend host (see vite.config.ts);
 # Django compares the port too, so list it explicitly.

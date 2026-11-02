@@ -22,7 +22,7 @@ Project management for IT consultants: customers, projects with budgets, tasks, 
    ```powershell
    cd frontend
    pnpm install
-   pnpm dev          # http://localhost:5173, proxies /api + /media to :8000
+   pnpm dev          # http://localhost:5173, proxies /api to :8000
    ```
 
 Dev uses SQLite + console email backend. PDFs work once Pango is installed (`uv run python -c "import weasyprint"` verifies).
@@ -34,7 +34,7 @@ cp .env.example .env   # set SECRET_KEY, ALLOWED_HOSTS, POSTGRES_PASSWORD, SMTPâ
 docker compose up -d --build
 ```
 
-Serves the built Vue app via nginx on :80; `/api` + `/media` proxied to gunicorn/Django on Postgres.
+Serves the built Vue app via nginx on :80; `/api` proxied to gunicorn/Django on Postgres.
 
 ### Recurring invoices (support contracts)
 

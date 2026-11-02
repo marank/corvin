@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from core.models import Attachment
 from core.serializers import AttachmentSerializer
 
-from .base import OwnedViewSet
+from .base import OwnedViewSet, serve_file
 
 ATTACHABLE_MODELS = [
     "customer",
@@ -31,3 +31,8 @@ class AttachmentViewSet(OwnedViewSet):
                 for m in ATTACHABLE_MODELS
             }
         )
+
+    @action(detail=True, methods=["get"])
+    def file(self, request, pk=None):
+        attachment = self.get_object()
+        return serve_file(attachment.file, attachment.name)

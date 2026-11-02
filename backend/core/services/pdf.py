@@ -2,6 +2,7 @@ from io import BytesIO
 from pathlib import Path
 
 from django.template import Context, Template
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
@@ -19,7 +20,11 @@ from .erechnung import build_xrechnung_xml
 def company_image_context(owner, for_pdf=False) -> dict:
     images = CompanyImage.objects.filter(owner=owner)
     return {
-        image.key: Path(image.image.path).as_uri() if for_pdf else image.image.url
+        image.key: (
+            Path(image.image.path).as_uri()
+            if for_pdf
+            else reverse("company-image-file", args=[image.pk])
+        )
         for image in images
     }
 
