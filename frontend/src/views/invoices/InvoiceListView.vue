@@ -48,7 +48,10 @@ async function load() {
       <template #actions>
         <Select v-model="statusFilter" :options="statuses" :placeholder="t('common.status')" show-clear class="w-40" @update:model-value="pagination.refresh">
           <template #option="{ option }">{{ t(`invoices.status.${option}`) }}</template>
-          <template #value="{ value }">{{ value ? t(`invoices.status.${value}`) : '' }}</template>
+          <template #value="{ value, placeholder }">
+            <span v-if="value">{{ t(`invoices.status.${value}`) }}</span>
+            <span v-else class="text-surface-500">{{ placeholder }}</span>
+          </template>
         </Select>
         <Button :label="t('invoices.new')" icon="pi pi-plus" @click="router.push('/invoices/new')" />
       </template>

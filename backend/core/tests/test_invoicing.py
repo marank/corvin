@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from core.models import (
+    BankAccount,
     HourlyRate,
     Invoice,
     TimeEntry,
@@ -15,6 +16,11 @@ from core.services.consolidation import consolidate
 
 @pytest.fixture
 def draft_invoice(user, customer, project, invoice_template):
+    company = user.company_settings
+    company.default_bank_account = BankAccount.objects.create(
+        owner=user, name="Geschäftskonto", account_holder="Alice", iban="DE89370400440532013000"
+    )
+    company.save()
     HourlyRate.objects.create(
         owner=user,
         customer=customer,
@@ -108,3 +114,16 @@ def test_xrechnung_download(user, draft_invoice):
     r = c.get(f"/api/v1/invoices/{draft_invoice.id}/xrechnung/")
     assert r.status_code == 200
     assert b"RE-" in r.content
+
+
+@pytest.mark.django_db
+def test_finalize_requires_bank_account(user, draft_invoice):
+    company = user.company_settings
+    company.default_bank_account = None
+    company.save()
+    c = APIClient()
+    c.force_authenticate(user)
+    r = c.post(f"/api/v1/invoices/{draft_invoice.id}/finalize/")
+    assert r.status_code == 400
+    draft_invoice.refresh_from_db()
+    assert draft_invoice.status == Invoice.Status.DRAFT

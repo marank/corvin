@@ -1,0 +1,123 @@
+# German messages for Corvin.
+# This file is distributed under the same license as Corvin (AGPL-3.0-or-later).
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Corvin\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-03 01:04+0100\n"
+"PO-Revision-Date: 2026-11-03 01:10+0100\n"
+"Last-Translator: Corvin\n"
+"Language-Team: German\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Project does not belong to the selected customer."
+msgstr "Das Projekt gehört nicht zum ausgewählten Kunden."
+
+msgid "Project does not belong to the customer."
+msgstr "Das Projekt gehört nicht zu diesem Kunden."
+
+msgid "Contract does not belong to the entry's customer."
+msgstr "Der Vertrag gehört nicht zum Kunden des Eintrags."
+
+msgid "Contract is limited to a different project."
+msgstr "Der Vertrag gilt nur für ein anderes Projekt."
+
+msgid "Visit does not belong to the entry's customer."
+msgstr "Der Termin gehört nicht zum Kunden des Eintrags."
+
+msgid "Invalid object."
+msgstr "Ungültige Auswahl."
+
+msgid "A key is required."
+msgstr "Ein Schlüssel ist erforderlich."
+
+msgid "Invalid bank account."
+msgstr "Ungültiges Bankkonto."
+
+msgid "Must differ from decimal separator."
+msgstr "Muss sich vom Dezimaltrennzeichen unterscheiden."
+
+msgid "Must be a positive integer."
+msgstr "Muss eine positive ganze Zahl sein."
+
+msgid "Use a three-letter ISO currency code."
+msgstr "Bitte einen dreistelligen ISO-Währungscode angeben."
+
+#, python-format
+msgid "Unknown entities: %(names)s."
+msgstr "Unbekannte Objekttypen: %(names)s."
+
+msgid "Invalid counter scope."
+msgstr "Ungültiger Zählerbereich."
+
+msgid "A format is required."
+msgstr "Ein Format ist erforderlich."
+
+msgid "Maximum length is 200 characters."
+msgstr "Höchstens 200 Zeichen."
+
+msgid "Must be an object."
+msgstr "Muss ein Objekt sein."
+
+#, python-format
+msgid "Unknown report types: %(names)s."
+msgstr "Unbekannte Belegtypen: %(names)s."
+
+msgid "Invalid template."
+msgstr "Ungültige Vorlage."
+
+msgid "All contacts must belong to the invoice customer."
+msgstr "Alle Kontakte müssen zum Kunden der Rechnung gehören."
+
+#, python-format
+msgid "No hourly rate found for %(customer)s on %(date)s."
+msgstr "Für %(customer)s ist am %(date)s kein Stundensatz hinterlegt."
+
+msgid "No billable, uninvoiced time entries found."
+msgstr "Keine abrechenbaren, noch nicht abgerechneten Zeiteinträge gefunden."
+
+#, python-format
+msgid "Unknown grouping: %(group_by)s"
+msgstr "Unbekannte Gruppierung: %(group_by)s"
+
+#, python-format
+msgid "Missing required fields: %(fields)s"
+msgstr "Pflichtangaben fehlen: %(fields)s"
+
+msgid "Username already taken."
+msgstr "Der Benutzername ist bereits vergeben."
+
+msgid "Only draft invoices can be edited."
+msgstr "Nur Rechnungsentwürfe können bearbeitet werden."
+
+msgid "Only draft invoices can be deleted."
+msgstr "Nur Rechnungsentwürfe können gelöscht werden."
+
+msgid "Invalid customer."
+msgstr "Ungültiger Kunde."
+
+msgid "Invalid project."
+msgstr "Ungültiges Projekt."
+
+msgid "Invalid contacts."
+msgstr "Ungültige Kontakte."
+
+msgid "Invoice already finalized."
+msgstr "Die Rechnung ist bereits finalisiert."
+
+msgid "Invoice has no line items."
+msgstr "Die Rechnung hat keine Positionen."
+
+msgid "No bank account with an IBAN for this invoice."
+msgstr "Für diese Rechnung ist kein Bankkonto mit IBAN hinterlegt."
+
+msgid "Only issued invoices can be marked as sent."
+msgstr "Nur ausgestellte Rechnungen können als gesendet markiert werden."
+
+msgid "Paid invoices cannot be cancelled."
+msgstr "Bezahlte Rechnungen können nicht storniert werden."

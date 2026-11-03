@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Chart from 'primevue/chart'
 import ProgressBar from 'primevue/progressbar'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
 import AppMoneyDisplay from '../components/ui/AppMoneyDisplay.vue'
 import AppNumberDisplay from '../components/ui/AppNumberDisplay.vue'
+import AppDurationDisplay from '../components/ui/AppDurationDisplay.vue'
 import ContractUsageBar from '../components/ContractUsageBar.vue'
 import { statsApi } from '../api'
 
 interface DashboardStats {
   revenue_by_month: { month: string; total: number }[]
-  hours_by_customer: { project__customer__name: string; hours: number }[]
+  hours_by_customer: { customer__name: string | null; hours: number }[]
   uninvoiced_hours: number
   week_hours: number
   open_invoices: { total: number | null; count: number }
@@ -21,25 +22,43 @@ interface DashboardStats {
   timer_running: string | null
 }
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const stats = ref<DashboardStats | null>(null)
-const revenueChart = ref<unknown>(null)
-const hoursChart = ref<unknown>(null)
-
+// Chart.js can't read CSS variables, so re-read the theme colors when dark mode toggles.
+const isDark = ref(document.documentElement.classList.contains('dark'))
+const themeObserver = new MutationObserver(() => {
+  isDark.value = document.documentElement.classList.contains('dark')
+})
 onMounted(async () => {
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
   stats.value = (await statsApi.dashboard()) as unknown as DashboardStats
-  revenueChart.value = {
-    labels: stats.value.revenue_by_month.map((r) => r.month.slice(0, 7)),
-    datasets: [{ label: t('dashboard.revenue'), data: stats.value.revenue_by_month.map((r) => r.total), backgroundColor: '#2563eb' }],
-  }
-  hoursChart.value = {
-    labels: stats.value.hours_by_customer.map((r) => r.project__customer__name),
-    datasets: [{ data: stats.value.hours_by_customer.map((r) => r.hours), backgroundColor: ['#2563eb', '#16a34a', '#ea580c', '#9333ea', '#0d9488', '#dc2626', '#ca8a04', '#4f46e5'] }],
-  }
+})
+onUnmounted(() => themeObserver.disconnect())
+
+const revenueChart = computed(() => stats.value && {
+  labels: stats.value.revenue_by_month.map((r) =>
+    new Date(r.month).toLocaleDateString(locale.value, { month: 'short', year: 'numeric' })),
+  datasets: [{ label: t('dashboard.revenue'), data: stats.value.revenue_by_month.map((r) => r.total), backgroundColor: '#2563eb' }],
+})
+const hoursChart = computed(() => stats.value && {
+  labels: stats.value.hours_by_customer.map((r) => r.customer__name ?? t('dashboard.noCustomer')),
+  datasets: [{ data: stats.value.hours_by_customer.map((r) => r.hours), backgroundColor: ['#2563eb', '#16a34a', '#ea580c', '#9333ea', '#0d9488', '#dc2626', '#ca8a04', '#4f46e5'] }],
 })
 
-const chartOpts = { maintainAspectRatio: false, plugins: { legend: { display: false } } }
-const pieOpts = { maintainAspectRatio: false }
+const textColor = computed(() => (isDark.value ? '#a1a1aa' : '#52525b'))
+const gridColor = computed(() => (isDark.value ? '#3f3f46' : '#e4e4e7'))
+const chartOpts = computed(() => ({
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { ticks: { color: textColor.value }, grid: { color: gridColor.value } },
+    y: { ticks: { color: textColor.value }, grid: { color: gridColor.value } },
+  },
+}))
+const pieOpts = computed(() => ({
+  maintainAspectRatio: false,
+  plugins: { legend: { labels: { color: textColor.value } } },
+}))
 </script>
 
 <template>
@@ -48,11 +67,11 @@ const pieOpts = { maintainAspectRatio: false }
     <div v-if="stats" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
         <p class="text-sm text-surface-500">{{ t('dashboard.weekHours') }}</p>
-        <p class="text-2xl font-semibold mt-1"><AppNumberDisplay :value="stats.week_hours" :minimum-fraction-digits="1" :maximum-fraction-digits="1" />h</p>
+        <p class="text-2xl font-semibold mt-1"><AppDurationDisplay :minutes="stats.week_hours * 60" /></p>
       </div>
       <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
         <p class="text-sm text-surface-500">{{ t('dashboard.uninvoiced') }}</p>
-        <p class="text-2xl font-semibold mt-1"><AppNumberDisplay :value="stats.uninvoiced_hours" :minimum-fraction-digits="1" :maximum-fraction-digits="1" />h</p>
+        <p class="text-2xl font-semibold mt-1"><AppDurationDisplay :minutes="stats.uninvoiced_hours * 60" /></p>
       </div>
       <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
         <p class="text-sm text-surface-500">{{ t('dashboard.openInvoices') }}</p>
@@ -63,7 +82,7 @@ const pieOpts = { maintainAspectRatio: false }
       </div>
       <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
         <p class="text-sm text-surface-500">{{ t('dashboard.overdue') }}</p>
-        <p class="text-2xl font-semibold mt-1 text-red-500">
+        <p class="text-2xl font-semibold mt-1" :class="{ 'text-red-500': stats.overdue.count > 0 }">
           <AppMoneyDisplay :amount="stats.overdue.total ?? 0" />
           <span class="text-sm font-normal"> (<AppNumberDisplay :value="stats.overdue.count" :maximum-fraction-digits="0" />)</span>
         </p>

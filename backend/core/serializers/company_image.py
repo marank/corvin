@@ -1,4 +1,5 @@
 from django.urls import reverse
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from core.models import CompanyImage
@@ -33,5 +34,5 @@ class CompanyImageSerializer(OwnedSerializer):
         kind = attrs.get("kind", getattr(self.instance, "kind", None))
         key = attrs.get("key", getattr(self.instance, "key", ""))
         if kind == CompanyImage.Kind.ADDITIONAL and not key:
-            raise serializers.ValidationError({"key": "A key is required."})
+            raise serializers.ValidationError({"key": _("A key is required.")})
         return attrs

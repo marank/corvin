@@ -15,6 +15,7 @@ import AppModal from '../../components/ui/AppModal.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
+import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
 import { projectsApi, type Project } from '../../api'
 import { useNotify } from '../../composables/useNotify'
@@ -53,7 +54,7 @@ async function save() {
     await projectsApi.create(form.value)
     modal.value?.close()
     form.value = { status: 'active' }
-    notify.ok(t('projects.new'))
+    notify.ok(t('common.created'))
     load()
   } catch (e) {
     notify.error(e)
@@ -86,7 +87,7 @@ async function save() {
         <template #body="{ data }"><AppStatusTag :status="data.status" :label="t(`projects.status.${data.status}`)" /></template>
       </Column>
       <Column :header="t('projects.usedHours')">
-        <template #body="{ data }"><AppNumberDisplay :value="data.used_hours" :minimum-fraction-digits="1" :maximum-fraction-digits="1" />h</template>
+        <template #body="{ data }"><AppDurationDisplay :minutes="data.used_hours * 60" /></template>
       </Column>
       <Column :header="t('projects.budgetHours')">
         <template #body="{ data }"><AppNumberDisplay :value="data.budget_hours" /></template>
@@ -105,12 +106,12 @@ async function save() {
 
     <AppModal ref="modal" :title="t('projects.new')" :loading="saving" @confirm="save">
       <div class="flex flex-col gap-4">
-        <AppFormField :label="t('projects.customer')" required><CustomerSelect v-model="form.customer" /></AppFormField>
-        <AppFormField :label="t('common.name')" required><InputText v-model="form.name" class="w-full" /></AppFormField>
-        <AppFormField :label="t('time.description')"><Textarea v-model="form.description" rows="2" class="w-full" /></AppFormField>
+        <AppFormField field="customer" :label="t('projects.customer')" required><CustomerSelect v-model="form.customer" /></AppFormField>
+        <AppFormField field="name" :label="t('common.name')" required><InputText v-model="form.name" class="w-full" /></AppFormField>
+        <AppFormField field="description" :label="t('time.description')"><Textarea v-model="form.description" rows="2" class="w-full" /></AppFormField>
         <div class="grid grid-cols-2 gap-3">
-          <AppFormField :label="t('projects.budgetHours')"><InputNumber v-model="form.budget_hours" class="w-full" /></AppFormField>
-          <AppFormField :label="t('projects.budgetAmount')"><InputNumber v-model="form.budget_amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
+          <AppFormField field="budget_hours" :label="t('projects.budgetHours')"><InputNumber v-model="form.budget_hours" class="w-full" /></AppFormField>
+          <AppFormField field="budget_amount" :label="t('projects.budgetAmount')"><InputNumber v-model="form.budget_amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
         </div>
         <AppFormField :label="t('common.status')">
           <Select v-model="form.status" :options="statuses" class="w-full">

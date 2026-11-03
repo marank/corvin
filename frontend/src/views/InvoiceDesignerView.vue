@@ -217,7 +217,7 @@ async function save() {
     template.value = await templatesApi.update(id, template.value)
     previewKey.value++
     if (previewMode.value === 'pdf') loadPdfPreview()
-    notify.ok(t('common.save'))
+    notify.ok(t('common.saved'))
   } catch (e) {
     notify.error(e)
   } finally {

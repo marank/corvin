@@ -34,7 +34,7 @@ async function onUpload(ev: { files: File | File[] }) {
 
 async function remove(a: Attachment) {
   await attachmentsApi.remove(a.id)
-  notify.ok(t('common.delete'))
+  notify.ok(t('common.deleted'))
   load()
 }
 </script>

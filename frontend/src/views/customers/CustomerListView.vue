@@ -59,7 +59,7 @@ async function save() {
     await customersApi.create(form.value)
     modal.value?.close()
     form.value = { name: '', email: '', phone: '', website: '', vat_id: '', buyer_reference: '', payment_terms_days: null, notes: '' }
-    notify.ok(t('customers.new'))
+    notify.ok(t('common.created'))
     load()
   } catch (e) {
     notify.error(e)
@@ -119,15 +119,15 @@ async function save() {
 
     <AppModal ref="modal" :title="t('customers.new')" :loading="saving" @confirm="save">
       <div class="flex flex-col gap-4">
-        <AppFormField :label="t('common.name')" required><InputText v-model="form.name" class="w-full" /></AppFormField>
+        <AppFormField field="name" :label="t('common.name')" required><InputText v-model="form.name" class="w-full" /></AppFormField>
         <div class="grid grid-cols-2 gap-3">
-          <AppFormField :label="t('common.email')"><InputText v-model="form.email" class="w-full" /></AppFormField>
-          <AppFormField :label="t('common.phone')"><InputText v-model="form.phone" class="w-full" /></AppFormField>
+          <AppFormField field="email" :label="t('common.email')"><InputText v-model="form.email" class="w-full" /></AppFormField>
+          <AppFormField field="phone" :label="t('common.phone')"><InputText v-model="form.phone" class="w-full" /></AppFormField>
         </div>
-        <AppFormField :label="t('customers.website')"><InputText v-model="form.website" class="w-full" /></AppFormField>
-        <AppFormField :label="t('customers.vatId')"><InputText v-model="form.vat_id" class="w-full" /></AppFormField>
-        <AppFormField :label="t('customers.buyerReference')"><InputText v-model="form.buyer_reference" class="w-full" /></AppFormField>
-        <AppFormField :label="t('customers.paymentTerms')"><InputNumber v-model="form.payment_terms_days" :min="0" :placeholder="t('customers.paymentTermsDefault')" class="w-full" /></AppFormField>
+        <AppFormField field="website" :label="t('customers.website')"><InputText v-model="form.website" class="w-full" /></AppFormField>
+        <AppFormField field="vat_id" :label="t('customers.vatId')"><InputText v-model="form.vat_id" class="w-full" /></AppFormField>
+        <AppFormField field="buyer_reference" :label="t('customers.buyerReference')"><InputText v-model="form.buyer_reference" class="w-full" /></AppFormField>
+        <AppFormField field="payment_terms_days" :label="t('customers.paymentTerms')"><InputNumber v-model="form.payment_terms_days" :min="0" :placeholder="t('customers.paymentTermsDefault')" class="w-full" /></AppFormField>
       </div>
     </AppModal>
   </div>

@@ -2,6 +2,8 @@ from datetime import datetime, timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from .base import OwnedModel
 from .customer import Customer
@@ -70,14 +72,14 @@ class TimeEntry(OwnedModel):
     def clean(self):
         if self.customer:
             if self.project and self.project.customer_id != self.customer_id:
-                raise ValidationError({"project": "Project does not belong to the customer."})
+                raise ValidationError({"project": _("Project does not belong to the customer.")})
             if self.contract:
                 if self.contract.customer_id != self.customer_id:
-                    raise ValidationError("Contract does not belong to the entry's customer.")
+                    raise ValidationError(_("Contract does not belong to the entry's customer."))
                 if self.contract.project_id and (self.contract.project_id != self.project_id):
-                    raise ValidationError("Contract is limited to a different project.")
+                    raise ValidationError(_("Contract is limited to a different project."))
             if self.visit and self.visit.customer_id != self.customer_id:
-                raise ValidationError("Visit does not belong to the entry's customer.")
+                raise ValidationError(_("Visit does not belong to the entry's customer."))
 
     def _round_minutes(self, value: datetime, direction: str, increment: int) -> datetime:
         total_seconds = value.hour * 3600 + value.minute * 60 + value.second
@@ -135,4 +137,4 @@ class TimeEntry(OwnedModel):
 
     def __str__(self):
         customer = self.customer.name if self.customer else "—"
-        return f"{customer} {self.start_datetime.date()} ({self.hours}h)"
+        return f"{customer} {timezone.localdate(self.start_datetime)} ({self.hours}h)"

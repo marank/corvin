@@ -40,7 +40,15 @@
     "email": "Email",
     "phone": "Phone",
     "address": "Address",
-    "deleteConfirm": "Really delete? This cannot be undone."
+    "deleteConfirm": "Really delete? This cannot be undone.",
+    "deleted": "Deleted",
+    "close": "Close",
+    "menu": "Menu",
+    "toggleTheme": "Toggle light/dark",
+    "error": "Error",
+    "checkInput": "Please check your input",
+    "saved": "Saved",
+    "created": "Created"
   },
   "auth": {
     "login": "Sign in",
@@ -62,6 +70,15 @@
     "pageReport": "{first}–{last} of {totalRecords}"
   },
   "customers": {
+    "newContact": "New contact",
+    "editContact": "Edit contact",
+    "newAddress": "New address",
+    "editAddress": "Edit address",
+    "newRate": "New hourly rate",
+    "editRate": "Edit hourly rate",
+    "hourlyRate": "Hourly rate",
+    "validFrom": "Valid from",
+    "validTo": "Valid until",
     "title": "Customers",
     "new": "New customer",
     "contacts": "Contacts",
@@ -93,6 +110,7 @@
     "groups": { "masterData": "Master data", "contact": "Contact details", "billing": "Billing", "timeTracking": "Time tracking" }
   },
   "projects": {
+    "project": "Project",
     "title": "Projects",
     "new": "New project",
     "customer": "Customer",
@@ -161,6 +179,11 @@
     "generatedInvoice": "Invoice created"
   },
   "invoices": {
+    "dateFrom": "Work from",
+    "dateTo": "Work until",
+    "entryCount": "{n} entry | {n} entries",
+    "emailSent": "Email sent",
+    "paymentAdded": "Payment recorded",
     "title": "Invoices",
     "new": "New invoice",
     "consolidate": "Bill hours",
@@ -193,7 +216,11 @@
     "contacts": "Invoice contacts",
     "inheritedBankAccount": "Customer or company default",
     "quantity": "Qty",
-    "unitPrice": "Unit price"
+    "unitPrice": "Unit price",
+    "downloadPdf": "Download PDF",
+    "finalizeConfirm": "Finalizing archives the invoice; it can no longer be changed. Continue?",
+    "cancelInvoice": "Cancel invoice",
+    "cancelConfirm": "The invoice will be marked as cancelled. This cannot be undone. Continue?"
   },
   "designer": {
     "title": "Invoice designer",
@@ -330,6 +357,7 @@
     "revenue": "Revenue",
     "hoursPerCustomer": "Hours per customer",
     "budgetWarnings": "Budget warnings",
-    "contractUsage": "Contract usage"
+    "contractUsage": "Contract usage",
+    "noCustomer": "No customer"
   }
 }

@@ -16,7 +16,7 @@ import TabPanel from 'primevue/tabpanel'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
-import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
+import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
 import { projectsApi, type Project } from '../../api'
@@ -44,7 +44,7 @@ async function save() {
   saving.value = true
   try {
     project.value = await projectsApi.update(id, form.value)
-    notify.ok(t('common.save'))
+    notify.ok(t('common.saved'))
   } catch (e) {
     notify.error(e)
   } finally {
@@ -63,26 +63,26 @@ async function save() {
     </AppPageHeader>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
-      <AppFormField :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
-      <AppFormField :label="t('projects.customer')"><CustomerSelect v-model="form.customer" /></AppFormField>
-      <AppFormField :label="t('common.name')"><InputText v-model="form.name" class="w-full" /></AppFormField>
+      <AppFormField field="number" :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
+      <AppFormField field="customer" :label="t('projects.customer')"><CustomerSelect v-model="form.customer" /></AppFormField>
+      <AppFormField field="name" :label="t('common.name')"><InputText v-model="form.name" class="w-full" /></AppFormField>
       <AppFormField :label="t('common.status')">
         <Select v-model="form.status" :options="statuses" class="w-full">
           <template #option="{ option }">{{ t(`projects.status.${option}`) }}</template>
           <template #value="{ value }">{{ value ? t(`projects.status.${value}`) : '' }}</template>
         </Select>
       </AppFormField>
-      <AppFormField :label="t('customers.rounding')"><InputNumber v-model="form.rounding_increment_minutes" :min="0" class="w-full" /></AppFormField>
-      <AppFormField :label="t('projects.budgetHours')"><InputNumber v-model="form.budget_hours" class="w-full" /></AppFormField>
-      <AppFormField :label="t('projects.budgetAmount')"><InputNumber v-model="form.budget_amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
-      <AppFormField :label="t('time.description')" class="md:col-span-2"><Textarea v-model="form.description" rows="3" class="w-full" /></AppFormField>
+      <AppFormField field="rounding_increment_minutes" :label="t('customers.rounding')"><InputNumber v-model="form.rounding_increment_minutes" :min="0" class="w-full" /></AppFormField>
+      <AppFormField field="budget_hours" :label="t('projects.budgetHours')"><InputNumber v-model="form.budget_hours" class="w-full" /></AppFormField>
+      <AppFormField field="budget_amount" :label="t('projects.budgetAmount')"><InputNumber v-model="form.budget_amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
+      <AppFormField field="description" :label="t('time.description')" class="md:col-span-2"><Textarea v-model="form.description" rows="3" class="w-full" /></AppFormField>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mt-6">
       <div class="border border-surface-200 dark:border-surface-800 p-4">
         <div class="flex justify-between text-sm mb-1">
           <span>{{ t('projects.usedHours') }}</span>
-          <span><AppNumberDisplay :value="project.used_hours" :minimum-fraction-digits="1" :maximum-fraction-digits="1" /> / <AppNumberDisplay :value="project.budget_hours" />h</span>
+          <span><AppDurationDisplay :minutes="project.used_hours * 60" /> / <AppDurationDisplay :minutes="project.budget_hours == null ? null : project.budget_hours * 60" /></span>
         </div>
         <ProgressBar :value="project.budget_hours_percent ?? 0" :show-value="false" :pt="{ value: { class: (project.budget_hours_percent ?? 0) >= 80 ? 'bg-red-500' : '' } }" />
       </div>

@@ -153,7 +153,7 @@ async function saveBankAccount() {
 async function setDefaultBankAccount(account: BankAccount) {
   try {
     form.value = await settingsApi.update({ default_bank_account: account.id })
-    notify.ok(t('common.save'))
+    notify.ok(t('common.saved'))
   } catch (e) {
     notify.error(e)
   }
@@ -247,7 +247,7 @@ async function save() {
     formatting.apply(form.value)
     settingsStore.apply(form.value)
     schemes.value = normalizeSchemes(form.value.numbering_schemes)
-    notify.ok(t('common.save'))
+    notify.ok(t('common.saved'))
   } catch (e) {
     notify.error(e)
   } finally {
@@ -280,40 +280,40 @@ async function save() {
             <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
               <legend class="ml-4 px-2 font-medium">{{ t('settings.groups.company') }}</legend>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AppFormField :label="t('settings.companyName')"><InputText v-model="(form.company_name as string)" class="w-full" /></AppFormField>
-                <AppFormField :label="t('common.email')"><InputText v-model="(form.email as string)" class="w-full" /></AppFormField>
-                <AppFormField :label="t('common.phone')"><InputText v-model="(form.phone as string)" class="w-full" /></AppFormField>
-                <AppFormField :label="t('settings.website')"><InputText v-model="(form.website as string)" class="w-full" /></AppFormField>
+                <AppFormField field="company_name" :label="t('settings.companyName')"><InputText v-model="(form.company_name as string)" class="w-full" /></AppFormField>
+                <AppFormField field="email" :label="t('common.email')"><InputText v-model="(form.email as string)" class="w-full" /></AppFormField>
+                <AppFormField field="phone" :label="t('common.phone')"><InputText v-model="(form.phone as string)" class="w-full" /></AppFormField>
+                <AppFormField field="website" :label="t('settings.website')"><InputText v-model="(form.website as string)" class="w-full" /></AppFormField>
               </div>
             </fieldset>
 
             <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
               <legend class="ml-4 px-2 font-medium">{{ t('settings.groups.address') }}</legend>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AppFormField :label="t('common.address')" class="md:col-span-2"><InputText v-model="(form.street as string)" class="w-full" /></AppFormField>
-                <AppFormField label="PLZ"><InputText v-model="(form.postal_code as string)" class="w-full" /></AppFormField>
-                <AppFormField :label="t('settings.city')"><InputText v-model="(form.city as string)" class="w-full" /></AppFormField>
-                <AppFormField :label="t('settings.country')"><InputText v-model="(form.country as string)" class="w-full" /></AppFormField>
+                <AppFormField field="street" :label="t('common.address')" class="md:col-span-2"><InputText v-model="(form.street as string)" class="w-full" /></AppFormField>
+                <AppFormField field="postal_code" label="PLZ"><InputText v-model="(form.postal_code as string)" class="w-full" /></AppFormField>
+                <AppFormField field="city" :label="t('settings.city')"><InputText v-model="(form.city as string)" class="w-full" /></AppFormField>
+                <AppFormField field="country" :label="t('settings.country')"><InputText v-model="(form.country as string)" class="w-full" /></AppFormField>
               </div>
             </fieldset>
 
             <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
               <legend class="ml-4 px-2 font-medium">{{ t('settings.groups.tax') }}</legend>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AppFormField :label="t('settings.taxId')"><InputText v-model="(form.tax_id as string)" class="w-full" /></AppFormField>
-                <AppFormField :label="t('settings.vatId')"><InputText v-model="(form.vat_id as string)" class="w-full" /></AppFormField>
+                <AppFormField field="tax_id" :label="t('settings.taxId')"><InputText v-model="(form.tax_id as string)" class="w-full" /></AppFormField>
+                <AppFormField field="vat_id" :label="t('settings.vatId')"><InputText v-model="(form.vat_id as string)" class="w-full" /></AppFormField>
                 <AppCheckboxField v-model="(form.vat_enabled as boolean)" :label="t('settings.vatEnabled')" />
-                <AppFormField :label="t('settings.defaultVat')"><InputNumber v-model="(form.default_vat_rate as number)" :min="0" :min-fraction-digits="2" class="w-full" :disabled="form.vat_enabled === false" /></AppFormField>
+                <AppFormField field="default_vat_rate" :label="t('settings.defaultVat')"><InputNumber v-model="(form.default_vat_rate as number)" :min="0" :min-fraction-digits="2" class="w-full" :disabled="form.vat_enabled === false" /></AppFormField>
               </div>
             </fieldset>
 
             <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
               <legend class="ml-4 px-2 font-medium">{{ t('settings.groups.formatting') }}</legend>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AppFormField :label="t('settings.dateFormat')"><InputText v-model="(form.date_format as string)" class="w-full font-mono" /></AppFormField>
-                <AppFormField :label="t('settings.timeFormat')"><InputText v-model="(form.time_format as string)" class="w-full font-mono" /></AppFormField>
-                <AppFormField :label="t('settings.decimalSeparator')"><InputText v-model="(form.decimal_separator as string)" maxlength="1" class="w-full" /></AppFormField>
-                <AppFormField :label="t('settings.thousandsSeparator')"><InputText v-model="(form.thousands_separator as string)" maxlength="1" class="w-full" /></AppFormField>
+                <AppFormField field="date_format" :label="t('settings.dateFormat')"><InputText v-model="(form.date_format as string)" class="w-full font-mono" /></AppFormField>
+                <AppFormField field="time_format" :label="t('settings.timeFormat')"><InputText v-model="(form.time_format as string)" class="w-full font-mono" /></AppFormField>
+                <AppFormField field="decimal_separator" :label="t('settings.decimalSeparator')"><InputText v-model="(form.decimal_separator as string)" maxlength="1" class="w-full" /></AppFormField>
+                <AppFormField field="thousands_separator" :label="t('settings.thousandsSeparator')"><InputText v-model="(form.thousands_separator as string)" maxlength="1" class="w-full" /></AppFormField>
                 <AppFormField :label="t('settings.currency')">
                   <Select v-model="form.currency" :options="currencies" option-label="label" option-value="code" filter class="w-full" />
                 </AppFormField>
@@ -337,7 +337,7 @@ async function save() {
             <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
               <legend class="ml-4 px-2 font-medium">{{ t('settings.groups.invoicing') }}</legend>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AppFormField :label="t('settings.paymentTerms')"><InputNumber v-model="(form.payment_terms_days as number)" :min="0" class="w-full" /></AppFormField>
+                <AppFormField field="payment_terms_days" :label="t('settings.paymentTerms')"><InputNumber v-model="(form.payment_terms_days as number)" :min="0" class="w-full" /></AppFormField>
               </div>
             </fieldset>
           </div>
@@ -494,11 +494,11 @@ async function save() {
 
     <AppModal ref="bankAccountModal" :title="t('settings.bankAccount')" @confirm="saveBankAccount">
       <div class="flex flex-col gap-4">
-        <AppFormField :label="t('common.name')" required><InputText v-model="bankAccountForm.name" class="w-full" /></AppFormField>
-        <AppFormField :label="t('settings.bankName')"><InputText v-model="bankAccountForm.bank_name" class="w-full" /></AppFormField>
-        <AppFormField :label="t('settings.accountHolder')" required><InputText v-model="bankAccountForm.account_holder" class="w-full" /></AppFormField>
-        <AppFormField :label="t('settings.iban')" required><InputText v-model="bankAccountForm.iban" class="w-full" /></AppFormField>
-        <AppFormField :label="t('settings.bic')"><InputText v-model="bankAccountForm.bic" class="w-full" /></AppFormField>
+        <AppFormField field="name" :label="t('common.name')" required><InputText v-model="bankAccountForm.name" class="w-full" /></AppFormField>
+        <AppFormField field="bank_name" :label="t('settings.bankName')"><InputText v-model="bankAccountForm.bank_name" class="w-full" /></AppFormField>
+        <AppFormField field="account_holder" :label="t('settings.accountHolder')" required><InputText v-model="bankAccountForm.account_holder" class="w-full" /></AppFormField>
+        <AppFormField field="iban" :label="t('settings.iban')" required><InputText v-model="bankAccountForm.iban" class="w-full" /></AppFormField>
+        <AppFormField field="bic" :label="t('settings.bic')"><InputText v-model="bankAccountForm.bic" class="w-full" /></AppFormField>
         <AppCheckboxField v-model="bankAccountForm.is_active" :label="t('customers.active')" />
       </div>
     </AppModal>
@@ -506,19 +506,19 @@ async function save() {
     <AppModal ref="contactModal" :title="t('settings.companyContacts')" @confirm="saveContact">
       <div class="flex flex-col gap-4">
         <div class="grid grid-cols-2 gap-3">
-          <AppFormField :label="t('customers.firstName')" required><InputText v-model="contactForm.first_name" class="w-full" /></AppFormField>
-          <AppFormField :label="t('customers.lastName')"><InputText v-model="contactForm.last_name" class="w-full" /></AppFormField>
+          <AppFormField field="first_name" :label="t('customers.firstName')" required><InputText v-model="contactForm.first_name" class="w-full" /></AppFormField>
+          <AppFormField field="last_name" :label="t('customers.lastName')"><InputText v-model="contactForm.last_name" class="w-full" /></AppFormField>
         </div>
-        <AppFormField :label="t('customers.role')"><InputText v-model="contactForm.role" class="w-full" /></AppFormField>
-        <AppFormField :label="t('common.email')"><InputText v-model="contactForm.email" class="w-full" /></AppFormField>
-        <AppFormField :label="t('common.phone')"><InputText v-model="contactForm.phone" class="w-full" /></AppFormField>
+        <AppFormField field="role" :label="t('customers.role')"><InputText v-model="contactForm.role" class="w-full" /></AppFormField>
+        <AppFormField field="email" :label="t('common.email')"><InputText v-model="contactForm.email" class="w-full" /></AppFormField>
+        <AppFormField field="phone" :label="t('common.phone')"><InputText v-model="contactForm.phone" class="w-full" /></AppFormField>
       </div>
     </AppModal>
 
     <AppModal ref="imageModal" :title="t('settings.addImage')" @confirm="uploadAdditionalImage">
       <div class="flex flex-col gap-4">
-        <AppFormField :label="t('common.name')" required><InputText v-model="additionalImage.name" class="w-full" /></AppFormField>
-        <AppFormField :label="t('settings.imageKey')" required><InputText v-model="additionalImage.key" class="w-full" /></AppFormField>
+        <AppFormField field="name" :label="t('common.name')" required><InputText v-model="additionalImage.name" class="w-full" /></AppFormField>
+        <AppFormField field="key" :label="t('settings.imageKey')" required><InputText v-model="additionalImage.key" class="w-full" /></AppFormField>
         <AppFormField :label="t('settings.imageFile')" required><input type="file" accept="image/*" @change="selectAdditionalFile" /></AppFormField>
       </div>
     </AppModal>

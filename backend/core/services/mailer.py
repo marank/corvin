@@ -1,12 +1,15 @@
+from django.conf import settings
 from django.core.mail import EmailMessage
 from django.template import Context, Template
 from django.utils import timezone
+from django.utils.translation import override
 
 from core.models import Invoice
 
 from .archiving import archive_invoice
 
 
+@override(settings.LANGUAGE_CODE)
 def send_invoice_email(invoice: Invoice, to: str, subject: str, body: str) -> None:
     """Send the invoice PDF (or archived copy) by email."""
     template = invoice.template

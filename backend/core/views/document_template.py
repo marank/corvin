@@ -1,10 +1,12 @@
 import json
 from decimal import Decimal
 
+from django.conf import settings
 from django.http import HttpResponse
 from django.template import Context, Template
 from django.utils import timezone
 from django.utils.text import slugify
+from django.utils.translation import override
 from django.views.decorators.clickjacking import xframe_options_exempt
 from rest_framework import status
 from rest_framework.decorators import action
@@ -18,21 +20,9 @@ from core.services.pdf import (
     template_page_context,
     text_block_context,
 )
+from core.services.templates import ensure_default_template
 
 from .base import OwnedViewSet
-
-SAMPLE_BODY = """<h1>Rechnung {{ invoice.number }}</h1>
-<p>{{ customer.name }}</p>
-<table class="items">
-<thead><tr><th>Pos.</th><th>Description</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
-<tbody>
-{% for item in items %}
-<tr><td>{{ item.position }}</td><td>{{ item.description }}</td>
-<td>{{ item.quantity }} {{ item.unit }}</td><td>{{ item.unit_price }}</td>
-<td>{{ item.total }}</td></tr>
-{% endfor %}
-</tbody></table>
-<p>Net: {{ invoice.subtotal }} &nbsp; VAT ({{ invoice.vat_rate }}%): {{ invoice.vat_amount }} &nbsp; <b>Total: {{ invoice.total }} {{ invoice.currency }}</b></p>"""
 
 
 class _SampleObj:
@@ -94,25 +84,7 @@ class DocumentTemplateViewSet(OwnedViewSet):
     ordering_fields = ["name", "page_size", "created_at"]
 
     def list(self, request, *args, **kwargs):
-        # auto-seed a default template on first access
-        if not self.get_queryset().exists():
-            DocumentTemplate.objects.create(
-                owner=request.user,
-                name="Default (DIN A4)",
-                body_html=SAMPLE_BODY,
-                css=(
-                    "body { font-family: sans-serif; font-size: 10pt; }\n"
-                    ".items { width: 100%; border-collapse: collapse; }\n"
-                    ".items td, .items th { border-bottom: 1px solid #ccc; "
-                    "padding: 4px; text-align: left; }\n"
-                    "#page-footer { font-size: 8pt; color: #666; }"
-                ),
-                footer_html=(
-                    "{{ company.company_name }} · {{ company.street }} · "
-                    "{{ company.postal_code }} {{ company.city }} · "
-                    "IBAN {{ invoice.bank_account.iban }} · VAT {{ company.vat_id }}"
-                ),
-            )
+        ensure_default_template(request.user)
         return super().list(request, *args, **kwargs)
 
     @action(detail=True, methods=["get"], url_path="export")
@@ -185,6 +157,7 @@ class DocumentTemplateViewSet(OwnedViewSet):
 
     @xframe_options_exempt
     @action(detail=True, methods=["get"])
+    @override(settings.LANGUAGE_CODE)
     def preview(self, request, pk=None):
         """Render the template with sample data (HTML)."""
         template = self.get_object()
@@ -222,6 +195,7 @@ body {{
         return HttpResponse(html, content_type="text/html")
 
     @action(detail=True, methods=["get"], url_path="preview-pdf")
+    @override(settings.LANGUAGE_CODE)
     def preview_pdf(self, request, pk=None):
         """Render the template with sample data as a PDF (inline)."""
         from io import BytesIO

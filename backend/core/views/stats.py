@@ -17,7 +17,10 @@ class DashboardStatsView(APIView):
         year_ago = today - timedelta(days=365)
 
         entries = TimeEntry.objects.filter(owner=user, end_datetime__isnull=False)
-        invoices = Invoice.objects.filter(owner=user).exclude(status=Invoice.Status.CANCELLED)
+        # drafts aren't revenue or receivables yet
+        invoices = Invoice.objects.filter(owner=user).exclude(
+            status__in=[Invoice.Status.CANCELLED, Invoice.Status.DRAFT]
+        )
 
         revenue_by_month = (
             invoices.filter(issue_date__gte=year_ago)

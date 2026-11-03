@@ -24,6 +24,9 @@ import { usePagination } from '../composables/usePagination'
 import { tableStateKeys } from '../tableStateKeys'
 
 const { t } = useI18n()
+const today = new Date().toLocaleDateString('sv') // YYYY-MM-DD in local time
+const isOverdue = (task: { due_date: string | null; status: string }) =>
+  !!task.due_date && task.due_date < today && task.status !== 'done'
 const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const rows = ref<Task[]>([])
@@ -39,7 +42,7 @@ const sortOptions = [
   { label: '#', value: 'number' },
   { label: t('common.name'), value: 'title' },
   { label: t('projects.customer'), value: 'customer__name' },
-  { label: t('nav.projects'), value: 'project__name' },
+  { label: t('projects.project'), value: 'project__name' },
   { label: t('tasks.dueDate'), value: 'due_date' },
   { label: t('tasks.priority'), value: 'priority' },
   { label: t('common.status'), value: 'status' },
@@ -85,7 +88,10 @@ async function toggleDone(task: Task) {
       <template #actions>
         <Select v-model="statusFilter" :options="statuses" :placeholder="t('common.status')" show-clear class="w-40" @update:model-value="pagination.refresh">
           <template #option="{ option }">{{ t(`tasks.status.${option}`) }}</template>
-          <template #value="{ value }">{{ value ? t(`tasks.status.${value}`) : '' }}</template>
+          <template #value="{ value, placeholder }">
+            <span v-if="value">{{ t(`tasks.status.${value}`) }}</span>
+            <span v-else class="text-surface-500">{{ placeholder }}</span>
+          </template>
         </Select>
         <Button :label="t('tasks.new')" icon="pi pi-plus" @click="openEdit()" />
       </template>
@@ -102,10 +108,12 @@ async function toggleDone(task: Task) {
         <template #body="{ data }"><Checkbox :model-value="data.status === 'done'" binary @click.stop @change="toggleDone(data)" /></template>
       </Column>
       <Column field="number" header="#" sortable />
-      <Column field="title" :header="t('common.name')" sortable />
+      <Column field="title" :header="t('common.name')" sortable style="min-width: 14rem" />
       <Column field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
-      <Column field="project_name" sort-field="project__name" :header="t('nav.projects')" sortable />
-      <Column field="due_date" :header="t('tasks.dueDate')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.due_date" /></template></Column>
+      <Column field="project_name" sort-field="project__name" :header="t('projects.project')" sortable />
+      <Column field="due_date" :header="t('tasks.dueDate')" sortable>
+        <template #body="{ data }"><AppDateTimeDisplay :value="data.due_date" :class="{ 'text-red-500 font-medium': isOverdue(data) }" /></template>
+      </Column>
       <Column field="priority" :header="t('tasks.priority')" sortable>
         <template #body="{ data }"><AppStatusTag :status="data.priority" :label="t(`tasks.priorities.${data.priority}`)" /></template>
       </Column>
@@ -126,13 +134,13 @@ async function toggleDone(task: Task) {
 
     <AppModal ref="modal" :title="editing ? t('common.edit') : t('tasks.new')" @confirm="save">
       <div class="flex flex-col gap-4">
-        <AppFormField v-if="editing" :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
-        <AppFormField :label="t('common.name')" required><InputText v-model="form.title" class="w-full" /></AppFormField>
-        <AppFormField :label="t('projects.customer')"><CustomerSelect v-model="form.customer" /></AppFormField>
-        <AppFormField :label="t('nav.projects')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
-        <AppFormField :label="t('time.description')"><Textarea v-model="form.description" rows="2" class="w-full" /></AppFormField>
+        <AppFormField field="number" v-if="editing" :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
+        <AppFormField field="title" :label="t('common.name')" required><InputText v-model="form.title" class="w-full" /></AppFormField>
+        <AppFormField field="customer" :label="t('projects.customer')"><CustomerSelect v-model="form.customer" /></AppFormField>
+        <AppFormField field="project" :label="t('projects.project')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
+        <AppFormField field="description" :label="t('time.description')"><Textarea v-model="form.description" rows="2" class="w-full" /></AppFormField>
         <div class="grid grid-cols-3 gap-3">
-          <AppFormField :label="t('tasks.dueDate')"><AppDateInput v-model="(form.due_date as any)" /></AppFormField>
+          <AppFormField field="due_date" :label="t('tasks.dueDate')"><AppDateInput v-model="(form.due_date as any)" /></AppFormField>
           <AppFormField :label="t('tasks.priority')">
             <Select v-model="form.priority" :options="priorities" class="w-full">
               <template #option="{ option }">{{ t(`tasks.priorities.${option}`) }}</template>

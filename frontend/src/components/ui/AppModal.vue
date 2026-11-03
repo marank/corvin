@@ -3,6 +3,7 @@ import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { clearFormErrors } from '../../composables/formErrors'
 
 const props = withDefaults(
   defineProps<{
@@ -29,6 +30,7 @@ const widthClass = computed(
 )
 
 function open() {
+  clearFormErrors()
   visible.value = true
 }
 function close() {

@@ -29,7 +29,7 @@ const pagination = usePagination(load, '-start_datetime')
 const sortOptions = [
   { label: t('time.start'), value: 'start_datetime' },
   { label: t('time.end'), value: 'end_datetime' },
-  { label: t('nav.projects'), value: 'project__name' },
+  { label: t('projects.project'), value: 'project__name' },
   { label: t('projects.customer'), value: 'customer__name' },
   { label: t('time.duration'), value: 'duration_minutes' },
 ]
@@ -117,7 +117,7 @@ const startTimeText = computed(() => {
     >
       <Column field="start_datetime" :header="t('time.start')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template></Column>
       <Column field="end_datetime" :header="t('time.end')" sortable><template #body="{ data }"><AppDateTimeDisplay v-if="data.end_datetime" :value="data.end_datetime" type="datetime" /><span v-else class="text-surface-500">—</span></template></Column>
-      <Column field="project_name" sort-field="project__name" :header="t('nav.projects')" sortable />
+      <Column field="project_name" sort-field="project__name" :header="t('projects.project')" sortable />
       <Column field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
       <Column field="description" :header="t('time.description')" />
       <Column field="duration_minutes" :header="t('time.duration')" sortable>

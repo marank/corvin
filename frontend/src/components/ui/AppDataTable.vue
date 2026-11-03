@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T extends { id: string }">
-import { computed, ref, shallowRef, useSlots, watch } from 'vue'
+import { computed, onUnmounted, ref, shallowRef, useSlots, watch } from 'vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
@@ -51,6 +51,15 @@ const emit = defineEmits<{
   selectionChange: [rows: T[]]
 }>()
 const { t } = useI18n()
+
+// Table on md+, card list below. Rendered with v-if rather than hidden with CSS:
+// a hidden DataTable measures zero-width columns and saves them to its state.
+const desktopQuery = window.matchMedia('(min-width: 768px)')
+const isDesktop = ref(desktopQuery.matches)
+const onMediaChange = (e: MediaQueryListEvent) => { isDesktop.value = e.matches }
+desktopQuery.addEventListener('change', onMediaChange)
+onUnmounted(() => desktopQuery.removeEventListener('change', onMediaChange))
+
 const slots = useSlots()
 const localFirst = ref(props.first)
 const localPageSize = ref(props.pageSize)
@@ -199,6 +208,7 @@ function toggleSortOrder() {
     </div>
 
     <DataTable
+      v-if="isDesktop"
       :value="rows"
       :loading="loading"
       :lazy="lazy"
@@ -217,7 +227,7 @@ function toggleSortOrder() {
       :state-key="stateKey"
       paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
       :current-page-report-template="t('table.pageReport')"
-      class="hidden md:block border border-surface-200 dark:border-surface-800"
+      class="border border-surface-200 dark:border-surface-800"
       :row-class="() => 'cursor-pointer'"
       :selection="selectionMode ? selectedRows : undefined"
       data-key="id"
@@ -232,7 +242,7 @@ function toggleSortOrder() {
       <slot />
     </DataTable>
 
-    <div class="md:hidden">
+    <div v-else>
       <div v-if="effectiveSortOptions.length" class="flex items-center gap-2 mb-2">
         <Select
           :model-value="localSortField"

@@ -155,6 +155,29 @@ def test_timer_flow(client, customer, project):
 
 
 @pytest.mark.django_db
+def test_create_time_entry_with_breaks(client, customer, project):
+    payload = {
+        "customer": str(customer.id),
+        "project": str(project.id),
+        "start_datetime": "2026-09-01T09:00:00+02:00",
+        "end_datetime": "2026-09-01T12:00:00+02:00",
+        "description": "manual entry",
+        "breaks": [],
+    }
+    r = client.post("/api/v1/time-tracking/", payload, format="json")
+    assert r.status_code == 201
+    assert r.json()["duration_minutes"] == 180
+
+    payload["breaks"] = [
+        {"start_datetime": "2026-09-01T10:00:00+02:00", "end_datetime": "2026-09-01T10:30:00+02:00"}
+    ]
+    r2 = client.post("/api/v1/time-tracking/", payload, format="json")
+    assert r2.status_code == 201
+    assert r2.json()["break_minutes"] == 30
+    assert r2.json()["duration_minutes"] == 150
+
+
+@pytest.mark.django_db
 def test_consolidate_endpoint(client, user, customer, project):
     HourlyRate.objects.create(
         owner=user,
@@ -187,7 +210,7 @@ def test_consolidate_validation_error_returns_400(client, customer):
         },
     )
     assert r.status_code == 400
-    assert "No billable" in r.json()["detail"][0]
+    assert "Keine abrechenbaren" in r.json()["detail"][0]  # default language: de
 
 
 @pytest.mark.django_db
@@ -458,3 +481,40 @@ def test_settings_singleton(client):
     schemes["invoice"]["format"] = "INV-{counter:4}"
     r2 = client.put("/api/v1/settings/", {"numbering_schemes": schemes}, format="json")
     assert r2.json()["numbering_schemes"]["invoice"]["format"] == "INV-{counter:4}"
+
+
+@pytest.mark.django_db
+def test_dashboard_ignores_drafts_and_names_customers(client, user, customer, project):
+    HourlyRate.objects.create(
+        owner=user, customer=customer, amount=100, valid_from=date(2025, 1, 1)
+    )
+    tz = timezone.get_current_timezone()
+    TimeEntry.objects.create(
+        owner=user,
+        customer=customer,
+        project=project,
+        start_datetime=timezone.make_aware(datetime(2026, 9, 1, 9, 0), tz),
+        end_datetime=timezone.make_aware(datetime(2026, 9, 1, 11, 0), tz),
+    )
+    client.post(
+        "/api/v1/invoices/consolidate/", {"customer_id": str(customer.id)}, format="json"
+    )  # stays a draft
+
+    r = client.get("/api/v1/stats/dashboard")
+
+    assert r.status_code == 200
+    data = r.json()
+    assert data["open_invoices"]["count"] == 0
+    assert data["revenue_by_month"] == []
+    assert data["hours_by_customer"][0]["customer__name"] == "Acme GmbH"
+
+
+@pytest.mark.django_db
+def test_validation_messages_follow_accept_language(client, customer):
+    url = "/api/v1/invoices/consolidate/"
+    payload = {"customer_id": str(customer.id)}
+    de = client.post(url, payload, format="json", HTTP_ACCEPT_LANGUAGE="de")
+    en = client.post(url, payload, format="json", HTTP_ACCEPT_LANGUAGE="en")
+    assert de.status_code == en.status_code == 400
+    assert "Keine abrechenbaren" in str(de.json())
+    assert "No billable" in str(en.json())

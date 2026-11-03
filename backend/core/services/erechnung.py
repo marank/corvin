@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext as _
 
 from core.models import Invoice
 
@@ -37,7 +38,9 @@ def _validate(invoice: Invoice, company) -> None:
     ):
         missing.append("customer.buyer_reference (Leitweg-ID)")
     if missing:
-        raise ValidationError({"e_invoice": f"Missing required fields: {', '.join(missing)}"})
+        raise ValidationError(
+            {"e_invoice": _("Missing required fields: %(fields)s") % {"fields": ", ".join(missing)}}
+        )
 
 
 def build_xrechnung_xml(invoice: Invoice) -> bytes:

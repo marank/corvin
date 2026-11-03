@@ -1,3 +1,5 @@
+import { i18n } from '../i18n'
+
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/)
   return match ? decodeURIComponent(match[1]) : ''
@@ -22,6 +24,8 @@ async function request<T>(
     headers: {
       'Content-Type': 'application/json',
       'X-CSRFToken': getCsrfToken(),
+      // Backend validation messages come back in the UI language.
+      'Accept-Language': i18n.global.locale.value,
       ...(options.headers ?? {}),
     },
     ...options,
@@ -50,13 +54,13 @@ export const api = {
     request<T>(path, {
       method: 'POST',
       body: form,
-      headers: { 'X-CSRFToken': getCsrfToken() },
+      headers: { 'X-CSRFToken': getCsrfToken(), 'Accept-Language': i18n.global.locale.value },
     }),
   uploadPut: <T>(path: string, form: FormData) =>
     request<T>(path, {
       method: 'PUT',
       body: form,
-      headers: { 'X-CSRFToken': getCsrfToken() },
+      headers: { 'X-CSRFToken': getCsrfToken(), 'Accept-Language': i18n.global.locale.value },
     }),
 }
 

@@ -30,32 +30,44 @@ class TimeEntrySerializer(OwnedSerializer):
     def get_is_paused(self, obj: TimeEntry) -> bool:
         return obj.breaks.filter(end_datetime__isnull=True).exists()
 
+    def create(self, validated_data: dict) -> TimeEntry:
+        breaks_data = validated_data.pop("breaks", [])
+        instance = super().create(validated_data)
+        if breaks_data:
+            self._sync_breaks(instance, breaks_data)
+            instance.save()
+        return instance
+
     def update(self, instance: TimeEntry, validated_data: dict) -> TimeEntry:
         breaks_data = validated_data.pop("breaks", None)
         instance = super().update(instance, validated_data)
         if breaks_data is not None:
-            existing = {str(b.id): b for b in instance.breaks.all()}
-            kept_ids = set()
-            for b_data in breaks_data:
-                bid = b_data.get("id")
-                if bid and bid in existing:
-                    b = existing[bid]
-                    b.start_datetime = b_data.get("start_datetime", b.start_datetime)
-                    b.end_datetime = b_data.get("end_datetime", b.end_datetime)
-                    b.save()
-                    kept_ids.add(bid)
-                else:
-                    TimeEntryBreak.objects.create(
-                        owner=instance.owner,
-                        time_entry=instance,
-                        start_datetime=b_data["start_datetime"],
-                        end_datetime=b_data.get("end_datetime"),
-                    )
-            for bid, b in existing.items():
-                if bid not in kept_ids:
-                    b.delete()
+            self._sync_breaks(instance, breaks_data)
         instance.save()
         return instance
+
+    @staticmethod
+    def _sync_breaks(instance: TimeEntry, breaks_data: list[dict]) -> None:
+        existing = {str(b.id): b for b in instance.breaks.all()}
+        kept_ids = set()
+        for b_data in breaks_data:
+            bid = b_data.get("id")
+            if bid and bid in existing:
+                b = existing[bid]
+                b.start_datetime = b_data.get("start_datetime", b.start_datetime)
+                b.end_datetime = b_data.get("end_datetime", b.end_datetime)
+                b.save()
+                kept_ids.add(bid)
+            else:
+                TimeEntryBreak.objects.create(
+                    owner=instance.owner,
+                    time_entry=instance,
+                    start_datetime=b_data["start_datetime"],
+                    end_datetime=b_data.get("end_datetime"),
+                )
+        for bid, b in existing.items():
+            if bid not in kept_ids:
+                b.delete()
 
     class Meta:
         model = TimeEntry

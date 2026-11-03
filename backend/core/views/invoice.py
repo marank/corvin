@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import FileResponse, HttpResponse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from django.views.decorators.clickjacking import xframe_options_exempt
 from rest_framework import serializers, status
 from rest_framework.decorators import action
@@ -122,12 +123,12 @@ class InvoiceViewSet(OwnedViewSet):
     def perform_update(self, serializer):
         invoice = self.get_object()
         if invoice.status != Invoice.Status.DRAFT:
-            raise ValidationError("Only draft invoices can be edited.")
+            raise ValidationError(_("Only draft invoices can be edited."))
         serializer.save()
 
     def perform_destroy(self, instance):
         if instance.status != Invoice.Status.DRAFT:
-            raise ValidationError("Only draft invoices can be deleted.")
+            raise ValidationError(_("Only draft invoices can be deleted."))
         instance.delete()
 
     @action(detail=False, methods=["post"])
@@ -139,12 +140,12 @@ class InvoiceViewSet(OwnedViewSet):
         d = ser.validated_data
         customer = Customer.objects.filter(owner=request.user, pk=d["customer_id"]).first()
         if not customer:
-            raise ValidationError({"customer_id": "Invalid customer."})
+            raise ValidationError({"customer_id": _("Invalid customer.")})
         project = None
         if d.get("project_id"):
             project = Project.objects.filter(owner=request.user, pk=d["project_id"]).first()
             if not project:
-                raise ValidationError({"project_id": "Invalid project."})
+                raise ValidationError({"project_id": _("Invalid project.")})
         contacts = None
         if "contact_ids" in d:
             contacts = list(
@@ -155,14 +156,14 @@ class InvoiceViewSet(OwnedViewSet):
                 )
             )
             if len(contacts) != len(set(d["contact_ids"])):
-                raise ValidationError({"contact_ids": "Invalid contacts."})
+                raise ValidationError({"contact_ids": _("Invalid contacts.")})
         bank_account = None
         if d.get("bank_account_id"):
             bank_account = BankAccount.objects.filter(
                 owner=request.user, pk=d["bank_account_id"]
             ).first()
             if not bank_account:
-                raise ValidationError({"bank_account_id": "Invalid bank account."})
+                raise ValidationError({"bank_account_id": _("Invalid bank account.")})
         try:
             invoice = consolidate(
                 owner=request.user,
@@ -187,9 +188,12 @@ class InvoiceViewSet(OwnedViewSet):
     def finalize(self, request, pk=None):
         invoice = self.get_object()
         if invoice.status != Invoice.Status.DRAFT:
-            raise ValidationError("Invoice already finalized.")
+            raise ValidationError(_("Invoice already finalized."))
         if not invoice.items.exists():
-            raise ValidationError("Invoice has no line items.")
+            raise ValidationError(_("Invoice has no line items."))
+        account = invoice.bank_account
+        if not (account and account.iban):
+            raise ValidationError(_("No bank account with an IBAN for this invoice."))
         try:
             archive_invoice(invoice)
         except DjangoValidationError as e:
@@ -202,7 +206,7 @@ class InvoiceViewSet(OwnedViewSet):
     def mark_sent(self, request, pk=None):
         invoice = self.get_object()
         if invoice.status != Invoice.Status.ISSUED:
-            raise ValidationError("Only issued invoices can be marked as sent.")
+            raise ValidationError(_("Only issued invoices can be marked as sent."))
         invoice.status = Invoice.Status.SENT
         invoice.sent_at = timezone.now()
         invoice.save(update_fields=["status", "sent_at", "updated_at"])
@@ -212,7 +216,7 @@ class InvoiceViewSet(OwnedViewSet):
     def cancel(self, request, pk=None):
         invoice = self.get_object()
         if invoice.status == Invoice.Status.PAID:
-            raise ValidationError("Paid invoices cannot be cancelled.")
+            raise ValidationError(_("Paid invoices cannot be cancelled."))
         invoice.status = Invoice.Status.CANCELLED
         invoice.save(update_fields=["status", "updated_at"])
         return Response(InvoiceSerializer(invoice, context={"request": request}).data)

@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils.translation import gettext as _
 
 from .base import OwnedModel
 from .customer import Customer
@@ -60,7 +61,7 @@ class Task(OwnedModel):
     def clean(self):
         super().clean()
         if self.project and self.customer and (self.project.customer_id != self.customer_id):
-            raise ValidationError({"project": "Project does not belong to the customer."})
+            raise ValidationError({"project": _("Project does not belong to the customer.")})
 
     def save(self, *args, **kwargs):
         if self.project and not self.customer_id:

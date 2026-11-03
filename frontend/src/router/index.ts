@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { clearFormErrors } from '../composables/formErrors'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -41,5 +42,8 @@ router.beforeEach(async (to) => {
   }
   if (to.name === 'login' && auth.user) return { name: 'dashboard' }
 })
+
+// Errors belong to the form on the page that was left.
+router.afterEach(() => clearFormErrors())
 
 export default router

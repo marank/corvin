@@ -1,3 +1,4 @@
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from core.models import Contact, Invoice
@@ -49,7 +50,7 @@ class InvoiceSerializer(OwnedSerializer):
         contacts = attrs.get("contacts", [])
         if customer and any(contact.customer_id != customer.id for contact in contacts):
             raise serializers.ValidationError(
-                {"contact_ids": "All contacts must belong to the invoice customer."}
+                {"contact_ids": _("All contacts must belong to the invoice customer.")}
             )
         return attrs
 

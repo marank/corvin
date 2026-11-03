@@ -28,6 +28,7 @@ import InvoicePreviewFrame from '../../components/InvoicePreviewFrame.vue'
 import { bankAccountsApi, invoicesApi, paymentsApi, type BankAccount, type Invoice } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
+import { useConfirm } from 'primevue/useconfirm'
 import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
@@ -35,6 +36,7 @@ const route = useRoute()
 const router = useRouter()
 const notify = useNotify()
 const confirmDelete = useConfirmDelete()
+const confirm = useConfirm()
 const id = route.params.id as string
 
 const invoice = ref<Invoice | null>(null)
@@ -78,11 +80,35 @@ async function act(fn: () => Promise<unknown>) {
   }
 }
 
+// Finalizing archives the PDF (GoBD) and cancelling is final too, so both ask first.
+function confirmFinalize() {
+  confirm.require({
+    header: t('invoices.finalize'),
+    message: t('invoices.finalizeConfirm'),
+    icon: 'pi pi-lock',
+    rejectLabel: t('common.cancel'),
+    acceptLabel: t('invoices.finalize'),
+    accept: () => act(() => invoicesApi.finalize(id)),
+  })
+}
+
+function confirmCancel() {
+  confirm.require({
+    header: t('invoices.cancelInvoice'),
+    message: t('invoices.cancelConfirm'),
+    icon: 'pi pi-ban',
+    rejectLabel: t('common.cancel'),
+    acceptLabel: t('invoices.cancelInvoice'),
+    acceptClass: 'p-button-danger',
+    accept: () => act(() => invoicesApi.cancel(id)),
+  })
+}
+
 async function sendEmail() {
   await act(async () => {
     await invoicesApi.sendEmail(id, emailForm.value)
     emailModal.value?.close()
-    notify.ok(t('invoices.sendEmail'))
+    notify.ok(t('invoices.emailSent'))
   })
 }
 
@@ -91,7 +117,7 @@ async function addPayment() {
     await paymentsApi.create({ ...paymentForm.value, invoice: id })
     paymentModal.value?.close()
     paymentForm.value = { date: new Date().toISOString().slice(0, 10), amount: 0, note: '' }
-    notify.ok(t('invoices.addPayment'))
+    notify.ok(t('invoices.paymentAdded'))
   })
 }
 </script>
@@ -101,10 +127,11 @@ async function addPayment() {
     <AppPageHeader :title="invoice.number || '—'" :subtitle="invoice.customer_name">
       <template #actions>
         <AppStatusTag :status="invoice.partially_paid ? 'partially_paid' : invoice.status" :label="invoice.partially_paid ? t('invoices.status.paid') + ' (teilw.)' : t(`invoices.status.${invoice.status}`)" />
-        <Button v-if="isDraft" :label="t('invoices.finalize')" icon="pi pi-lock" :loading="busy" @click="act(() => invoicesApi.finalize(id))" />
+        <Button v-if="isDraft" :label="t('invoices.finalize')" icon="pi pi-lock" :loading="busy" @click="confirmFinalize" />
         <Button v-if="canReceivePayment" :label="t('invoices.sendEmail')" icon="pi pi-send" :loading="busy" @click="emailModal?.open()" />
         <Button v-if="canReceivePayment && Number(invoice.remaining) > 0" :label="t('invoices.addPayment')" icon="pi pi-money-bill" @click="paymentForm.amount = Number(invoice.remaining); paymentModal?.open()" />
         <Button v-if="invoice.status === 'issued'" :label="t('invoices.markSent')" text :loading="busy" @click="act(() => invoicesApi.markSent(id))" />
+        <Button v-if="canReceivePayment && Number(invoice.amount_paid) === 0" :label="t('invoices.cancelInvoice')" text severity="danger" :loading="busy" @click="confirmCancel" />
         <Button v-if="isDraft" :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await invoicesApi.remove(id); router.push('/invoices') })" />
       </template>
     </AppPageHeader>
@@ -114,7 +141,7 @@ async function addPayment() {
         <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4 mb-4 grid grid-cols-2 gap-3 text-sm">
           <div><span class="text-surface-500">{{ t('invoices.issueDate') }}</span><br><AppDateTimeDisplay :value="invoice.issue_date" /></div>
           <div><span class="text-surface-500">{{ t('invoices.dueDate') }}</span><br><AppDateTimeDisplay :value="invoice.due_date" /></div>
-          <div><span class="text-surface-500">{{ t('invoices.eInvoice') }}</span><br>{{ invoice.e_invoice_format }}</div>
+          <div><span class="text-surface-500">{{ t('invoices.eInvoice') }}</span><br>{{ t(`invoices.eInvoiceFormats.${invoice.e_invoice_format}`) }}</div>
           <div><span class="text-surface-500">{{ t('invoices.vatRate') }}</span><br><AppNumberDisplay :value="invoice.vat_rate" :maximum-fraction-digits="2" />%</div>
           <div class="col-span-2">
             <span class="text-surface-500">{{ t('settings.bankAccount') }}</span>
@@ -140,11 +167,11 @@ async function addPayment() {
           <div class="flex justify-between"><span>{{ t('invoices.vat') }}</span><AppMoneyDisplay :amount="invoice.vat_amount" :currency="invoice.currency" /></div>
           <div class="flex justify-between font-semibold text-base mt-1"><span>{{ t('common.total') }}</span><AppMoneyDisplay :amount="invoice.total" :currency="invoice.currency" /></div>
           <div v-if="Number(invoice.amount_paid) > 0" class="flex justify-between text-green-600"><span>{{ t('invoices.paid') }}</span><AppMoneyDisplay :amount="invoice.amount_paid" :currency="invoice.currency" /></div>
-          <div v-if="Number(invoice.remaining) > 0" class="flex justify-between text-red-500"><span>{{ t('invoices.remaining') }}</span><AppMoneyDisplay :amount="invoice.remaining" :currency="invoice.currency" /></div>
+          <div v-if="Number(invoice.remaining) > 0" class="flex justify-between" :class="{ 'text-red-500': !isDraft }"><span>{{ t('invoices.remaining') }}</span><AppMoneyDisplay :amount="invoice.remaining" :currency="invoice.currency" /></div>
         </div>
 
         <div class="flex gap-2 mt-3">
-          <a :href="pdfUrl" target="_blank"><Button :label="t('common.download') + ' PDF'" icon="pi pi-file-pdf" size="small" /></a>
+          <a :href="pdfUrl" target="_blank"><Button :label="t('invoices.downloadPdf')" icon="pi pi-file-pdf" size="small" /></a>
           <a v-if="invoice.e_invoice_format === 'xrechnung'" :href="xmlUrl" target="_blank"><Button :label="t('invoices.downloadXml')" icon="pi pi-code" size="small" severity="secondary" /></a>
         </div>
 
@@ -178,17 +205,17 @@ async function addPayment() {
 
     <AppModal ref="emailModal" :title="t('invoices.sendEmail')" @confirm="sendEmail">
       <div class="flex flex-col gap-4">
-        <AppFormField :label="t('common.email')" required><InputText v-model="emailForm.to" class="w-full" /></AppFormField>
-        <AppFormField :label="t('designer.mailSubject')"><InputText v-model="emailForm.subject" class="w-full" /></AppFormField>
-        <AppFormField :label="t('designer.mailBody')"><Textarea v-model="emailForm.body" rows="5" class="w-full" /></AppFormField>
+        <AppFormField field="to" :label="t('common.email')" required><InputText v-model="emailForm.to" class="w-full" /></AppFormField>
+        <AppFormField field="subject" :label="t('designer.mailSubject')"><InputText v-model="emailForm.subject" class="w-full" /></AppFormField>
+        <AppFormField field="body" :label="t('designer.mailBody')"><Textarea v-model="emailForm.body" rows="5" class="w-full" /></AppFormField>
       </div>
     </AppModal>
 
     <AppModal ref="paymentModal" :title="t('invoices.addPayment')" @confirm="addPayment">
       <div class="flex flex-col gap-4">
-        <AppFormField :label="t('common.date')"><AppDateInput v-model="paymentForm.date" /></AppFormField>
-        <AppFormField :label="t('common.total')"><InputNumber v-model="paymentForm.amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
-        <AppFormField :label="t('common.notes')"><InputText v-model="paymentForm.note" class="w-full" /></AppFormField>
+        <AppFormField field="date" :label="t('common.date')"><AppDateInput v-model="paymentForm.date" /></AppFormField>
+        <AppFormField field="amount" :label="t('common.total')"><InputNumber v-model="paymentForm.amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
+        <AppFormField field="note" :label="t('common.notes')"><InputText v-model="paymentForm.note" class="w-full" /></AppFormField>
       </div>
     </AppModal>
   </div>

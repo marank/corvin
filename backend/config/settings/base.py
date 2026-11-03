@@ -39,6 +39,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.csp.ContentSecurityPolicyMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -93,6 +94,8 @@ AUTH_PASSWORD_VALIDATORS = [
 OTP_TOTP_ISSUER = "Corvin"
 
 LANGUAGE_CODE = "de"
+# API messages follow the UI language (Accept-Language); documents stay in LANGUAGE_CODE.
+LANGUAGES = [("de", "Deutsch"), ("en", "English")]
 TIME_ZONE = env("TIME_ZONE")
 USE_I18N = True
 USE_TZ = True

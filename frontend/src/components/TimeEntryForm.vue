@@ -173,7 +173,7 @@ async function save() {
       : await timeTrackingApi.create(payload)
     emit('saved', saved)
   } catch (e) {
-    notify.error(e, t('common.save'))
+    notify.error(e)
   } finally {
     saving.value = false
   }
@@ -182,16 +182,16 @@ async function save() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <AppFormField :label="t('projects.customer')"><CustomerSelect v-model="customerId" /></AppFormField>
-    <AppFormField :label="t('nav.projects')">
+    <AppFormField field="customer" :label="t('projects.customer')"><CustomerSelect v-model="customerId" /></AppFormField>
+    <AppFormField field="project" :label="t('projects.project')">
       <ProjectSelect v-model="form.project" :customer-id="customerId" />
     </AppFormField>
-    <AppFormField v-if="contracts.length" :label="t('time.coveredByContract')">
+    <AppFormField v-if="contracts.length" field="contract" :label="t('time.coveredByContract')">
       <Select v-model="form.contract" :options="contractOptions" option-label="name" option-value="id" class="w-full" />
     </AppFormField>
     <div class="grid grid-cols-5 gap-3">
-      <AppFormField class="col-span-2" :label="t('time.start')" required><AppDateTimeInput v-model="form.start_datetime" /></AppFormField>
-      <AppFormField class="col-span-2" :label="t('time.end')"><AppDateTimeInput v-model="form.end_datetime" /></AppFormField>
+      <AppFormField field="start_datetime" class="col-span-2" :label="t('time.start')" required><AppDateTimeInput v-model="form.start_datetime" /></AppFormField>
+      <AppFormField field="end_datetime" class="col-span-2" :label="t('time.end')"><AppDateTimeInput v-model="form.end_datetime" /></AppFormField>
       <AppFormField :label="t('time.duration')">
         <InputText :value="durationText" class="w-full" @input="onDurationInput(($event.target as HTMLInputElement).value)" />
       </AppFormField>
@@ -231,7 +231,7 @@ async function save() {
         <AppIconButton icon="pi pi-trash" severity="danger" :aria-label="t('common.delete')" @click="removeBreak(index)" />
       </div>
     </div>
-    <AppFormField :label="t('time.description')">
+    <AppFormField field="description" :label="t('time.description')">
       <Textarea v-model="form.description" rows="3" class="w-full" />
     </AppFormField>
     <AppCheckboxField v-model="form.billable" :label="t('time.billable')" />

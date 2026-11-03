@@ -123,7 +123,7 @@ async function logout() {
       >
         <div class="h-14 flex items-center px-4 border-b border-surface-200 dark:border-surface-800">
           <AppLogo />
-          <AppIconButton icon="pi pi-times" class="ms-auto" aria-label="close" @click="menuOpen = false" />
+          <AppIconButton icon="pi pi-times" class="ms-auto" :aria-label="t('common.close')" @click="menuOpen = false" />
         </div>
         <div class="flex-1 overflow-y-auto p-4 sm:p-8">
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 max-w-4xl mx-auto">
@@ -145,7 +145,7 @@ async function logout() {
     <div class="flex-1 flex flex-col min-w-0">
       <!-- Topbar -->
       <header class="h-14 shrink-0 flex items-center gap-2 px-3 lg:px-5 border-b border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900">
-        <AppIconButton icon="pi pi-bars" aria-label="menu" @click="menuOpen = true" />
+        <AppIconButton icon="pi pi-bars" :aria-label="t('common.menu')" @click="menuOpen = true" />
         <div class="flex-1" />
         <TimerWidget />
         <Select
@@ -156,9 +156,9 @@ async function logout() {
           class="w-28"
           size="small"
         />
-        <AppIconButton :icon="dark ? 'pi pi-sun' : 'pi pi-moon'" aria-label="theme" @click="toggleDark" />
+        <AppIconButton :icon="dark ? 'pi pi-sun' : 'pi pi-moon'" :aria-label="t('common.toggleTheme')" @click="toggleDark" />
         <Button icon="pi pi-sign-out" text :label="t('auth.logout')" class="hidden sm:inline-flex" @click="logout" />
-        <AppIconButton icon="pi pi-sign-out" class="sm:hidden" aria-label="logout" @click="logout" />
+        <AppIconButton icon="pi pi-sign-out" class="sm:hidden" :aria-label="t('auth.logout')" @click="logout" />
       </header>
       <main class="flex-1 overflow-y-auto p-4 lg:p-6">
         <router-view />

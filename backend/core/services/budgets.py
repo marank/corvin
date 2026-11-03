@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from django.utils import timezone
+
 from core.models import Project
 
 from .rates import resolve_rate
@@ -16,7 +18,7 @@ def budget_stats(project: Project) -> dict:
             owner=project.owner,
             customer=project.customer,
             project=project,
-            on_date=e.start_datetime.date(),
+            on_date=timezone.localdate(e.start_datetime),
         ) or Decimal("0")
         amount += Decimal(e.duration_minutes) / 60 * rate
     return {

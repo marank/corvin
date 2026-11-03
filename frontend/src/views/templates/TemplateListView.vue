@@ -73,7 +73,7 @@ async function saveAssignments() {
   savingAssignments.value = true
   try {
     await settingsApi.update({ template_assignments: assignments.value })
-    notify.ok(t('common.save'))
+    notify.ok(t('common.saved'))
   } catch (e) {
     notify.error(e)
   } finally {
@@ -219,12 +219,12 @@ async function importTemplate(event: Event) {
 
     <AppModal ref="textBlockModal" :title="t('designer.textBlock')" @confirm="saveTextBlock">
       <div class="flex flex-col gap-4">
-        <AppFormField :label="t('common.name')" required><InputText v-model="textBlockForm.name" class="w-full" /></AppFormField>
+        <AppFormField field="name" :label="t('common.name')" required><InputText v-model="textBlockForm.name" class="w-full" /></AppFormField>
         <AppFormField :label="t('designer.textBlockKey')" required>
           <InputText v-model="textBlockForm.key" class="w-full font-mono" />
           <small class="text-surface-500">{{ t('designer.textBlockKeyHint') }}</small>
         </AppFormField>
-        <AppFormField :label="t('designer.textBlockContent')" required><Textarea v-model="textBlockForm.content" rows="10" class="w-full font-mono" /></AppFormField>
+        <AppFormField field="content" :label="t('designer.textBlockContent')" required><Textarea v-model="textBlockForm.content" rows="10" class="w-full font-mono" /></AppFormField>
         <p class="text-xs text-surface-500"><code v-text="`{{ text_blocks.${textBlockForm.key || 'key'} }}`" /></p>
       </div>
     </AppModal>

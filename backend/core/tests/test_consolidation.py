@@ -78,6 +78,22 @@ def test_rate_change_over_boundary(user, customer, project, make_entry):
 
 
 @pytest.mark.django_db
+def test_entry_after_local_midnight_uses_local_date(user, customer, project, make_entry):
+    # 00:30 in Berlin is still Dec 31 in UTC; rate and description must use Jan 1.
+    HourlyRate.objects.create(
+        owner=user, customer=customer, amount=Decimal("80"), valid_from=date(2025, 1, 1)
+    )
+    HourlyRate.objects.create(
+        owner=user, customer=customer, amount=Decimal("85"), valid_from=date(2026, 1, 1)
+    )
+    make_entry(d=date(2026, 1, 1), start="00:30", end="01:30")
+    inv = consolidate(owner=user, customer=customer, group_by="entry")
+    item = inv.items.get()
+    assert item.unit_price == Decimal("85")
+    assert item.description.startswith("01.01.2026 — ")
+
+
+@pytest.mark.django_db
 def test_contract_entries_excluded(user, customer, project, contract, rate, make_entry):
     make_entry(contract=contract)  # covered — excluded
     make_entry(start="13:00", end="14:00")  # normal — invoiced

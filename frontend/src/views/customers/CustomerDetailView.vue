@@ -76,7 +76,7 @@ async function saveCustomer() {
   saving.value = true
   try {
     customer.value = await customersApi.update(id, form.value)
-    notify.ok(t('common.save'))
+    notify.ok(t('common.saved'))
   } catch (e) {
     notify.error(e)
   } finally {
@@ -200,36 +200,36 @@ async function saveRate() {
             <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
               <legend class="ml-4 px-2 font-medium">{{ t('customers.groups.masterData') }}</legend>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AppFormField :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
-                <AppFormField :label="t('common.name')"><InputText v-model="form.name" class="w-full" /></AppFormField>
+                <AppFormField field="number" :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
+                <AppFormField field="name" :label="t('common.name')"><InputText v-model="form.name" class="w-full" /></AppFormField>
                 <AppCheckboxField v-model="form.is_active" :label="t('customers.active')" />
-                <AppFormField :label="t('common.notes')" class="md:col-span-2"><Textarea v-model="form.notes" rows="3" class="w-full" /></AppFormField>
+                <AppFormField field="notes" :label="t('common.notes')" class="md:col-span-2"><Textarea v-model="form.notes" rows="3" class="w-full" /></AppFormField>
               </div>
             </fieldset>
 
             <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
               <legend class="ml-4 px-2 font-medium">{{ t('customers.groups.contact') }}</legend>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AppFormField :label="t('common.email')"><InputText v-model="form.email" class="w-full" /></AppFormField>
-                <AppFormField :label="t('common.phone')"><InputText v-model="form.phone" class="w-full" /></AppFormField>
-                <AppFormField :label="t('customers.website')" class="md:col-span-2"><InputText v-model="form.website" class="w-full" /></AppFormField>
+                <AppFormField field="email" :label="t('common.email')"><InputText v-model="form.email" class="w-full" /></AppFormField>
+                <AppFormField field="phone" :label="t('common.phone')"><InputText v-model="form.phone" class="w-full" /></AppFormField>
+                <AppFormField field="website" :label="t('customers.website')" class="md:col-span-2"><InputText v-model="form.website" class="w-full" /></AppFormField>
               </div>
             </fieldset>
 
             <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
               <legend class="ml-4 px-2 font-medium">{{ t('customers.groups.billing') }}</legend>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AppFormField :label="t('customers.vatId')"><InputText v-model="form.vat_id" class="w-full" /></AppFormField>
-                <AppFormField :label="t('customers.buyerReference')"><InputText v-model="form.buyer_reference" class="w-full" /></AppFormField>
-                <AppFormField :label="t('customers.paymentTerms')"><InputNumber v-model="form.payment_terms_days" :min="0" :placeholder="t('customers.paymentTermsDefault')" class="w-full" /></AppFormField>
-                <AppFormField :label="t('settings.bankAccount')"><Select v-model="form.bank_account" :options="bankAccounts" option-label="name" option-value="id" show-clear :placeholder="t('settings.companyDefault')" class="w-full" /></AppFormField>
+                <AppFormField field="vat_id" :label="t('customers.vatId')"><InputText v-model="form.vat_id" class="w-full" /></AppFormField>
+                <AppFormField field="buyer_reference" :label="t('customers.buyerReference')"><InputText v-model="form.buyer_reference" class="w-full" /></AppFormField>
+                <AppFormField field="payment_terms_days" :label="t('customers.paymentTerms')"><InputNumber v-model="form.payment_terms_days" :min="0" :placeholder="t('customers.paymentTermsDefault')" class="w-full" /></AppFormField>
+                <AppFormField field="bank_account" :label="t('settings.bankAccount')"><Select v-model="form.bank_account" :options="bankAccounts" option-label="name" option-value="id" show-clear :placeholder="t('settings.companyDefault')" class="w-full" /></AppFormField>
               </div>
             </fieldset>
 
             <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
               <legend class="ml-4 px-2 font-medium">{{ t('customers.groups.timeTracking') }}</legend>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AppFormField :label="t('customers.rounding')"><InputNumber v-model="form.rounding_increment_minutes" :min="0" class="w-full" /></AppFormField>
+                <AppFormField field="rounding_increment_minutes" :label="t('customers.rounding')"><InputNumber v-model="form.rounding_increment_minutes" :min="0" class="w-full" /></AppFormField>
               </div>
             </fieldset>
           </div>
@@ -249,7 +249,7 @@ async function saveRate() {
             </Column>
             <Column :header="t('common.actions')" :reorderable-column="false">
               <template #body="{ data }">
-                <AppIconButton icon="pi pi-pencil" aria-label="Edit" @click.stop="openContact(data)" />
+                <AppIconButton icon="pi pi-pencil" @click.stop="openContact(data)" />
                 <AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeContact(data)" />
               </template>
             </Column>
@@ -277,7 +277,7 @@ async function saveRate() {
             </Column>
             <Column :header="t('common.actions')" :reorderable-column="false">
               <template #body="{ data }">
-                <AppIconButton icon="pi pi-pencil" aria-label="Edit" @click.stop="openAddress(data)" />
+                <AppIconButton icon="pi pi-pencil" @click.stop="openAddress(data)" />
                 <AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeAddress(data)" />
               </template>
             </Column>
@@ -288,16 +288,16 @@ async function saveRate() {
             <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openRate()" />
           </div>
           <AppDataTable :rows="rates" :state-key="tableStateKeys.customerRates">
-            <Column field="valid_from" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.valid_from" /></template></Column>
-            <Column :header="t('invoices.unitPrice')">
+            <Column field="valid_from" :header="t('customers.validFrom')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.valid_from" /></template></Column>
+            <Column :header="t('customers.hourlyRate')">
               <template #body="{ data }"><AppMoneyDisplay :amount="data.amount" />/h</template>
             </Column>
-            <Column field="valid_to" :header="t('time.end')">
+            <Column field="valid_to" :header="t('customers.validTo')">
               <template #body="{ data }"><AppDateTimeDisplay :value="data.valid_to" /></template>
             </Column>
             <Column :header="t('common.actions')" :reorderable-column="false">
               <template #body="{ data }">
-                <AppIconButton icon="pi pi-pencil" aria-label="Edit" @click.stop="openRate(data)" />
+                <AppIconButton icon="pi pi-pencil" @click.stop="openRate(data)" />
                 <AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeRate(data)" />
               </template>
             </Column>
@@ -309,28 +309,28 @@ async function saveRate() {
       </TabPanels>
     </Tabs>
 
-    <AppModal ref="contactModal" :title="editingContact ? t('common.edit') + ' ' + t('customers.contacts') : t('customers.contacts')" @confirm="saveContact">
+    <AppModal ref="contactModal" :title="editingContact ? t('customers.editContact') : t('customers.newContact')" @confirm="saveContact">
       <div class="flex flex-col gap-4">
         <div class="grid grid-cols-2 gap-3">
-          <AppFormField :label="t('customers.firstName')" required><InputText v-model="contactForm.first_name" class="w-full" /></AppFormField>
-          <AppFormField :label="t('customers.lastName')"><InputText v-model="contactForm.last_name" class="w-full" /></AppFormField>
+          <AppFormField field="first_name" :label="t('customers.firstName')" required><InputText v-model="contactForm.first_name" class="w-full" /></AppFormField>
+          <AppFormField field="last_name" :label="t('customers.lastName')"><InputText v-model="contactForm.last_name" class="w-full" /></AppFormField>
         </div>
-        <AppFormField :label="t('customers.role')"><InputText v-model="contactForm.role" class="w-full" /></AppFormField>
-        <AppFormField :label="t('common.email')"><InputText v-model="contactForm.email" class="w-full" /></AppFormField>
-        <AppFormField :label="t('common.phone')"><InputText v-model="contactForm.phone" class="w-full" /></AppFormField>
+        <AppFormField field="role" :label="t('customers.role')"><InputText v-model="contactForm.role" class="w-full" /></AppFormField>
+        <AppFormField field="email" :label="t('common.email')"><InputText v-model="contactForm.email" class="w-full" /></AppFormField>
+        <AppFormField field="phone" :label="t('common.phone')"><InputText v-model="contactForm.phone" class="w-full" /></AppFormField>
         <AppCheckboxField v-model="contactForm.is_invoice_contact" :label="t('customers.invoiceContact')" />
       </div>
     </AppModal>
 
-    <AppModal ref="addressModal" :title="editingAddress ? t('common.edit') + ' ' + t('customers.addresses') : t('customers.addresses')" @confirm="saveAddress">
+    <AppModal ref="addressModal" :title="editingAddress ? t('customers.editAddress') : t('customers.newAddress')" @confirm="saveAddress">
       <div class="flex flex-col gap-4">
-        <AppFormField :label="t('customers.addressLabel')"><InputText v-model="addressForm.label" class="w-full" /></AppFormField>
-        <AppFormField :label="t('customers.street')"><InputText v-model="addressForm.street" class="w-full" /></AppFormField>
+        <AppFormField field="label" :label="t('customers.addressLabel')"><InputText v-model="addressForm.label" class="w-full" /></AppFormField>
+        <AppFormField field="street" :label="t('customers.street')"><InputText v-model="addressForm.street" class="w-full" /></AppFormField>
         <div class="grid grid-cols-3 gap-3">
-          <AppFormField :label="t('customers.postalCode')"><InputText v-model="addressForm.postal_code" class="w-full" /></AppFormField>
-          <AppFormField :label="t('customers.city')" class="col-span-2"><InputText v-model="addressForm.city" class="w-full" /></AppFormField>
+          <AppFormField field="postal_code" :label="t('customers.postalCode')"><InputText v-model="addressForm.postal_code" class="w-full" /></AppFormField>
+          <AppFormField field="city" :label="t('customers.city')" class="col-span-2"><InputText v-model="addressForm.city" class="w-full" /></AppFormField>
         </div>
-        <AppFormField :label="t('customers.country')"><InputText v-model="addressForm.country" class="w-full" /></AppFormField>
+        <AppFormField field="country" :label="t('customers.country')"><InputText v-model="addressForm.country" class="w-full" /></AppFormField>
         <div class="grid grid-cols-3 gap-3">
           <AppCheckboxField v-model="addressForm.is_primary" :label="t('customers.primary')" />
           <AppCheckboxField v-model="addressForm.is_invoice_address" :label="t('customers.invoiceAddress')" />
@@ -339,11 +339,11 @@ async function saveRate() {
       </div>
     </AppModal>
 
-    <AppModal ref="rateModal" :title="editingRate ? t('common.edit') + ' ' + t('customers.rates') : t('customers.rates')" @confirm="saveRate">
+    <AppModal ref="rateModal" :title="editingRate ? t('customers.editRate') : t('customers.newRate')" @confirm="saveRate">
       <div class="flex flex-col gap-4">
-        <AppFormField :label="t('invoices.unitPrice')" required><InputNumber v-model="rateForm.amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
-        <AppFormField :label="t('common.date')" required><AppDateInput v-model="(rateForm.valid_from as any)" /></AppFormField>
-        <AppFormField :label="t('time.end')"><AppDateInput v-model="(rateForm.valid_to as any)" /></AppFormField>
+        <AppFormField field="amount" :label="t('customers.hourlyRate')" required><InputNumber v-model="rateForm.amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
+        <AppFormField field="valid_from" :label="t('customers.validFrom')" required><AppDateInput v-model="(rateForm.valid_from as any)" /></AppFormField>
+        <AppFormField field="valid_to" :label="t('customers.validTo')"><AppDateInput v-model="(rateForm.valid_to as any)" /></AppFormField>
       </div>
     </AppModal>
   </div>

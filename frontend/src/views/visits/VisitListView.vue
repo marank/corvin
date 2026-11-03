@@ -92,15 +92,15 @@ async function save() {
 
     <AppModal ref="modal" :title="t('visits.new')" :loading="saving" @confirm="save">
       <div class="flex flex-col gap-4">
-        <AppFormField :label="t('projects.customer')" required><CustomerSelect v-model="form.customer" /></AppFormField>
-        <AppFormField :label="t('nav.projects')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
+        <AppFormField field="customer" :label="t('projects.customer')" required><CustomerSelect v-model="form.customer" /></AppFormField>
+        <AppFormField field="project" :label="t('nav.projects')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
         <div class="grid grid-cols-3 gap-3">
-          <AppFormField :label="t('common.date')" required><AppDateInput v-model="(form.date as any)" /></AppFormField>
-          <AppFormField :label="t('visits.arrival')"><InputText v-model="form.arrival" type="time" class="w-full" /></AppFormField>
-          <AppFormField :label="t('visits.departure')"><InputText v-model="form.departure" type="time" class="w-full" /></AppFormField>
+          <AppFormField field="date" :label="t('common.date')" required><AppDateInput v-model="(form.date as any)" /></AppFormField>
+          <AppFormField field="arrival" :label="t('visits.arrival')"><InputText v-model="form.arrival" type="time" class="w-full" /></AppFormField>
+          <AppFormField field="departure" :label="t('visits.departure')"><InputText v-model="form.departure" type="time" class="w-full" /></AppFormField>
         </div>
-        <AppFormField :label="t('visits.location')"><InputText v-model="form.location" class="w-full" /></AppFormField>
-        <AppFormField :label="t('common.notes')"><Textarea v-model="form.notes" rows="3" class="w-full" /></AppFormField>
+        <AppFormField field="location" :label="t('visits.location')"><InputText v-model="form.location" class="w-full" /></AppFormField>
+        <AppFormField field="notes" :label="t('common.notes')"><Textarea v-model="form.notes" rows="3" class="w-full" /></AppFormField>
       </div>
     </AppModal>
   </div>

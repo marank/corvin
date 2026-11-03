@@ -1,3 +1,4 @@
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 
@@ -29,5 +30,5 @@ class OwnedSerializer(serializers.ModelSerializer):
                 rel is not None
                 and getattr(rel, "owner_id", None) != self.context["request"].user.id
             ):
-                raise serializers.ValidationError({name: "Invalid object."})
+                raise serializers.ValidationError({name: _("Invalid object.")})
         return attrs

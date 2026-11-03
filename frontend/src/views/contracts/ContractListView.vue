@@ -117,22 +117,22 @@ async function save() {
 
     <AppModal ref="modal" :title="t('contracts.new')" size="lg" :loading="saving" @confirm="save">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <AppFormField :label="t('common.name')" required><InputText v-model="form.name" class="w-full" /></AppFormField>
-        <AppFormField :label="t('projects.customer')" required><CustomerSelect v-model="form.customer" /></AppFormField>
-        <AppFormField :label="t('nav.projects')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
+        <AppFormField field="name" :label="t('common.name')" required><InputText v-model="form.name" class="w-full" /></AppFormField>
+        <AppFormField field="customer" :label="t('projects.customer')" required><CustomerSelect v-model="form.customer" /></AppFormField>
+        <AppFormField field="project" :label="t('projects.project')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
         <AppFormField :label="t('contracts.period')">
           <Select v-model="form.period" :options="periods" class="w-full">
             <template #option="{ option }">{{ t(`contracts.periods.${option}`) }}</template>
             <template #value="{ value }">{{ value ? t(`contracts.periods.${value}`) : '' }}</template>
           </Select>
         </AppFormField>
-        <AppFormField :label="t('contracts.includedHours')"><InputNumber v-model="form.included_hours" :min-fraction-digits="2" class="w-full" /></AppFormField>
-        <AppFormField :label="t('contracts.fixedPrice')"><InputNumber v-model="form.fixed_price" mode="currency" currency="EUR" class="w-full" /></AppFormField>
-        <AppFormField :label="t('common.date')"><AppDateInput v-model="(form.start_date as any)" /></AppFormField>
-        <AppFormField :label="t('contracts.nextBilling')"><AppDateInput v-model="(form.next_billing_date as any)" /></AppFormField>
-        <AppFormField :label="t('time.end')"><AppDateInput v-model="(form.end_date as any)" /></AppFormField>
+        <AppFormField field="included_hours" :label="t('contracts.includedHours')"><InputNumber v-model="form.included_hours" :min-fraction-digits="2" class="w-full" /></AppFormField>
+        <AppFormField field="fixed_price" :label="t('contracts.fixedPrice')"><InputNumber v-model="form.fixed_price" mode="currency" currency="EUR" class="w-full" /></AppFormField>
+        <AppFormField field="start_date" :label="t('common.date')"><AppDateInput v-model="(form.start_date as any)" /></AppFormField>
+        <AppFormField field="next_billing_date" :label="t('contracts.nextBilling')"><AppDateInput v-model="(form.next_billing_date as any)" /></AppFormField>
+        <AppFormField field="end_date" :label="t('time.end')"><AppDateInput v-model="(form.end_date as any)" /></AppFormField>
         <AppCheckboxField v-model="form.bill_overage" :label="t('contracts.billOverage')" />
-        <AppFormField v-if="form.bill_overage" :label="t('contracts.overageRate')"><InputNumber v-model="form.overage_rate" mode="currency" currency="EUR" class="w-full" /></AppFormField>
+        <AppFormField field="overage_rate" v-if="form.bill_overage" :label="t('contracts.overageRate')"><InputNumber v-model="form.overage_rate" mode="currency" currency="EUR" class="w-full" /></AppFormField>
         <AppCheckboxField v-model="form.active" :label="t('customers.active')" />
       </div>
     </AppModal>

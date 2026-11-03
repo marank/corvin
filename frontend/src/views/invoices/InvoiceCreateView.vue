@@ -17,7 +17,6 @@ import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
 import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
-import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
 import ProjectSelect from '../../components/ProjectSelect.vue'
 import {
@@ -116,7 +115,6 @@ watch([customerId, projectId, dateFrom, dateTo], async () => {
   entrySummary.value = summary
 })
 
-const totalHours = computed(() => entrySummary.value.total_minutes / 60)
 
 async function create() {
   if (!customerId.value) return
@@ -149,22 +147,22 @@ async function create() {
 
     <div v-if="step === 0" class="flex flex-col gap-4 max-w-lg">
       <AppFormField :label="t('projects.customer')" required><CustomerSelect v-model="customerId" /></AppFormField>
-      <AppFormField :label="t('nav.projects')"><ProjectSelect v-model="projectId" :customer-id="customerId" /></AppFormField>
+      <AppFormField :label="t('projects.project')"><ProjectSelect v-model="projectId" :customer-id="customerId" /></AppFormField>
       <AppFormField :label="t('invoices.contacts')">
         <MultiSelect v-model="contactIds" :options="availableContacts" option-label="name" option-value="id" display="chip" class="w-full" />
       </AppFormField>
       <div class="grid grid-cols-2 gap-3">
-        <AppFormField :label="t('common.date') + ' ≥'"><AppDateInput v-model="dateFrom" /></AppFormField>
-        <AppFormField :label="t('common.date') + ' ≤'"><AppDateInput v-model="dateTo" /></AppFormField>
+        <AppFormField :label="t('invoices.dateFrom')"><AppDateInput v-model="dateFrom" /></AppFormField>
+        <AppFormField :label="t('invoices.dateTo')"><AppDateInput v-model="dateTo" /></AppFormField>
       </div>
       <Button :label="t('common.confirm')" class="self-start" :disabled="!customerId" @click="step = 1" />
     </div>
 
     <div v-else-if="step === 1">
-      <p class="text-sm text-surface-500 mb-3"><AppNumberDisplay :value="entrySummary.count" :maximum-fraction-digits="0" /> · <AppNumberDisplay :value="totalHours" :minimum-fraction-digits="2" />h</p>
+      <p class="text-sm text-surface-500 mb-3">{{ t('invoices.entryCount', entrySummary.count) }} · <AppDurationDisplay :minutes="entrySummary.total_minutes" /></p>
       <AppDataTable :rows="entries" :state-key="tableStateKeys.invoiceSourceEntries">
         <Column field="start_datetime" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template></Column>
-        <Column field="project_name" :header="t('nav.projects')" sortable />
+        <Column field="project_name" :header="t('projects.project')" sortable />
         <Column field="description" :header="t('time.description')" sortable />
         <Column field="duration_minutes" :header="t('time.duration')" sortable>
           <template #body="{ data }"><AppDurationDisplay :minutes="data.duration_minutes" /></template>
@@ -186,15 +184,15 @@ async function create() {
         </Column>
       </AppDataTable>
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(240px,1fr)_120px_140px_140px] gap-2 items-end">
-        <AppFormField :label="t('time.description')" class="min-w-0"><InputText v-model="lineForm.description" class="w-full min-w-0" /></AppFormField>
-        <AppFormField :label="t('invoices.quantity')" class="min-w-0"><InputNumber v-model="lineForm.quantity" :min="0" :min-fraction-digits="0" :max-fraction-digits="2" class="w-full min-w-0" fluid /></AppFormField>
+        <AppFormField field="description" :label="t('time.description')" class="min-w-0"><InputText v-model="lineForm.description" class="w-full min-w-0" /></AppFormField>
+        <AppFormField field="quantity" :label="t('invoices.quantity')" class="min-w-0"><InputNumber v-model="lineForm.quantity" :min="0" :min-fraction-digits="0" :max-fraction-digits="2" class="w-full min-w-0" fluid /></AppFormField>
         <AppFormField :label="t('invoices.unit')" class="min-w-0">
           <Select v-model="lineForm.unit" :options="units" class="w-full min-w-0">
             <template #option="{ option }">{{ t(`invoices.units.${option}`) }}</template>
             <template #value="{ value }">{{ t(`invoices.units.${value}`) }}</template>
           </Select>
         </AppFormField>
-        <AppFormField :label="t('invoices.unitPrice')" class="min-w-0"><InputNumber v-model="lineForm.unit_price" mode="currency" currency="EUR" class="w-full min-w-0" fluid /></AppFormField>
+        <AppFormField field="unit_price" :label="t('invoices.unitPrice')" class="min-w-0"><InputNumber v-model="lineForm.unit_price" mode="currency" currency="EUR" class="w-full min-w-0" fluid /></AppFormField>
       </div>
       <Button :label="t('invoices.addLine')" icon="pi pi-plus" size="small" class="mt-2" @click="addLine" />
 

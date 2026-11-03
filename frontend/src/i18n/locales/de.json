@@ -40,7 +40,15 @@
     "email": "E-Mail",
     "phone": "Telefon",
     "address": "Adresse",
-    "deleteConfirm": "Wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
+    "deleteConfirm": "Wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleted": "Gelöscht",
+    "close": "Schließen",
+    "menu": "Menü",
+    "toggleTheme": "Hell/Dunkel umschalten",
+    "error": "Fehler",
+    "checkInput": "Bitte Eingaben prüfen",
+    "saved": "Gespeichert",
+    "created": "Angelegt"
   },
   "auth": {
     "login": "Anmelden",
@@ -62,6 +70,15 @@
     "pageReport": "{first}–{last} von {totalRecords}"
   },
   "customers": {
+    "newContact": "Neuer Ansprechpartner",
+    "editContact": "Ansprechpartner bearbeiten",
+    "newAddress": "Neue Adresse",
+    "editAddress": "Adresse bearbeiten",
+    "newRate": "Neuer Stundensatz",
+    "editRate": "Stundensatz bearbeiten",
+    "hourlyRate": "Stundensatz",
+    "validFrom": "Gültig ab",
+    "validTo": "Gültig bis",
     "title": "Kunden",
     "new": "Neuer Kunde",
     "contacts": "Ansprechpartner",
@@ -93,6 +110,7 @@
     "groups": { "masterData": "Stammdaten", "contact": "Kontaktdaten", "billing": "Abrechnung", "timeTracking": "Zeiterfassung" }
   },
   "projects": {
+    "project": "Projekt",
     "title": "Projekte",
     "new": "Neues Projekt",
     "customer": "Kunde",
@@ -161,6 +179,11 @@
     "generatedInvoice": "Rechnung erstellt"
   },
   "invoices": {
+    "dateFrom": "Leistungen ab",
+    "dateTo": "Leistungen bis",
+    "entryCount": "{n} Eintrag | {n} Einträge",
+    "emailSent": "E-Mail gesendet",
+    "paymentAdded": "Zahlung erfasst",
     "title": "Rechnungen",
     "new": "Neue Rechnung",
     "consolidate": "Stunden abrechnen",
@@ -193,7 +216,11 @@
     "contacts": "Rechnungskontakte",
     "inheritedBankAccount": "Kunden- oder Unternehmensstandard",
     "quantity": "Menge",
-    "unitPrice": "Einzelpreis"
+    "unitPrice": "Einzelpreis",
+    "downloadPdf": "PDF herunterladen",
+    "finalizeConfirm": "Nach dem Finalisieren wird die Rechnung archiviert und kann nicht mehr geändert werden. Fortfahren?",
+    "cancelInvoice": "Stornieren",
+    "cancelConfirm": "Die Rechnung wird als storniert markiert. Das lässt sich nicht rückgängig machen. Fortfahren?"
   },
   "designer": {
     "title": "Rechnungsdesigner",
@@ -330,6 +357,7 @@
     "revenue": "Umsatz",
     "hoursPerCustomer": "Stunden pro Kunde",
     "budgetWarnings": "Budget-Warnungen",
-    "contractUsage": "Vertragsverbrauch"
+    "contractUsage": "Vertragsverbrauch",
+    "noCustomer": "Ohne Kunde"
   }
 }

@@ -61,4 +61,4 @@ omit = ["*/migrations/*", "config/asgi.py", "config/wsgi.py", "manage.py"]
 skip_covered = true
 show_missing = true
 # Current level; raise it as tests are added, never lower it.
-fail_under = 85
+fail_under = 88

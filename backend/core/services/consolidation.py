@@ -1,3 +1,4 @@
+import re
 from collections import defaultdict
 from datetime import date, timedelta
 from decimal import Decimal
@@ -6,6 +7,7 @@ from types import SimpleNamespace
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from core.models import (
     Customer,
@@ -19,6 +21,19 @@ from .numbering import next_number
 from .rates import resolve_rate, round_up_minutes, rounding_increment
 
 
+def _format_date(d: date, pattern: str) -> str:
+    """Render a date with the company's Day.js-style pattern (DD, MM, YYYY, ...)."""
+    tokens = {
+        "YYYY": f"{d.year:04d}",
+        "YY": f"{d.year % 100:02d}",
+        "MM": f"{d.month:02d}",
+        "DD": f"{d.day:02d}",
+        "M": str(d.month),
+        "D": str(d.day),
+    }
+    return re.sub(r"YYYY|YY|MM|DD|M|D", lambda m: tokens[m.group()], pattern)
+
+
 def _line_for_entries(owner, entries, description: str) -> dict:
     """One line item from a group of entries: round each entry, apply
     each entry's own effective-dated rate, average the unit price."""
@@ -30,12 +45,12 @@ def _line_for_entries(owner, entries, description: str) -> dict:
             e.duration_minutes,
             rounding_increment(customer, e.project),
         )
-        rate = resolve_rate(
-            owner=owner, customer=customer, project=e.project, on_date=e.start_datetime.date()
-        )
+        work_date = timezone.localdate(e.start_datetime)
+        rate = resolve_rate(owner=owner, customer=customer, project=e.project, on_date=work_date)
         if rate is None:
             raise ValidationError(
-                f"No hourly rate found for {customer.name} on {e.start_datetime.date()}."
+                _("No hourly rate found for %(customer)s on %(date)s.")
+                % {"customer": customer.name, "date": work_date.strftime("%d.%m.%Y")}
             )
         total_minutes += minutes
         total_amount += Decimal(minutes) / 60 * rate
@@ -81,7 +96,7 @@ def consolidate(
         qs = qs.filter(start_datetime__date__lte=date_to)
     entries = list(qs.order_by("start_datetime"))
     if not entries and not extra_lines:
-        raise ValidationError("No billable, uninvoiced time entries found.")
+        raise ValidationError(_("No billable, uninvoiced time entries found."))
 
     # group entries into line items
     groups: dict[tuple, list[TimeEntry]] = defaultdict(list)
@@ -90,12 +105,12 @@ def consolidate(
             groups[(e.id,)].append(e)
     elif group_by == "day":
         for e in entries:
-            groups[(e.project_id, e.start_datetime.date())].append(e)
+            groups[(e.project_id, timezone.localdate(e.start_datetime))].append(e)
     elif group_by == "project":
         for e in entries:
             groups[(e.project_id,)].append(e)
     else:
-        raise ValidationError(f"Unknown group_by: {group_by}")
+        raise ValidationError(_("Unknown grouping: %(group_by)s") % {"group_by": group_by})
 
     company = getattr(owner, "company_settings", None)
     issue_date = timezone.localdate()
@@ -141,13 +156,17 @@ def consolidate(
         contacts if contacts is not None else customer.contacts.filter(is_invoice_contact=True)
     )
 
-    for position, (_, group) in enumerate(sorted(groups.items(), key=lambda g: g[0]), start=1):
+    for position, (_key, group) in enumerate(sorted(groups.items(), key=lambda g: g[0]), start=1):
         first = group[0]
         scope = first.project.name if first.project else customer.name
+        work_date = _format_date(
+            timezone.localdate(first.start_datetime),
+            company.date_format if company else "DD.MM.YYYY",
+        )
         if group_by == "entry":
-            desc = f"{first.start_datetime.date()} — {scope}: {first.description or 'Services'}"
+            desc = f"{work_date} — {scope}: {first.description or 'Services'}"
         elif group_by == "day":
-            desc = f"{first.start_datetime.date()} — {scope}"
+            desc = f"{work_date} — {scope}"
         else:
             desc = f"{scope} — consulting services"
         line = _line_for_entries(owner, group, desc)

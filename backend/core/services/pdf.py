@@ -1,10 +1,12 @@
 from io import BytesIO
 from pathlib import Path
 
+from django.conf import settings
 from django.template import Context, Template
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
+from django.utils.translation import override
 
 from core.models import (
     CompanyContact,
@@ -15,6 +17,7 @@ from core.models import (
 )
 
 from .erechnung import build_xrechnung_xml
+from .templates import ensure_default_template
 
 
 def company_image_context(owner, for_pdf=False) -> dict:
@@ -118,6 +121,8 @@ body > #page-content {{ flex: 1 1 auto; min-height: 0; }}
 </html>"""
 
 
+# Documents use the configured language, not the viewer's UI language.
+@override(settings.LANGUAGE_CODE)
 def render_invoice_html(
     invoice: Invoice, template: DocumentTemplate | None = None, for_pdf=False
 ) -> str:
@@ -134,9 +139,7 @@ def render_invoice_html(
                 owner=invoice.owner,
             ).first()
     if template is None:
-        template = DocumentTemplate.objects.filter(owner=invoice.owner).first()
-    if template is None:
-        raise ValueError("No document template available.")
+        template = ensure_default_template(invoice.owner)
 
     context = Context(default_template_context(invoice, for_pdf))
     context["page"] = template_page_context(template, "invoice")
