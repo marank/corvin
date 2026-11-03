@@ -42,11 +42,14 @@ Status 2026-11-03: Alle Punkte dieser Tabelle sind behoben. Die letzten drei Zei
 - 🟡 Vorschau zeigt „EUR“, die App „€“; der „Entwurf“-Status-Tag steht zwischen den Buttons und sieht selbst wie ein Button aus.
 
 ### Zeiterfassung
-- 🟠 „Timer starten“ legt sofort einen Eintrag **ohne Kunde/Projekt/Beschreibung** an. Stoppt man auf der Seite, kommt keine Nachfrage (das „Eintrag öffnen?“-Verhalten gibt es nur im Header-Widget). Ergebnis: verwaiste `0:00 h`-Einträge, die im Dashboard als Kategorie „Ohne Kunde“ auftauchen und im Rechnungs-Wizard fehlen. Vorschlag: Beim Start Projekt/Beschreibung abfragen (Inline-Combobox wie in Toggl/Clockify) oder beim Stopp immer den Eintrag öffnen.
-- 🟠 Flache Liste ohne Gruppierung nach Tag, ohne Tagessummen und ohne Filter (Kunde/Projekt/Zeitraum/abgerechnet). Bei echten Datenmengen das Hauptproblem dieser Seite.
-- 🟡 Zwei Timer-Anzeigen gleichzeitig (Header-Widget + deaktivierter Button im Seitenkopf) mit unterschiedlichem Format. Pause gibt es nur im Header.
-- 🟡 Start und Ende wiederholen jeweils das volle Datum; die Tabelle scrollt bei 1440 px horizontal. Besser: Datum | 19:59–20:44 | Dauer.
-- 🟡 Bereits abgerechnete Einträge haben einen Löschen-Button.
+- ✅ ~~„Timer starten“ legt sofort einen Eintrag **ohne Kunde/Projekt/Beschreibung** an. Stoppt man auf der Seite, kommt keine Nachfrage.~~ → Start-Dialog (Beschreibung, Kunde, Projekt; Projekt füllt den Kunden), überall gleich (Seite und Header-Widget). Stoppen auf der Seite löst denselben Folgedialog aus wie im Widget; beides läuft über den Timer-Store und das Widget.
+- ✅ ~~Ohne Filter (Kunde/Projekt/Zeitraum/abgerechnet)~~ → Filterleiste mit Summe („27 Einträge · 31:15 h“) über `/time-tracking/summary/`.
+- 🟠 Offen: Gruppierung nach Tag mit Tagessummen. Auf dem Handy nimmt die Filterleiste viel Platz ein (einklappbar machen).
+- ✅ ~~Zwei Timer-Anzeigen gleichzeitig, Pause nur im Header~~ → Seite zeigt Pause/Fortsetzen + Stoppen, die Uhr nur noch im Header.
+- ✅ ~~Start und Ende wiederholen jeweils das volle Datum~~ → Datum | 19:59–20:44.
+- ✅ ~~Bereits abgerechnete Einträge haben einen Löschen-Button.~~ → ausgeblendet; das Backend lehnt das Löschen abgerechneter Einträge ab.
+- ✅ Kunde/Projekt-Auswahlen lassen sich leeren und haben Platzhalter; ein Projekt fremder Kunden wird beim Kundenwechsel verworfen.
+- 🟡 Backend-Meldungen der Timer-Endpunkte („A timer is already running.“ …) sind nicht übersetzt.
 
 ### Aufgaben
 - 🟠 Die erste Checkbox-Spalte (Erledigt) ist nicht von einer Auswahl-Checkbox zu unterscheiden; dazu gibt es noch „Auswählen“. Die `#`-Spalte ist leer.

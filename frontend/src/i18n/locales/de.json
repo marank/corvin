@@ -154,7 +154,18 @@
     "openStoppedEntryPrompt": "Möchten Sie den gestoppten Zeiteintrag zur Bearbeitung öffnen?",
     "editEntry": "Zeiteintrag bearbeiten",
     "timerRunning": "Timer läuft",
-    "invoiced": "Abgerechnet"
+    "invoiced": "Abgerechnet",
+    "time": "Zeit",
+    "startNow": "Starten",
+    "startHint": "Alles optional – Kunde, Projekt und Beschreibung lassen sich auch nach dem Stoppen noch ergänzen.",
+    "allCustomers": "Alle Kunden",
+    "allProjects": "Alle Projekte",
+    "from": "Von",
+    "to": "Bis",
+    "allStatuses": "Alle",
+    "statuses": { "open": "Nicht abgerechnet", "invoiced": "Abgerechnet" },
+    "resetFilters": "Filter zurücksetzen",
+    "entries": "{n} Eintrag | {n} Einträge"
   },
   "visits": {
     "title": "Vor-Ort-Termine",

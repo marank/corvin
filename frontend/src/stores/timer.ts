@@ -30,6 +30,10 @@ export const useTimerStore = defineStore('timer', {
     breakElapsed: 0,
     _interval: null as ReturnType<typeof setInterval> | null,
     version: 0,
+    // TimerWidget (always mounted in the shell) owns the start dialog and the
+    // follow-up after stopping, so every page gets the same flow.
+    startRequests: 0,
+    lastStopped: null as TimeEntry | null,
   }),
   getters: {
     elapsedText: (state) => _formatElapsed(state.elapsed),
@@ -82,6 +86,9 @@ export const useTimerStore = defineStore('timer', {
       calc()
       this._interval = setInterval(calc, 1000)
     },
+    requestStart() {
+      this.startRequests++
+    },
     async start(customer: string | null = null, project: string | null = null, description = '') {
       this.running = await api.post<RunningEntry>(
         '/api/v1/time-tracking/start/',
@@ -94,6 +101,7 @@ export const useTimerStore = defineStore('timer', {
       if (!this.running) return null
       const entry = await api.post<TimeEntry>('/api/v1/time-tracking/stop/')
       this.running = null
+      this.lastStopped = entry
       this.elapsed = 0
       this.breakElapsed = 0
       this.version++

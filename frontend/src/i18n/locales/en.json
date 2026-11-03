@@ -154,7 +154,18 @@
     "openStoppedEntryPrompt": "Do you want to open the stopped time entry for editing?",
     "editEntry": "Edit time entry",
     "timerRunning": "Timer running",
-    "invoiced": "Invoiced"
+    "invoiced": "Invoiced",
+    "time": "Time",
+    "startNow": "Start",
+    "startHint": "All optional – customer, project and description can still be added after stopping.",
+    "allCustomers": "All customers",
+    "allProjects": "All projects",
+    "from": "From",
+    "to": "To",
+    "allStatuses": "All",
+    "statuses": { "open": "Not invoiced", "invoiced": "Invoiced" },
+    "resetFilters": "Reset filters",
+    "entries": "{n} entry | {n} entries"
   },
   "visits": {
     "title": "On-site visits",

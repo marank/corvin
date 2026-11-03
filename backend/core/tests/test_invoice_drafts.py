@@ -180,3 +180,12 @@ def test_lines_are_chronological_regardless_of_creation_order(client, customer, 
     descriptions = list(invoice.items.order_by("position").values_list("description", flat=True))
     assert descriptions[0].startswith("01.09.2026")
     assert descriptions[1].startswith("02.09.2026")
+
+
+@pytest.mark.django_db
+def test_invoiced_time_entry_cannot_be_deleted(client, customer, two_entries):
+    first, second = two_entries
+    _consolidate(client, customer, entry_ids=[str(first.id)])
+    assert client.delete(f"/api/v1/time-tracking/{first.id}/").status_code == 400
+    assert TimeEntry.objects.filter(id=first.id).exists()
+    assert client.delete(f"/api/v1/time-tracking/{second.id}/").status_code == 204

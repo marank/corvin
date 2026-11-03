@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import type { TimeEntry } from '../api'
 import { useTimerStore } from '../stores/timer'
@@ -7,27 +7,42 @@ import { useSettingsStore } from '../stores/settings'
 import AppIconButton from './ui/AppIconButton.vue'
 import AppModal from './ui/AppModal.vue'
 import TimeEntryForm from './TimeEntryForm.vue'
+import TimerStartDialog from './TimerStartDialog.vue'
+import { useNotify } from '../composables/useNotify'
 import { useI18n } from 'vue-i18n'
 
 const timer = useTimerStore()
 const settings = useSettingsStore()
 const { t } = useI18n()
+const notify = useNotify()
 const stoppedEntry = ref<TimeEntry | null>(null)
 const askModal = ref<InstanceType<typeof AppModal>>()
 const entryModal = ref<InstanceType<typeof AppModal>>()
+const startDialog = ref<InstanceType<typeof TimerStartDialog>>()
 
 onMounted(async () => {
   await settings.load()
   await timer.refresh()
 })
 
-async function stop() {
-  const entry = await timer.stop()
+async function run(action: () => Promise<unknown>) {
+  try {
+    await action()
+  } catch (e) {
+    notify.error(e)
+  }
+}
+
+// Starting and stopping can be triggered from any page (timer store); the
+// dialogs live here so the flow is the same everywhere.
+watch(() => timer.startRequests, () => startDialog.value?.open())
+watch(() => timer.lastStopped, (entry) => {
   if (!entry) return
   stoppedEntry.value = entry
+  timer.lastStopped = null
   if (settings.openStoppedTimeEntry === 'yes') entryModal.value?.open()
   else if (settings.openStoppedTimeEntry === 'ask') askModal.value?.open()
-}
+})
 
 function answerOpenEntry(open: boolean) {
   askModal.value?.close()
@@ -52,14 +67,16 @@ function entrySaved() {
     <span v-else-if="timer.running" class="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-green-500 animate-breathe" />
     <span v-else class="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-surface-400" />
     <span class="text-sm font-mono">{{ timer.elapsedText }}<span v-if="timer.running?.is_paused" class="text-surface-500"> ({{ timer.breakElapsedText }})</span></span>
-    <span v-if="timer.running?.description" class="hidden md:inline text-xs text-surface-500 truncate max-w-40">{{ timer.running.description }}</span>
+    <span v-if="timer.running?.description || timer.running?.project_name" class="hidden md:inline text-xs text-surface-500 truncate max-w-40">{{ timer.running.description || timer.running.project_name }}</span>
     <template v-if="timer.running">
-      <AppIconButton v-if="timer.running.is_paused" icon="pi pi-play" :aria-label="t('time.resumeTimer')" @click="timer.resume()" />
-      <AppIconButton v-else icon="pi pi-pause" :aria-label="t('time.pauseTimer')" @click="timer.pause()" />
-      <AppIconButton icon="pi pi-stop" :aria-label="t('time.stopTimer')" @click="stop" />
+      <AppIconButton v-if="timer.running.is_paused" icon="pi pi-play" :aria-label="t('time.resumeTimer')" @click="run(timer.resume)" />
+      <AppIconButton v-else icon="pi pi-pause" :aria-label="t('time.pauseTimer')" @click="run(timer.pause)" />
+      <AppIconButton icon="pi pi-stop" :aria-label="t('time.stopTimer')" @click="run(timer.stop)" />
     </template>
-    <AppIconButton v-else icon="pi pi-play" :aria-label="t('time.startTimer')" @click="timer.start()" />
+    <AppIconButton v-else icon="pi pi-play" :aria-label="t('time.startTimer')" @click="timer.requestStart()" />
   </div>
+
+  <TimerStartDialog ref="startDialog" />
 
   <AppModal ref="askModal" :title="t('time.openStoppedEntryTitle')" size="sm" :show-footer="false">
     <p>{{ t('time.openStoppedEntryPrompt') }}</p>

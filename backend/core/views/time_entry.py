@@ -1,7 +1,9 @@
 from django.db.models import Count, Sum
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from rest_framework import serializers, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from core.models import Customer, TimeEntry, TimeEntryBreak
@@ -40,6 +42,12 @@ class TimeEntryViewSet(OwnedViewSet):
         "project__name",
         "duration_minutes",
     ]
+
+    def perform_destroy(self, instance):
+        if instance.invoice_id:
+            # Remove it from a draft by deleting the invoice line instead.
+            raise ValidationError(_("Invoiced time entries cannot be deleted."))
+        instance.delete()
 
     @action(detail=False, methods=["get"])
     def summary(self, request):
