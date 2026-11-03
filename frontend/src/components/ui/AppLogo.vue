@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
-// Mark: raven head from basic shapes (branding/corvin-mark.svg), wordmark in Josefin Sans.
+// Mark: raven head from basic shapes (branding/corvin-mark.svg), wordmark in Space Grotesk.
 withDefaults(defineProps<{ size?: 'md' | 'lg' }>(), { size: 'md' })
 const { t } = useI18n()
 </script>
@@ -22,7 +22,7 @@ const { t } = useI18n()
         class="fill-purple-500 dark:fill-purple-400"
       />
     </svg>
-    <span class="font-brand font-semibold leading-none pt-[0.2em]" :class="size === 'lg' ? 'text-3xl' : 'text-xl'">
+    <span class="font-brand font-semibold leading-none" :class="size === 'lg' ? 'text-3xl' : 'text-xl'">
       {{ t('app.title') }}
     </span>
   </span>

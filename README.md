@@ -9,7 +9,7 @@ Project management for IT consultants: customers, projects with budgets, tasks, 
 
 ## Branding
 
-Name **Corvin**, from Latin *corvus*, the raven: Odin's ravens Hugin and Munin stand for thought and memory, and the *Bibliotheca Corviniana* was one of the great archives of the Renaissance. Mark: a raven head from basic shapes, a half circle in violet and blue with a cyan beak (`branding/corvin-mark.svg`). Wordmark in Josefin Sans 600 (OFL-1.1, self-hosted via `@fontsource/josefin-sans`). In the app: `src/components/ui/AppLogo.vue`; `frontend/public/favicon.svg` adapts to dark mode, `apple-touch-icon.png` is rendered from the mark on white.
+Name **Corvin**, from Latin *corvus*, the raven: Odin's ravens Hugin and Munin stand for thought and memory, and the *Bibliotheca Corviniana* was one of the great archives of the Renaissance. Mark: a raven head from basic shapes, a half circle in violet and blue with a cyan beak (`branding/corvin-mark.svg`). Wordmark in Space Grotesk 600 (OFL-1.1, self-hosted via `@fontsource/space-grotesk`). In the app: `src/components/ui/AppLogo.vue`; `frontend/public/favicon.svg` adapts to dark mode, `apple-touch-icon.png` is rendered from the mark on white.
 
 ## Local development (Windows, no Docker)
 

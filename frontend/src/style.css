@@ -3,7 +3,7 @@
 
 @import 'tailwindcss';
 @import 'primeicons/primeicons.css';
-@import '@fontsource/josefin-sans/latin-600.css';
+@import '@fontsource/space-grotesk/latin-600.css';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -24,7 +24,7 @@
   --color-surface-950: var(--p-surface-950);
   --color-primary: var(--p-primary-color);
   --color-primary-contrast: var(--p-primary-contrast-color);
-  --font-brand: 'Josefin Sans', sans-serif;
+  --font-brand: 'Space Grotesk', sans-serif;
 }
 
 html, body, #app {
