@@ -57,6 +57,15 @@ class TimeEntry(OwnedModel):
         null=True,
         blank=True,
     )
+    # The line item this entry was billed on, so deleting the line from a draft
+    # releases the entry for the next invoice.
+    invoice_item = models.ForeignKey(
+        "core.InvoiceLineItem",
+        on_delete=models.SET_NULL,
+        related_name="time_entries",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         ordering = ["-start_datetime"]

@@ -64,22 +64,23 @@ def _line_for_entries(owner, entries, description: str) -> dict:
     }
 
 
-@transaction.atomic
-def consolidate(
+def _default_vat_rate(company) -> Decimal:
+    if company is None:
+        return Decimal("19")
+    return company.default_vat_rate if company.vat_enabled else Decimal("0")
+
+
+def billable_entries(
     *,
     owner,
     customer: Customer,
     project: Project | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
-    group_by: str = "entry",
-    vat_rate: Decimal | None = None,
-    template=None,
-    contacts=None,
-    bank_account=None,
-    e_invoice_format: str = Invoice.EInvoiceFormat.NONE,
-    extra_lines: list[dict] | None = None,
-) -> Invoice:
+    entry_ids: list | None = None,
+):
+    """Uninvoiced, billable, finished entries of a customer that a new invoice may bill.
+    `entry_ids` narrows them to the user's selection (ids outside the set are ignored)."""
     qs = TimeEntry.objects.filter(
         owner=owner,
         customer=customer,
@@ -94,11 +95,13 @@ def consolidate(
         qs = qs.filter(start_datetime__date__gte=date_from)
     if date_to:
         qs = qs.filter(start_datetime__date__lte=date_to)
-    entries = list(qs.order_by("start_datetime"))
-    if not entries and not extra_lines:
-        raise ValidationError(_("No billable, uninvoiced time entries found."))
+    if entry_ids is not None:
+        qs = qs.filter(id__in=entry_ids)
+    return qs.order_by("start_datetime")
 
-    # group entries into line items
+
+def build_lines(*, owner, customer: Customer, entries, group_by: str):
+    """Group entries into line-item dicts. Returns [(line, entries_on_that_line), ...]."""
     groups: dict[tuple, list[TimeEntry]] = defaultdict(list)
     if group_by == "entry":
         for e in entries:
@@ -113,6 +116,104 @@ def consolidate(
         raise ValidationError(_("Unknown grouping: %(group_by)s") % {"group_by": group_by})
 
     company = getattr(owner, "company_settings", None)
+    lines = []
+    # Chronological lines, whatever order the entries were created in.
+    for group in sorted(groups.values(), key=lambda g: min(e.start_datetime for e in g)):
+        first = group[0]
+        scope = first.project.name if first.project else customer.name
+        work_date = _format_date(
+            timezone.localdate(first.start_datetime),
+            company.date_format if company else "DD.MM.YYYY",
+        )
+        if group_by == "entry":
+            desc = f"{work_date} — {scope}: {first.description or 'Services'}"
+        elif group_by == "day":
+            desc = f"{work_date} — {scope}"
+        else:
+            desc = f"{scope} — consulting services"
+        lines.append((_line_for_entries(owner, group, desc), group))
+    return lines
+
+
+def _line_total(line: dict) -> Decimal:
+    return (Decimal(line["quantity"]) * Decimal(line["unit_price"])).quantize(Decimal("0.01"))
+
+
+def preview(
+    *,
+    owner,
+    customer: Customer,
+    project: Project | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    entry_ids: list | None = None,
+    group_by: str = "entry",
+    extra_lines: list[dict] | None = None,
+) -> dict:
+    """What `consolidate` would create, without writing anything."""
+    entries = list(
+        billable_entries(
+            owner=owner,
+            customer=customer,
+            project=project,
+            date_from=date_from,
+            date_to=date_to,
+            entry_ids=entry_ids,
+        )
+    )
+    lines = [
+        line
+        for line, _group in build_lines(
+            owner=owner, customer=customer, entries=entries, group_by=group_by
+        )
+    ]
+    lines += [dict(line) for line in extra_lines or []]
+    for line in lines:
+        line["total"] = _line_total(line)
+    subtotal = sum((line["total"] for line in lines), Decimal("0"))
+    vat_rate = _default_vat_rate(getattr(owner, "company_settings", None))
+    vat_amount = (subtotal * vat_rate / 100).quantize(Decimal("0.01"))
+    return {
+        "lines": lines,
+        "entry_count": len(entries),
+        "subtotal": subtotal,
+        "vat_rate": vat_rate,
+        "vat_amount": vat_amount,
+        "total": subtotal + vat_amount,
+    }
+
+
+@transaction.atomic
+def consolidate(
+    *,
+    owner,
+    customer: Customer,
+    project: Project | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    entry_ids: list | None = None,
+    group_by: str = "entry",
+    vat_rate: Decimal | None = None,
+    template=None,
+    contacts=None,
+    bank_account=None,
+    e_invoice_format: str = Invoice.EInvoiceFormat.NONE,
+    extra_lines: list[dict] | None = None,
+) -> Invoice:
+    qs = billable_entries(
+        owner=owner,
+        customer=customer,
+        project=project,
+        date_from=date_from,
+        date_to=date_to,
+        entry_ids=entry_ids,
+    )
+    entries = list(qs)
+    if not entries and not extra_lines:
+        raise ValidationError(_("No billable, uninvoiced time entries found."))
+    lines = build_lines(owner=owner, customer=customer, entries=entries, group_by=group_by)
+
+    company = getattr(owner, "company_settings", None)
     issue_date = timezone.localdate()
     payment_terms_days = (
         customer.payment_terms_days
@@ -120,13 +221,6 @@ def consolidate(
         else company.payment_terms_days
         if company
         else 14
-    )
-    default_vat_rate = (
-        company.default_vat_rate
-        if company and company.vat_enabled
-        else Decimal("0")
-        if company
-        else Decimal("19")
     )
     invoice = Invoice.objects.create(
         owner=owner,
@@ -145,7 +239,7 @@ def consolidate(
         project=project,
         issue_date=issue_date,
         due_date=issue_date + timedelta(days=payment_terms_days),
-        vat_rate=vat_rate if vat_rate is not None else default_vat_rate,
+        vat_rate=vat_rate if vat_rate is not None else _default_vat_rate(company),
         currency=company.currency if company else "EUR",
         e_invoice_format=e_invoice_format,
         template=template,
@@ -156,23 +250,16 @@ def consolidate(
         contacts if contacts is not None else customer.contacts.filter(is_invoice_contact=True)
     )
 
-    for position, (_key, group) in enumerate(sorted(groups.items(), key=lambda g: g[0]), start=1):
-        first = group[0]
-        scope = first.project.name if first.project else customer.name
-        work_date = _format_date(
-            timezone.localdate(first.start_datetime),
-            company.date_format if company else "DD.MM.YYYY",
+    position = 0
+    for line, group in lines:
+        position += 1
+        item = InvoiceLineItem.objects.create(
+            owner=owner, invoice=invoice, position=position, **line
         )
-        if group_by == "entry":
-            desc = f"{work_date} — {scope}: {first.description or 'Services'}"
-        elif group_by == "day":
-            desc = f"{work_date} — {scope}"
-        else:
-            desc = f"{scope} — consulting services"
-        line = _line_for_entries(owner, group, desc)
-        InvoiceLineItem.objects.create(owner=owner, invoice=invoice, position=position, **line)
+        TimeEntry.objects.filter(id__in=[e.id for e in group]).update(
+            invoice=invoice, invoice_item=item
+        )
 
-    position = invoice.items.count()
     for line in extra_lines or []:
         position += 1
         InvoiceLineItem.objects.create(
@@ -186,5 +273,4 @@ def consolidate(
         )
 
     invoice.recalc_totals()
-    qs.update(invoice=invoice)
     return invoice

@@ -26,6 +26,7 @@
     "loading": "Laden…",
     "confirm": "Bestätigen",
     "back": "Zurück",
+    "next": "Weiter",
     "download": "Herunterladen",
     "send": "Senden",
     "yes": "Ja",
@@ -183,7 +184,6 @@
   "invoices": {
     "dateFrom": "Leistungen ab",
     "dateTo": "Leistungen bis",
-    "entryCount": "{n} Eintrag | {n} Einträge",
     "emailSent": "E-Mail gesendet",
     "paymentAdded": "Zahlung erfasst",
     "title": "Rechnungen",
@@ -222,7 +222,13 @@
     "downloadPdf": "PDF herunterladen",
     "finalizeConfirm": "Nach dem Finalisieren wird die Rechnung archiviert und kann nicht mehr geändert werden. Fortfahren?",
     "cancelInvoice": "Stornieren",
-    "cancelConfirm": "Die Rechnung wird als storniert markiert. Das lässt sich nicht rückgängig machen. Fortfahren?"
+    "cancelConfirm": "Die Rechnung wird als storniert markiert. Das lässt sich nicht rückgängig machen. Fortfahren?",
+    "reviewStep": "Prüfen & erstellen",
+    "selectedEntries": "{selected} von {total} Einträgen ausgewählt",
+    "summary": "Zusammenfassung",
+    "editInvoice": "Rechnung bearbeiten",
+    "editLine": "Position bearbeiten",
+    "lineDeleteHint": "Wird eine Position gelöscht, sind die darin abgerechneten Zeiteinträge wieder abrechenbar."
   },
   "designer": {
     "title": "Rechnungsdesigner",

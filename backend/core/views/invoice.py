@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from core.models import Invoice
 from core.serializers import InvoiceSerializer
 from core.services.archiving import archive_invoice
-from core.services.consolidation import consolidate
+from core.services.consolidation import consolidate, preview
 from core.services.erechnung import build_xrechnung_xml
 from core.services.mailer import send_invoice_email
 from core.services.pdf import render_invoice_html, render_invoice_pdf
@@ -32,6 +32,8 @@ class ManualLineSerializer(serializers.Serializer):
 
 class ConsolidateSerializer(serializers.Serializer):
     customer_id = serializers.UUIDField()
+    # Bill only these of the matching entries; omitted = all of them.
+    entry_ids = serializers.ListField(child=serializers.UUIDField(), required=False)
     contact_ids = serializers.ListField(child=serializers.UUIDField(), required=False)
     extra_lines = ManualLineSerializer(many=True, required=False)
     project_id = serializers.UUIDField(required=False, allow_null=True)
@@ -42,6 +44,19 @@ class ConsolidateSerializer(serializers.Serializer):
     e_invoice_format = serializers.ChoiceField(
         choices=["none", "zugferd", "xrechnung"], default="none"
     )
+
+
+class PreviewLineSerializer(ManualLineSerializer):
+    total = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+
+class ConsolidatePreviewSerializer(serializers.Serializer):
+    lines = PreviewLineSerializer(many=True)
+    entry_count = serializers.IntegerField()
+    subtotal = serializers.DecimalField(max_digits=12, decimal_places=2)
+    vat_rate = serializers.DecimalField(max_digits=5, decimal_places=2)
+    vat_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total = serializers.DecimalField(max_digits=12, decimal_places=2)
 
 
 class SendEmailSerializer(serializers.Serializer):
@@ -124,15 +139,19 @@ class InvoiceViewSet(OwnedViewSet):
         invoice = self.get_object()
         if invoice.status != Invoice.Status.DRAFT:
             raise ValidationError(_("Only draft invoices can be edited."))
-        serializer.save()
+        customer = serializer.validated_data.get("customer")
+        if customer is not None and customer.id != invoice.customer_id:
+            # Its time entries and contacts belong to the original customer.
+            raise ValidationError({"customer": _("The customer of an invoice cannot be changed.")})
+        serializer.save().recalc_totals()
 
     def perform_destroy(self, instance):
         if instance.status != Invoice.Status.DRAFT:
             raise ValidationError(_("Only draft invoices can be deleted."))
         instance.delete()
 
-    @action(detail=False, methods=["post"])
-    def consolidate(self, request):
+    def _consolidation_args(self, request) -> dict:
+        """Validate a consolidate/preview request and resolve its ids to owned objects."""
         from core.models import BankAccount, Contact, Customer, Project
 
         ser = ConsolidateSerializer(data=request.data)
@@ -164,25 +183,43 @@ class InvoiceViewSet(OwnedViewSet):
             ).first()
             if not bank_account:
                 raise ValidationError({"bank_account_id": _("Invalid bank account.")})
+        return {
+            "owner": request.user,
+            "customer": customer,
+            "project": project,
+            "date_from": d.get("date_from"),
+            "date_to": d.get("date_to"),
+            "entry_ids": d.get("entry_ids"),
+            "group_by": d["group_by"],
+            "contacts": contacts,
+            "bank_account": bank_account,
+            "e_invoice_format": d["e_invoice_format"],
+            "extra_lines": d.get("extra_lines"),
+        }
+
+    @action(detail=False, methods=["post"])
+    def consolidate(self, request):
+        args = self._consolidation_args(request)
         try:
-            invoice = consolidate(
-                owner=request.user,
-                customer=customer,
-                project=project,
-                date_from=d.get("date_from"),
-                date_to=d.get("date_to"),
-                group_by=d["group_by"],
-                contacts=contacts,
-                bank_account=bank_account,
-                e_invoice_format=d["e_invoice_format"],
-                extra_lines=d.get("extra_lines"),
-            )
+            invoice = consolidate(**args)
         except DjangoValidationError as e:
             raise ValidationError(_validation_detail(e)) from e
         return Response(
             InvoiceSerializer(invoice, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
+
+    @action(detail=False, methods=["post"])
+    def consolidate_preview(self, request):
+        """Line items and totals `consolidate` would create, without creating anything."""
+        args = self._consolidation_args(request)
+        for key in ("contacts", "bank_account", "e_invoice_format"):
+            args.pop(key)
+        try:
+            result = preview(**args)
+        except DjangoValidationError as e:
+            raise ValidationError(_validation_detail(e)) from e
+        return Response(ConsolidatePreviewSerializer(result).data)
 
     @action(detail=True, methods=["post"])
     def finalize(self, request, pk=None):

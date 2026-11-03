@@ -7,6 +7,7 @@ import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
+import MultiSelect from 'primevue/multiselect'
 import Textarea from 'primevue/textarea'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
@@ -25,7 +26,10 @@ import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
 import InvoicePreviewFrame from '../../components/InvoicePreviewFrame.vue'
-import { bankAccountsApi, customersApi, invoicesApi, paymentsApi, type BankAccount, type Invoice } from '../../api'
+import {
+  bankAccountsApi, contactsApi, customersApi, invoiceItemsApi, invoicesApi, paymentsApi,
+  type BankAccount, type Contact, type Invoice, type LineItem,
+} from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
 import { useConfirm } from 'primevue/useconfirm'
@@ -47,7 +51,9 @@ const paymentModal = ref<InstanceType<typeof AppModal>>()
 const emailForm = ref({ to: '', subject: '', body: '' })
 const paymentForm = ref({ date: new Date().toISOString().slice(0, 10), amount: 0, note: '' })
 
-const previewUrl = computed(() => invoicesApi.previewUrl(id))
+// Bumped after every change so the preview iframe reloads.
+const previewVersion = ref(0)
+const previewUrl = computed(() => `${invoicesApi.previewUrl(id)}?v=${previewVersion.value}`)
 const pdfUrl = computed(() => invoicesApi.pdfUrl(id))
 const xmlUrl = computed(() => invoicesApi.xmlUrl(id))
 const isDraft = computed(() => invoice.value?.status === 'draft')
@@ -59,6 +65,7 @@ async function load() {
     invoicesApi.get(id), bankAccountsApi.list(),
   ])
   invoice.value = loadedInvoice
+  previewVersion.value++
   bankAccounts.value = accountPage.results.filter((account) => account.is_active)
 }
 
@@ -71,6 +78,52 @@ async function openEmail() {
       ?? ''
   }
   emailModal.value?.open()
+}
+
+// Draft editing: header fields in one modal, line items one at a time.
+const headerModal = ref<InstanceType<typeof AppModal>>()
+const headerForm = ref<Partial<Invoice> & { contact_ids?: string[] }>({})
+const customerContacts = ref<Contact[]>([])
+const itemModal = ref<InstanceType<typeof AppModal>>()
+const editingItem = ref<LineItem | null>(null)
+const itemForm = ref<Partial<LineItem>>({})
+const units = ['hours', 'flat', 'piece']
+const formats = ['none', 'zugferd', 'xrechnung']
+
+async function openHeader() {
+  if (!invoice.value) return
+  const { issue_date, due_date, vat_rate, notes, e_invoice_format, contacts } = invoice.value
+  headerForm.value = {
+    issue_date, due_date, vat_rate: Number(vat_rate), notes, e_invoice_format,
+    contact_ids: contacts.map((contact) => contact.id),
+  }
+  customerContacts.value = (await contactsApi.list(invoice.value.customer)).results
+  headerModal.value?.open()
+}
+
+async function saveHeader() {
+  await act(async () => {
+    await invoicesApi.patch(id, headerForm.value)
+    headerModal.value?.close()
+    notify.ok(t('common.saved'))
+  })
+}
+
+function openItem(item?: LineItem) {
+  if (!isDraft.value) return
+  editingItem.value = item ?? null
+  itemForm.value = item
+    ? { description: item.description, quantity: Number(item.quantity), unit: item.unit, unit_price: Number(item.unit_price) }
+    : { description: '', quantity: 1, unit: 'flat', unit_price: 0 }
+  itemModal.value?.open()
+}
+
+async function saveItem() {
+  await act(async () => {
+    if (editingItem.value) await invoiceItemsApi.update(editingItem.value.id, itemForm.value)
+    else await invoiceItemsApi.create({ ...itemForm.value, invoice: id })
+    itemModal.value?.close()
+  })
 }
 
 async function updateBankAccount(value: string | null) {
@@ -149,11 +202,14 @@ async function addPayment() {
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
       <div>
-        <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4 mb-4 grid grid-cols-2 gap-3 text-sm">
+        <div class="relative border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4 mb-4 grid grid-cols-2 gap-3 text-sm">
+          <Button v-if="isDraft" :label="t('common.edit')" icon="pi pi-pencil" text size="small" class="absolute! top-2 right-2" @click="openHeader" />
           <div><span class="text-surface-500">{{ t('invoices.issueDate') }}</span><br><AppDateTimeDisplay :value="invoice.issue_date" /></div>
           <div><span class="text-surface-500">{{ t('invoices.dueDate') }}</span><br><AppDateTimeDisplay :value="invoice.due_date" /></div>
           <div><span class="text-surface-500">{{ t('invoices.eInvoice') }}</span><br>{{ t(`invoices.eInvoiceFormats.${invoice.e_invoice_format}`) }}</div>
           <div><span class="text-surface-500">{{ t('invoices.vatRate') }}</span><br><AppNumberDisplay :value="invoice.vat_rate" :maximum-fraction-digits="2" />%</div>
+          <div v-if="invoice.contacts.length" class="col-span-2"><span class="text-surface-500">{{ t('invoices.contacts') }}</span><br>{{ invoice.contacts.map((contact) => contact.name).join(', ') }}</div>
+          <div v-if="invoice.notes" class="col-span-2 whitespace-pre-line"><span class="text-surface-500">{{ t('common.notes') }}</span><br>{{ invoice.notes }}</div>
           <div class="col-span-2">
             <span class="text-surface-500">{{ t('settings.bankAccount') }}</span>
             <Select v-if="isDraft" :model-value="invoice.bank_account_override" :options="bankAccounts" option-label="name" option-value="id" show-clear :placeholder="invoice.bank_account?.name || t('invoices.inheritedBankAccount')" class="w-full mt-1" @update:model-value="updateBankAccount" />
@@ -161,7 +217,21 @@ async function addPayment() {
           </div>
         </div>
 
-        <AppDataTable :rows="invoice.items" :state-key="tableStateKeys.invoiceItems">
+        <AppDataTable v-if="isDraft" :rows="invoice.items" :state-key="tableStateKeys.invoiceDraftItems" @row-click="openItem">
+          <Column field="position" header="#" class="w-10" sortable />
+          <Column class="app-text" field="description" :header="t('time.description')" sortable />
+          <Column class="app-num" :header="t('invoices.quantity')"><template #body="{ data }"><AppNumberDisplay :value="data.quantity" /></template></Column>
+          <Column class="app-num" :header="t('invoices.unitPrice')">
+            <template #body="{ data }"><AppMoneyDisplay :amount="data.unit_price" :currency="invoice!.currency" /></template>
+          </Column>
+          <Column class="app-num" :header="t('common.total')">
+            <template #body="{ data }"><AppMoneyDisplay :amount="data.total" :currency="invoice!.currency" /></template>
+          </Column>
+          <Column :reorderable-column="false">
+            <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await invoiceItemsApi.remove(data.id); await load() })" /></template>
+          </Column>
+        </AppDataTable>
+        <AppDataTable v-else :rows="invoice.items" :state-key="tableStateKeys.invoiceItems">
           <Column field="position" header="#" class="w-10" sortable />
           <Column class="app-text" field="description" :header="t('time.description')" sortable />
           <Column class="app-num" :header="t('invoices.quantity')"><template #body="{ data }"><AppNumberDisplay :value="data.quantity" /></template></Column>
@@ -173,6 +243,9 @@ async function addPayment() {
           </Column>
         </AppDataTable>
 
+        <div v-if="isDraft" class="border border-t-0 border-surface-200 dark:border-surface-800 px-2 py-1">
+          <Button :label="t('invoices.addLine')" icon="pi pi-plus" text size="small" @click="openItem()" />
+        </div>
         <div class="border border-t-0 border-surface-200 dark:border-surface-800 p-4 text-sm">
           <div class="flex justify-between"><span>{{ t('invoices.subtotal') }}</span><AppMoneyDisplay :amount="invoice.subtotal" :currency="invoice.currency" /></div>
           <div class="flex justify-between"><span>{{ t('invoices.vat') }}</span><AppMoneyDisplay :amount="invoice.vat_amount" :currency="invoice.currency" /></div>
@@ -219,6 +292,43 @@ async function addPayment() {
         <AppFormField field="to" :label="t('common.email')" required><InputText v-model="emailForm.to" class="w-full" /></AppFormField>
         <AppFormField field="subject" :label="t('designer.mailSubject')"><InputText v-model="emailForm.subject" class="w-full" /></AppFormField>
         <AppFormField field="body" :label="t('designer.mailBody')"><Textarea v-model="emailForm.body" rows="5" class="w-full" /></AppFormField>
+      </div>
+    </AppModal>
+
+    <AppModal ref="headerModal" :title="t('invoices.editInvoice')" :loading="busy" @confirm="saveHeader">
+      <div class="flex flex-col gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <AppFormField field="issue_date" :label="t('invoices.issueDate')" required><AppDateInput v-model="(headerForm.issue_date as any)" /></AppFormField>
+          <AppFormField field="due_date" :label="t('invoices.dueDate')"><AppDateInput v-model="(headerForm.due_date as any)" /></AppFormField>
+          <AppFormField field="vat_rate" :label="t('invoices.vatRate')"><InputNumber v-model="headerForm.vat_rate" :min="0" :max="100" :max-fraction-digits="2" suffix=" %" class="w-full" fluid /></AppFormField>
+          <AppFormField field="e_invoice_format" :label="t('invoices.eInvoice')">
+            <Select v-model="headerForm.e_invoice_format" :options="formats" class="w-full">
+              <template #option="{ option }">{{ t(`invoices.eInvoiceFormats.${option}`) }}</template>
+              <template #value="{ value }">{{ value ? t(`invoices.eInvoiceFormats.${value}`) : '' }}</template>
+            </Select>
+          </AppFormField>
+        </div>
+        <AppFormField field="contact_ids" :label="t('invoices.contacts')">
+          <MultiSelect v-model="headerForm.contact_ids" :options="customerContacts" option-label="name" option-value="id" display="chip" class="w-full" />
+        </AppFormField>
+        <AppFormField field="notes" :label="t('common.notes')"><Textarea v-model="headerForm.notes" rows="3" class="w-full" /></AppFormField>
+      </div>
+    </AppModal>
+
+    <AppModal ref="itemModal" :title="editingItem ? t('invoices.editLine') : t('invoices.addLine')" :loading="busy" @confirm="saveItem">
+      <div class="flex flex-col gap-4">
+        <AppFormField field="description" :label="t('time.description')" required><Textarea v-model="itemForm.description" rows="2" auto-resize class="w-full" /></AppFormField>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <AppFormField field="quantity" :label="t('invoices.quantity')" required><InputNumber v-model="itemForm.quantity" :min="0" :max-fraction-digits="2" class="w-full" fluid /></AppFormField>
+          <AppFormField field="unit" :label="t('invoices.unit')">
+            <Select v-model="itemForm.unit" :options="units" class="w-full">
+              <template #option="{ option }">{{ t(`invoices.units.${option}`) }}</template>
+              <template #value="{ value }">{{ value ? t(`invoices.units.${value}`) : '' }}</template>
+            </Select>
+          </AppFormField>
+          <AppFormField field="unit_price" :label="t('invoices.unitPrice')" required><InputNumber v-model="itemForm.unit_price" mode="currency" :currency="invoice.currency" class="w-full" fluid /></AppFormField>
+        </div>
+        <p v-if="editingItem" class="text-xs text-surface-500">{{ t('invoices.lineDeleteHint') }}</p>
       </div>
     </AppModal>
 

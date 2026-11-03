@@ -378,23 +378,39 @@ export const contractsApi = {
     api.post<Invoice>(`${base}/support-contracts/${id}/run_now/`),
 }
 
+export interface ConsolidateRequest {
+  customer_id: string
+  project_id?: string | null
+  bank_account_id?: string | null
+  contact_ids?: string[]
+  date_from?: string | null
+  date_to?: string | null
+  entry_ids?: string[]
+  group_by: string
+  e_invoice_format?: string
+  extra_lines?: Partial<LineItem>[]
+}
+
+export interface ConsolidatePreview {
+  lines: Pick<LineItem, 'description' | 'quantity' | 'unit' | 'unit_price' | 'total'>[]
+  entry_count: number
+  subtotal: string
+  vat_rate: string
+  vat_amount: string
+  total: string
+}
+
 export const invoicesApi = {
   list: (params = '') => api.get<Page<Invoice>>(`${base}/invoices/?${params}`),
   get: (id: string) => api.get<Invoice>(`${base}/invoices/${id}/`),
   update: (id: string, d: Partial<Invoice>) =>
     api.put<Invoice>(`${base}/invoices/${id}/`, d),
+  patch: (id: string, d: Partial<Invoice>) =>
+    api.patch<Invoice>(`${base}/invoices/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/invoices/${id}/`),
-  consolidate: (d: {
-    customer_id: string
-    project_id?: string | null
-    bank_account_id?: string | null
-    contact_ids?: string[]
-    date_from?: string | null
-    date_to?: string | null
-    group_by: string
-    e_invoice_format?: string
-    extra_lines?: Partial<LineItem>[]
-  }) => api.post<Invoice>(`${base}/invoices/consolidate/`, d),
+  consolidate: (d: ConsolidateRequest) => api.post<Invoice>(`${base}/invoices/consolidate/`, d),
+  consolidatePreview: (d: ConsolidateRequest) =>
+    api.post<ConsolidatePreview>(`${base}/invoices/consolidate_preview/`, d),
   finalize: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/finalize/`),
   markSent: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/mark_sent/`),
   cancel: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/cancel/`),
@@ -403,6 +419,13 @@ export const invoicesApi = {
   pdfUrl: (id: string) => `${base}/invoices/${id}/pdf/`,
   xmlUrl: (id: string) => `${base}/invoices/${id}/xrechnung/`,
   previewUrl: (id: string) => `${base}/invoices/${id}/preview/`,
+}
+
+export const invoiceItemsApi = {
+  create: (d: Partial<LineItem>) => api.post<LineItem>(`${base}/invoice-items/`, d),
+  update: (id: string, d: Partial<LineItem>) =>
+    api.patch<LineItem>(`${base}/invoice-items/${id}/`, d),
+  remove: (id: string) => api.delete(`${base}/invoice-items/${id}/`),
 }
 
 export const paymentsApi = {

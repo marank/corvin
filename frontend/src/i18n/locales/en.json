@@ -26,6 +26,7 @@
     "loading": "Loading…",
     "confirm": "Confirm",
     "back": "Back",
+    "next": "Next",
     "download": "Download",
     "send": "Send",
     "yes": "Yes",
@@ -183,7 +184,6 @@
   "invoices": {
     "dateFrom": "Work from",
     "dateTo": "Work until",
-    "entryCount": "{n} entry | {n} entries",
     "emailSent": "Email sent",
     "paymentAdded": "Payment recorded",
     "title": "Invoices",
@@ -222,7 +222,13 @@
     "downloadPdf": "Download PDF",
     "finalizeConfirm": "Finalizing archives the invoice; it can no longer be changed. Continue?",
     "cancelInvoice": "Cancel invoice",
-    "cancelConfirm": "The invoice will be marked as cancelled. This cannot be undone. Continue?"
+    "cancelConfirm": "The invoice will be marked as cancelled. This cannot be undone. Continue?",
+    "reviewStep": "Review & create",
+    "selectedEntries": "{selected} of {total} entries selected",
+    "summary": "Summary",
+    "editInvoice": "Edit invoice",
+    "editLine": "Edit line",
+    "lineDeleteHint": "Deleting a line makes the time entries billed on it billable again."
   },
   "designer": {
     "title": "Invoice designer",

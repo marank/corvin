@@ -6,6 +6,8 @@ from .base import OwnedSerializer
 
 
 class InvoiceLineItemSerializer(OwnedSerializer):
+    owner_fk_fields = ("invoice",)
+
     total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
@@ -23,3 +25,4 @@ class InvoiceLineItemSerializer(OwnedSerializer):
             "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]
+        extra_kwargs = {"position": {"required": False}}

@@ -27,13 +27,15 @@ Status 2026-11-03: Alle Punkte dieser Tabelle sind behoben. Die letzten drei Zei
 ## 2. Workflows, die unintuitiv sind
 
 ### Rechnung erstellen (wichtigster Flow)
-- 🔴 **Entwurf ist nach dem Erstellen nicht editierbar** — weder Positionen, Datum, Fälligkeit, MwSt. noch Notizen. Nur das Bankkonto. Ein Tippfehler heißt: Entwurf löschen, neu anlegen. Gerade der Entwurfsstatus sollte voll bearbeitbar sein.
-- 🟠 Wizard-Schritt 2 listet die Zeiteinträge, **man kann aber keine abwählen**. Es fehlen Betrag/Stundensatz pro Zeile und eine Summe — man sieht erst nach „Erstellen“, was die Rechnung kostet.
-- 🟠 Schritt 3 hat keine Zusammenfassung (Netto/Brutto, Anzahl Rechnungen bei Gruppierung), kein Rechnungs-/Fälligkeitsdatum.
-- 🟡 „Weiter“ heißt „Bestätigen“, Schritt 3 heißt „Rechnungen“, Schritte sind per Klick überspringbar (`:readonly="false"`) → Schritt 3 ohne Kunde erreichbar. Kein Abbrechen-Button.
-- 🟡 Im Schritt 2 ist „Position hinzufügen“ genauso primär wie „Bestätigen“ — zwei konkurrierende Primary-Buttons. Eine leere manuelle Zeile ist immer vorbelegt.
+- ✅ ~~**Entwurf ist nach dem Erstellen nicht editierbar** — weder Positionen, Datum, Fälligkeit, MwSt. noch Notizen. Nur das Bankkonto. Ein Tippfehler heißt: Entwurf löschen, neu anlegen. Gerade der Entwurfsstatus sollte voll bearbeitbar sein.~~ → Kopfdaten (Datum, Fälligkeit, MwSt., E-Rechnung, Kontakte, Notizen) per „Bearbeiten“; Positionen per Zeilenklick bearbeiten, hinzufügen, löschen (`/api/v1/invoice-items/`). Summen werden neu berechnet, die Vorschau lädt neu. Gelöschte Positionen geben ihre Zeiteinträge wieder frei (`TimeEntry.invoice_item`).
+- ✅ ~~Wizard-Schritt 2 listet die Zeiteinträge, **man kann aber keine abwählen**. Es fehlen Betrag/Stundensatz pro Zeile und eine Summe — man sieht erst nach „Erstellen“, was die Rechnung kostet.~~ → Checkboxen pro Eintrag (+ alle), Zwischensumme live über `consolidate_preview`; ein fehlender Stundensatz erscheint als Warnung statt erst beim Erstellen.
+- ✅ ~~Schritt 3 hat keine Zusammenfassung (Netto/Brutto, Anzahl Rechnungen bei Gruppierung), kein Rechnungs-/Fälligkeitsdatum.~~ → Zusammenfassung mit allen Positionen, Netto, MwSt., Brutto; Daten sind am Entwurf editierbar.
+- ✅ ~~„Weiter“ heißt „Bestätigen“, Schritt 3 heißt „Rechnungen“, Schritte sind per Klick überspringbar (`:readonly="false"`) → Schritt 3 ohne Kunde erreichbar. Kein Abbrechen-Button.~~ → „Weiter“, „Prüfen & erstellen“, Abbrechen, Schritte ohne Kunde gesperrt.
+- ✅ ~~Im Schritt 2 ist „Position hinzufügen“ genauso primär wie „Bestätigen“ — zwei konkurrierende Primary-Buttons. Eine leere manuelle Zeile ist immer vorbelegt.~~ → Text-Button, deaktiviert ohne Beschreibung.
 - 🟡 Positionstexte doppeln Infos: „03.11.2026 — Website-Relaunch: Arbeit #0 an Website-Relaunch“.
-- 🟡 Die Positionstabelle links scrollt horizontal; Menge/Preis/Summe sind abgeschnitten, obwohl rechts die Vorschau Platz verschenkt.
+- ✅ ~~Die Positionstabelle links scrollt horizontal; Menge/Preis/Summe sind abgeschnitten, obwohl rechts die Vorschau Platz verschenkt.~~
+- 🟡 Generierte Positionstexte sind teils hart auf Englisch im Backend: „consulting services“ (Gruppierung pro Projekt) und „Services“ bei fehlender Beschreibung (`services/consolidation.py`). Dokumente sollen in `LANGUAGE_CODE` erscheinen.
+- ✅ Positionen werden jetzt chronologisch erzeugt (vorher in der Reihenfolge der Eintrags-IDs).
 - 🟠 Finalisieren scheitert erst im letzten Moment mit „kein Bankkonto mit IBAN hinterlegt“. Diese Voraussetzung sollte schon im Wizard (Schritt 3, Bankkonto) bzw. als Hinweis am Entwurf sichtbar sein, mit Link zu Einstellungen → Bankkonten.
 - 🟡 Im Bestätigungsdialog (Finalisieren) sind „Abbrechen“ und „Finalisieren“ beide gefüllte Primary-Buttons; Abbrechen sollte wie in `AppModal` ein Text-Button sein.
 - 🟡 Im E-Mail-Dialog sind Betreff und Text leer, obwohl bei leeren Feldern die Vorlage greift. Besser mit der Vorlage vorbelegen oder als Platzhalter anzeigen.

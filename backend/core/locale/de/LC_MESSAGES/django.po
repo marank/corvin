@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Corvin\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-03 23:15+0100\n"
+"POT-Creation-Date: 2026-11-03 23:41+0100\n"
 "PO-Revision-Date: 2026-11-03 01:10+0100\n"
 "Last-Translator: Corvin\n"
 "Language-Team: German\n"
@@ -78,12 +78,12 @@ msgstr "Alle Kontakte müssen zum Kunden der Rechnung gehören."
 msgid "No hourly rate found for %(customer)s on %(date)s."
 msgstr "Für %(customer)s ist am %(date)s kein Stundensatz hinterlegt."
 
-msgid "No billable, uninvoiced time entries found."
-msgstr "Keine abrechenbaren, noch nicht abgerechneten Zeiteinträge gefunden."
-
 #, python-format
 msgid "Unknown grouping: %(group_by)s"
 msgstr "Unbekannte Gruppierung: %(group_by)s"
+
+msgid "No billable, uninvoiced time entries found."
+msgstr "Keine abrechenbaren, noch nicht abgerechneten Zeiteinträge gefunden."
 
 #, python-format
 msgid "Missing required fields: %(fields)s"
@@ -93,7 +93,9 @@ msgid "Username already taken."
 msgstr "Der Benutzername ist bereits vergeben."
 
 msgid "This entry is still used by other records and cannot be deleted."
-msgstr "Dieser Eintrag wird noch von anderen Daten verwendet und kann nicht gelöscht werden."
+msgstr ""
+"Dieser Eintrag wird noch von anderen Daten verwendet und kann nicht gelöscht "
+"werden."
 
 msgid ""
 "This customer still has invoices or time entries and cannot be deleted. "
@@ -104,6 +106,9 @@ msgstr ""
 
 msgid "Only draft invoices can be edited."
 msgstr "Nur Rechnungsentwürfe können bearbeitet werden."
+
+msgid "The customer of an invoice cannot be changed."
+msgstr "Der Kunde einer Rechnung kann nicht geändert werden."
 
 msgid "Only draft invoices can be deleted."
 msgstr "Nur Rechnungsentwürfe können gelöscht werden."
@@ -131,3 +136,6 @@ msgstr "Nur ausgestellte Rechnungen können als gesendet markiert werden."
 
 msgid "Paid invoices cannot be cancelled."
 msgstr "Bezahlte Rechnungen können nicht storniert werden."
+
+msgid "A line item cannot be moved to another invoice."
+msgstr "Eine Position kann nicht in eine andere Rechnung verschoben werden."
