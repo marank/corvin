@@ -329,6 +329,7 @@ export const tasksApi = {
   list: (params = '') => api.get<Page<Task>>(`${base}/tasks/?${params}`),
   create: (d: Partial<Task>) => api.post<Task>(`${base}/tasks/`, d),
   update: (id: string, d: Partial<Task>) => api.put<Task>(`${base}/tasks/${id}/`, d),
+  patch: (id: string, d: Partial<Task>) => api.patch<Task>(`${base}/tasks/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/tasks/${id}/`),
 }
 

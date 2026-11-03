@@ -11,6 +11,7 @@ const severityMap: Record<string, string> = {
   paid: 'success',
   cancelled: 'danger',
   active: 'success',
+  inactive: 'secondary',
   on_hold: 'warn',
   done: 'secondary',
   open: 'info',

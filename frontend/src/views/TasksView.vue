@@ -77,8 +77,15 @@ async function save() {
 }
 
 async function toggleDone(task: Task) {
-  await tasksApi.update(task.id, { status: task.status === 'done' ? 'open' : 'done' })
-  load()
+  // Update locally first so the checkbox follows the bound status, and revert on failure.
+  const previous = task.status
+  task.status = previous === 'done' ? 'open' : 'done'
+  try {
+    await tasksApi.patch(task.id, { status: task.status })
+  } catch (e) {
+    task.status = previous
+    notify.error(e)
+  }
 }
 </script>
 

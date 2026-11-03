@@ -104,7 +104,7 @@ async function save() {
       </Column>
       <Column :header="t('contracts.nextBilling')"><template #body="{ data }"><AppDateTimeDisplay :value="data.next_billing_date" /></template></Column>
       <Column :header="t('common.status')">
-        <template #body="{ data }"><AppStatusTag :status="data.active ? 'active' : 'cancelled'" :label="data.active ? t('customers.active') : '—'" /></template>
+        <template #body="{ data }"><AppStatusTag :status="data.active ? 'active' : 'inactive'" :label="data.active ? t('common.active') : t('common.inactive')" /></template>
       </Column>
       <Column :header="t('common.actions')" :reorderable-column="false">
         <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await contractsApi.remove(data.id); load() })" /></template>

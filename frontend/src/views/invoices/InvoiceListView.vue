@@ -21,7 +21,8 @@ const router = useRouter()
 const confirmDelete = useConfirmDelete()
 const rows = ref<Invoice[]>([])
 const statusFilter = ref<string | null>(null)
-const statuses = ['draft', 'issued', 'paid', 'cancelled']
+const statuses = ['draft', 'issued', 'sent', 'paid', 'cancelled']
+const statusKey = (invoice: Invoice) => invoice.partially_paid ? 'partially_paid' : invoice.status
 const pagination = usePagination(load, '-issue_date')
 const sortOptions = [
   { label: t('invoices.number'), value: 'number' },
@@ -80,7 +81,7 @@ async function load() {
       </Column>
       <Column field="status" :header="t('common.status')" sortable>
         <template #body="{ data }">
-          <AppStatusTag :status="data.partially_paid ? 'partially_paid' : data.status" :label="data.partially_paid ? t('invoices.paid') + ' (teilw.)' : t(`invoices.status.${data.status}`)" />
+          <AppStatusTag :status="statusKey(data)" :label="t(`invoices.status.${statusKey(data)}`)" />
         </template>
       </Column>
       <Column :header="t('common.actions')" :reorderable-column="false">
@@ -96,7 +97,7 @@ async function load() {
           </div>
           <div class="text-end">
             <AppMoneyDisplay :amount="row.total" :currency="row.currency" />
-            <div><AppStatusTag :status="row.status" :label="t(`invoices.status.${row.status}`)" /></div>
+            <div><AppStatusTag :status="statusKey(row)" :label="t(`invoices.status.${statusKey(row)}`)" /></div>
           </div>
         </div>
       </template>

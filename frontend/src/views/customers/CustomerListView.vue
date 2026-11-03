@@ -106,7 +106,7 @@ async function save() {
         <template #body="{ data }"><AppDurationDisplay :minutes="(data.uninvoiced_hours ?? 0) * 60" /></template>
       </Column>
       <Column :header="t('common.status')">
-        <template #body="{ data }"><AppStatusTag :status="data.is_active ? 'active' : 'cancelled'" :label="data.is_active ? t('customers.active') : '—'" /></template>
+        <template #body="{ data }"><AppStatusTag :status="data.is_active ? 'active' : 'inactive'" :label="data.is_active ? t('common.active') : t('common.inactive')" /></template>
       </Column>
       <Column :header="t('common.actions')" :reorderable-column="false">
         <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await customersApi.remove(data.id); load() })" /></template>

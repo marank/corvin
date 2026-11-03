@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 from django.db.models import Count, Q, Sum
+from django.utils.translation import gettext_lazy as _
 
 from core.models import Address, Contact, Customer
 from core.serializers import (
@@ -18,6 +19,10 @@ class CustomerViewSet(OwnedViewSet):
     serializer_class = CustomerSerializer
     filterset_fields = ["is_active"]
     search_fields = ["number", "name", "email", "addresses__city"]
+    protected_message = _(
+        "This customer still has invoices or time entries and cannot be deleted. "
+        "Deactivate the customer instead."
+    )
     ordering_fields = [
         "number",
         "name",

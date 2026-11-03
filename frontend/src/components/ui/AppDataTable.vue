@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T extends { id: string }">
-import { computed, onUnmounted, ref, shallowRef, useSlots, watch } from 'vue'
+import { Fragment, computed, onUnmounted, ref, shallowRef, useSlots, watch, type VNode } from 'vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
@@ -88,6 +88,45 @@ const effectiveSortOptions = computed(() => {
       value: String(node.props?.sortField ?? node.props?.['sort-field'] ?? node.props?.field),
     }))
 })
+
+// Fallback mobile card for tables without a #card slot or mobileCard: the table's own
+// columns as label/value pairs (reusing their #body templates). Columns that can't be
+// reordered (checkboxes, row actions) go in a label-less row at the bottom.
+interface CardColumn {
+  header: string
+  field: string
+  body?: (scope: { data: T; field: string; index: number }) => VNode[]
+  utility: boolean
+}
+
+function flattenNodes(nodes: VNode[]): VNode[] {
+  return nodes.flatMap((node) => node.type === Fragment && Array.isArray(node.children)
+    ? flattenNodes(node.children as VNode[])
+    : [node])
+}
+
+function cardColumns(): CardColumn[] {
+  return flattenNodes(slots.default?.() ?? [])
+    .filter((node) => node.type === Column)
+    .map((node) => {
+      const p = node.props ?? {}
+      const reorderable = p.reorderableColumn ?? p['reorderable-column']
+      return {
+        header: String(p.header ?? ''),
+        field: String(p.field ?? ''),
+        body: (node.children as Record<string, CardColumn['body']> | null)?.body,
+        utility: reorderable === false || reorderable === 'false',
+      }
+    })
+}
+
+function cardValue(column: CardColumn, row: T, index: number): VNode[] | string {
+  if (column.body) return column.body({ data: row, field: column.field, index })
+  const value = column.field ? fieldValue(row, column.field) : null
+  return value == null || value === '' ? '—' : String(value)
+}
+
+const RenderNodes = (props: { nodes: VNode[] | string }) => props.nodes
 
 function fieldValue(row: T, field: string): unknown {
   return field.split('.').reduce<unknown>((value, key) => {
@@ -264,7 +303,7 @@ function toggleSortOrder() {
       <div class="flex flex-col gap-2">
         <AppEmptyState v-if="!loading && rows.length === 0" :message="t('common.empty')" />
         <div
-          v-for="row in visibleMobileRows"
+          v-for="(row, index) in visibleMobileRows"
           :key="row.id"
           class="flex items-start gap-3 border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-3 cursor-pointer"
           @click="handleRowClick(row)"
@@ -278,7 +317,20 @@ function toggleSortOrder() {
           />
           <div class="min-w-0 flex-1">
             <slot name="card" :row="row">
-              <div class="font-medium">{{ mobileCard ? mobileCard(row) : row.id }}</div>
+              <div v-if="mobileCard" class="font-medium">{{ mobileCard(row) }}</div>
+              <template v-else>
+                <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
+                  <template v-for="column in cardColumns().filter((c) => !c.utility)" :key="column.field + column.header">
+                    <dt class="text-surface-500">{{ column.header }}</dt>
+                    <dd class="min-w-0 break-words"><RenderNodes :nodes="cardValue(column, row, index)" /></dd>
+                  </template>
+                </dl>
+                <div v-if="cardColumns().some((c) => c.utility && c.body)" class="flex justify-end gap-1" @click.stop>
+                  <template v-for="(column, i) in cardColumns().filter((c) => c.utility && c.body)" :key="i">
+                    <RenderNodes :nodes="cardValue(column, row, index)" />
+                  </template>
+                </div>
+              </template>
             </slot>
           </div>
         </div>

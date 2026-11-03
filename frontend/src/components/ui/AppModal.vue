@@ -33,9 +33,9 @@ function open() {
   clearFormErrors()
   visible.value = true
 }
+// The Dialog's @hide emits `closed`, for this path as well as Esc and the X button.
 function close() {
   visible.value = false
-  emit('closed')
 }
 
 defineExpose({ open, close })

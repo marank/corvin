@@ -18,6 +18,12 @@ export function useNotify() {
         toast.add({ severity: 'error', summary: summary ?? t('common.error'), life: 5000 })
         return
       }
+      // A bare list of messages (e.g. a model ValidationError) has no fields to map to.
+      if (Array.isArray(err.data)) {
+        clearFormErrors()
+        toast.add({ severity: 'error', summary: summary ?? t('common.error'), detail: errorText(err.data) || undefined, life: 5000 })
+        return
+      }
       const data = err.data as Record<string, unknown>
       setFormErrors(data)
       // Errors for visible fields appear inline; the toast carries the rest.

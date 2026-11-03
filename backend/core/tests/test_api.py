@@ -10,6 +10,7 @@ from core.models import (
     Contact,
     Customer,
     HourlyRate,
+    Invoice,
     TimeEntry,
 )
 
@@ -518,3 +519,21 @@ def test_validation_messages_follow_accept_language(client, customer):
     assert de.status_code == en.status_code == 400
     assert "Keine abrechenbaren" in str(de.json())
     assert "No billable" in str(en.json())
+
+
+@pytest.mark.django_db
+def test_deleting_customer_with_invoices_is_refused(client, user, customer):
+    Invoice.objects.create(owner=user, customer=customer, issue_date=date(2026, 9, 1))
+    url = f"/api/v1/customers/{customer.id}/"
+    de = client.delete(url, HTTP_ACCEPT_LANGUAGE="de")
+    en = client.delete(url, HTTP_ACCEPT_LANGUAGE="en")
+    assert de.status_code == en.status_code == 400
+    assert "stattdessen deaktivieren" in str(de.json())
+    assert "Deactivate the customer" in str(en.json())
+    assert Customer.objects.filter(id=customer.id).exists()
+
+
+@pytest.mark.django_db
+def test_deleting_customer_without_references_succeeds(client, customer):
+    assert client.delete(f"/api/v1/customers/{customer.id}/").status_code == 204
+    assert not Customer.objects.filter(id=customer.id).exists()

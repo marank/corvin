@@ -25,7 +25,7 @@ import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
 import InvoicePreviewFrame from '../../components/InvoicePreviewFrame.vue'
-import { bankAccountsApi, invoicesApi, paymentsApi, type BankAccount, type Invoice } from '../../api'
+import { bankAccountsApi, customersApi, invoicesApi, paymentsApi, type BankAccount, type Invoice } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
 import { useConfirm } from 'primevue/useconfirm'
@@ -51,6 +51,7 @@ const previewUrl = computed(() => invoicesApi.previewUrl(id))
 const pdfUrl = computed(() => invoicesApi.pdfUrl(id))
 const xmlUrl = computed(() => invoicesApi.xmlUrl(id))
 const isDraft = computed(() => invoice.value?.status === 'draft')
+const statusKey = computed(() => invoice.value?.partially_paid ? 'partially_paid' : invoice.value?.status ?? '')
 const canReceivePayment = computed(() => ['issued', 'sent'].includes(invoice.value?.status ?? ''))
 
 async function load() {
@@ -59,7 +60,17 @@ async function load() {
   ])
   invoice.value = loadedInvoice
   bankAccounts.value = accountPage.results.filter((account) => account.is_active)
-  emailForm.value.to = invoice.value.customer_name ? '' : ''
+}
+
+// Prefill the recipient from the invoice contacts, falling back to the customer's address.
+async function openEmail() {
+  if (!invoice.value) return
+  if (!emailForm.value.to) {
+    emailForm.value.to = invoice.value.contacts.find((contact) => contact.email)?.email
+      ?? (await customersApi.get(invoice.value.customer).catch(() => null))?.email
+      ?? ''
+  }
+  emailModal.value?.open()
 }
 
 async function updateBankAccount(value: string | null) {
@@ -126,9 +137,9 @@ async function addPayment() {
   <div v-if="invoice">
     <AppPageHeader :title="invoice.number || '—'" :subtitle="invoice.customer_name">
       <template #actions>
-        <AppStatusTag :status="invoice.partially_paid ? 'partially_paid' : invoice.status" :label="invoice.partially_paid ? t('invoices.status.paid') + ' (teilw.)' : t(`invoices.status.${invoice.status}`)" />
+        <AppStatusTag :status="statusKey" :label="t(`invoices.status.${statusKey}`)" />
         <Button v-if="isDraft" :label="t('invoices.finalize')" icon="pi pi-lock" :loading="busy" @click="confirmFinalize" />
-        <Button v-if="canReceivePayment" :label="t('invoices.sendEmail')" icon="pi pi-send" :loading="busy" @click="emailModal?.open()" />
+        <Button v-if="canReceivePayment" :label="t('invoices.sendEmail')" icon="pi pi-send" :loading="busy" @click="openEmail" />
         <Button v-if="canReceivePayment && Number(invoice.remaining) > 0" :label="t('invoices.addPayment')" icon="pi pi-money-bill" @click="paymentForm.amount = Number(invoice.remaining); paymentModal?.open()" />
         <Button v-if="invoice.status === 'issued'" :label="t('invoices.markSent')" text :loading="busy" @click="act(() => invoicesApi.markSent(id))" />
         <Button v-if="canReceivePayment && Number(invoice.amount_paid) === 0" :label="t('invoices.cancelInvoice')" text severity="danger" :loading="busy" @click="confirmCancel" />
@@ -203,7 +214,7 @@ async function addPayment() {
       </div>
     </div>
 
-    <AppModal ref="emailModal" :title="t('invoices.sendEmail')" @confirm="sendEmail">
+    <AppModal ref="emailModal" :title="t('invoices.sendEmail')" :confirm-label="t('common.send')" @confirm="sendEmail">
       <div class="flex flex-col gap-4">
         <AppFormField field="to" :label="t('common.email')" required><InputText v-model="emailForm.to" class="w-full" /></AppFormField>
         <AppFormField field="subject" :label="t('designer.mailSubject')"><InputText v-model="emailForm.subject" class="w-full" /></AppFormField>
