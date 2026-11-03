@@ -96,13 +96,13 @@ async function save() {
       @row-click="(r: Customer) => router.push(`/customers/${r.id}`)"
     >
       <Column field="number" header="#" sortable />
-      <Column field="name" :header="t('common.name')" sortable />
+      <Column class="app-text" field="name" :header="t('common.name')" sortable />
       <Column :header="t('common.address')">
         <template #body="{ data }">{{ data.primary_address ? `${data.primary_address.postal_code} ${data.primary_address.city}` : '—' }}</template>
       </Column>
       <Column field="email" :header="t('common.email')" sortable />
       <Column field="project_count" :header="t('nav.projects')" sortable />
-      <Column field="uninvoiced_hours" :header="t('customers.uninvoicedHours')" sortable>
+      <Column class="app-num" field="uninvoiced_hours" :header="t('customers.uninvoicedHours')" sortable>
         <template #body="{ data }"><AppDurationDisplay :minutes="(data.uninvoiced_hours ?? 0) * 60" /></template>
       </Column>
       <Column :header="t('common.status')">

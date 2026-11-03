@@ -86,8 +86,8 @@ async function save() {
           <TabPanel value="entries">
             <AppDataTable :rows="entries" :state-key="tableStateKeys.visitTimeEntries">
               <Column field="start_datetime" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template></Column>
-              <Column field="description" :header="t('time.description')" sortable />
-              <Column field="duration_minutes" :header="t('time.duration')" sortable>
+              <Column class="app-text" field="description" :header="t('time.description')" sortable />
+              <Column class="app-num" field="duration_minutes" :header="t('time.duration')" sortable>
                 <template #body="{ data }"><AppDurationDisplay :minutes="data.duration_minutes" /></template>
               </Column>
             </AppDataTable>

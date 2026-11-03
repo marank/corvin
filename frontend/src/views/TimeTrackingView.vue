@@ -117,10 +117,10 @@ const startTimeText = computed(() => {
     >
       <Column field="start_datetime" :header="t('time.start')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template></Column>
       <Column field="end_datetime" :header="t('time.end')" sortable><template #body="{ data }"><AppDateTimeDisplay v-if="data.end_datetime" :value="data.end_datetime" type="datetime" /><span v-else class="text-surface-500">—</span></template></Column>
-      <Column field="project_name" sort-field="project__name" :header="t('projects.project')" sortable />
-      <Column field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
-      <Column field="description" :header="t('time.description')" />
-      <Column field="duration_minutes" :header="t('time.duration')" sortable>
+      <Column class="app-text" field="project_name" sort-field="project__name" :header="t('projects.project')" sortable />
+      <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
+      <Column class="app-text" field="description" :header="t('time.description')" />
+      <Column class="app-num" field="duration_minutes" :header="t('time.duration')" sortable>
         <template #body="{ data }">
           <Tag v-if="data.is_running" :value="t('time.timerRunning')" severity="warn" />
           <AppDurationDisplay v-else :minutes="data.duration_minutes" />

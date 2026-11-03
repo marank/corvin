@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T extends { id: string }">
-import { Fragment, computed, onUnmounted, ref, shallowRef, useSlots, watch, type VNode } from 'vue'
+import { Fragment, computed, getCurrentInstance, onUnmounted, ref, shallowRef, useSlots, watch, type VNode } from 'vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
@@ -61,6 +61,8 @@ desktopQuery.addEventListener('change', onMediaChange)
 onUnmounted(() => desktopQuery.removeEventListener('change', onMediaChange))
 
 const slots = useSlots()
+// Only tables whose parent listens to row-click (or that are in selection mode) look clickable.
+const hasRowClickListener = !!getCurrentInstance()?.vnode.props?.onRowClick
 const localFirst = ref(props.first)
 const localPageSize = ref(props.pageSize)
 const localSortField = ref(props.sortField)
@@ -157,6 +159,13 @@ const currentPageRows = computed(() => props.lazy
   ? props.rows
   : sortedRows.value.slice(localFirst.value, localFirst.value + localPageSize.value))
 
+// Truncated free-text cells (td.app-text, see style.css) get their full text as tooltip.
+function showTruncatedText(event: MouseEvent) {
+  const cell = (event.target as HTMLElement).closest?.('td.app-text') as HTMLElement | null
+  if (!cell) return
+  cell.title = cell.scrollWidth > cell.clientWidth ? (cell.textContent ?? '').trim() : ''
+}
+
 function updateSelection(rows: T[]) {
   selectedRows.value = rows
   emit('selectionChange', rows)
@@ -248,6 +257,7 @@ function toggleSortOrder() {
 
     <DataTable
       v-if="isDesktop"
+      @mouseover="showTruncatedText"
       :value="rows"
       :loading="loading"
       :lazy="lazy"
@@ -267,7 +277,7 @@ function toggleSortOrder() {
       paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
       :current-page-report-template="t('table.pageReport')"
       class="border border-surface-200 dark:border-surface-800"
-      :row-class="() => 'cursor-pointer'"
+      :row-class="() => (hasRowClickListener || selectionMode ? 'cursor-pointer' : '')"
       :selection="selectionMode ? selectedRows : undefined"
       data-key="id"
       @update:selection="(rows: T[]) => updateSelection(rows ?? [])"
@@ -300,12 +310,13 @@ function toggleSortOrder() {
           @click="toggleSortOrder"
         />
       </div>
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-1.5">
         <AppEmptyState v-if="!loading && rows.length === 0" :message="t('common.empty')" />
         <div
           v-for="(row, index) in visibleMobileRows"
           :key="row.id"
-          class="flex items-start gap-3 border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-3 cursor-pointer"
+          class="flex items-start gap-3 border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-3 py-2 text-sm"
+          :class="{ 'cursor-pointer': hasRowClickListener || selectionMode }"
           @click="handleRowClick(row)"
         >
           <Checkbox
@@ -319,7 +330,7 @@ function toggleSortOrder() {
             <slot name="card" :row="row">
               <div v-if="mobileCard" class="font-medium">{{ mobileCard(row) }}</div>
               <template v-else>
-                <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
+                <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5">
                   <template v-for="column in cardColumns().filter((c) => !c.utility)" :key="column.field + column.header">
                     <dt class="text-surface-500">{{ column.header }}</dt>
                     <dd class="min-w-0 break-words"><RenderNodes :nodes="cardValue(column, row, index)" /></dd>

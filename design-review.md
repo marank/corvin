@@ -93,6 +93,19 @@ Status 2026-11-03: Alle Punkte dieser Tabelle sind behoben. Die letzten drei Zei
 
 ## 3a. Tabellen-Redesign (Wunsch: alle Tabellen überarbeiten)
 
+**Status 2026-11-03: umgesetzt.**
+- **Header:** `0.8125rem`, gedämpft, `font-weight 500`, eigener Hintergrund (`surface-50` hell, `surface-950` dunkel). Sortier-Icon erscheint nur bei Hover und in der sortierten Spalte; die blaue Fläche der sortierten Spalte ist weg.
+- **Zeilen:** 38 px statt 49 px; `text-sm`, `tabular-nums`, kleinere Tags; die Icon-Buttons treiben die Zeilenhöhe nicht mehr.
+- **Zahlenspalten:** Beträge, Dauern und Mengen sind über `<Column class="app-num">` rechtsbündig.
+- **Textspalten:** Name, Beschreibung, Kunde, Projekt usw. sind über `<Column class="app-text">` einzeilig mit „…“ und teilen sich den Restplatz, mit Tooltip bei abgeschnittenem Text. Es gibt kein horizontales Scrollen mehr.
+- **Zeilenaktionen:** Sie sind gedimmt (35 %) statt unsichtbar.
+- **Klickbarkeit:** `cursor-pointer` erscheint nur bei Tabellen mit `@row-click`.
+- **Mobile-Karten:** Sie sind kompakter.
+- **Gespeicherte Spaltenbreiten:** Die Tabellen-State-Keys wurden versioniert angehoben, weil alte Spaltenbreiten aus `localStorage` das neue Layout sonst zusammengedrückt hätten. Dadurch werden Sortierung und Spaltenbreiten einmalig zurückgesetzt.
+- **Offen:** Die Toolbar („Auswählen“ in eigener Zeile über der Tabelle) und der Dichte-Umschalter sind nicht umgesetzt.
+
+Ursprünglicher Befund:
+
 🟠 Die Tabellen wirken überdimensioniert und gehören neu gestaltet, aber im bestehenden Stil der App: flach, eckig, Aura-Surface-Töne, Primary als Akzent.
 
 - **Header zu groß/zu laut:**

@@ -30,4 +30,39 @@ export const FlatPreset = definePreset(Aura, {
       950: '{blue.950}',
     },
   },
+  components: {
+    // Compact tables: quiet header, ~38px rows. Font size, casing and the
+    // sort-icon visibility live in style.css (no tokens for those).
+    datatable: {
+      headerCell: {
+        padding: '0.5rem 0.75rem',
+        color: '{text.muted.color}',
+        hoverColor: '{text.color}',
+        selectedColor: '{primary.color}',
+      },
+      columnTitle: { fontWeight: '500' },
+      bodyCell: { padding: '0.5rem 0.75rem' },
+      sortIcon: { size: '0.75rem' },
+      colorScheme: {
+        light: {
+          headerCell: {
+            background: '{surface.50}',
+            hoverBackground: '{surface.100}',
+            selectedBackground: '{surface.50}',
+          },
+          row: { hoverBackground: '{surface.50}' },
+          bodyCell: { borderColor: '{surface.100}' },
+        },
+        dark: {
+          headerCell: {
+            background: '{surface.950}',
+            hoverBackground: '{surface.800}',
+            selectedBackground: '{surface.950}',
+          },
+          row: { hoverBackground: '{surface.800}' },
+          bodyCell: { borderColor: '{surface.800}' },
+        },
+      },
+    },
+  },
 })

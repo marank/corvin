@@ -187,7 +187,7 @@ async function importTemplate(event: Event) {
             :state-key="tableStateKeys.documentTemplates"
             @row-click="(r: DocumentTemplate) => router.push(`/templates/${r.id}`)"
           >
-            <Column field="name" :header="t('common.name')" sortable />
+            <Column class="app-text" field="name" :header="t('common.name')" sortable />
             <Column field="page_size" :header="t('designer.pageSize')" sortable />
             <Column :header="t('common.actions')" :reorderable-column="false">
               <template #body="{ data }">
@@ -207,7 +207,7 @@ async function importTemplate(event: Event) {
             :sort-order="textBlockPagination.sortOrder.value" :sort-options="textBlockSortOptions"
             :state-key="tableStateKeys.textBlocks" @state-restore="textBlockPagination.onRestore" @page="textBlockPagination.onPage" @sort="textBlockPagination.onSort" @row-click="openTextBlock"
           >
-            <Column field="name" :header="t('common.name')" sortable />
+            <Column class="app-text" field="name" :header="t('common.name')" sortable />
             <Column field="key" :header="t('designer.textBlockKey')" sortable />
             <Column :header="t('common.actions')" :reorderable-column="false">
               <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeTextBlock(data)" /></template>

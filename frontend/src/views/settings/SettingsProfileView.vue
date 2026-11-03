@@ -348,7 +348,7 @@ async function save() {
               <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openBankAccount()" />
             </div>
             <AppDataTable :rows="bankAccounts" :state-key="tableStateKeys.settingsBankAccounts" @row-click="openBankAccount">
-              <Column field="name" :header="t('common.name')" sortable />
+              <Column class="app-text" field="name" :header="t('common.name')" sortable />
               <Column field="bank_name" :header="t('settings.bankName')" sortable />
               <Column field="account_holder" :header="t('settings.accountHolder')" sortable />
               <Column field="iban" :header="t('settings.iban')" sortable />

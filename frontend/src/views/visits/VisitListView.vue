@@ -78,9 +78,9 @@ async function save() {
     >
       <Column field="number" header="#" sortable />
       <Column field="date" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
-      <Column field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
-      <Column field="project_name" sort-field="project__name" :header="t('nav.projects')" sortable />
-      <Column field="location" :header="t('visits.location')" sortable />
+      <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
+      <Column class="app-text" field="project_name" sort-field="project__name" :header="t('nav.projects')" sortable />
+      <Column class="app-text" field="location" :header="t('visits.location')" sortable />
       <Column :header="t('common.actions')" :reorderable-column="false">
         <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await visitsApi.remove(data.id); load() })" /></template>
       </Column>

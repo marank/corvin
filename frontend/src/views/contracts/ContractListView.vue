@@ -91,15 +91,15 @@ async function save() {
       @row-click="(r: SupportContract) => router.push(`/contracts/${r.id}`)"
     >
       <Column field="number" header="#" sortable />
-      <Column field="name" :header="t('common.name')" sortable />
-      <Column field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
+      <Column class="app-text" field="name" :header="t('common.name')" sortable />
+      <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
       <Column field="period" :header="t('contracts.period')" sortable>
         <template #body="{ data }">{{ t(`contracts.periods.${data.period}`) }}</template>
       </Column>
-      <Column :header="t('contracts.includedHours')">
+      <Column class="app-num" :header="t('contracts.includedHours')">
         <template #body="{ data }"><AppNumberDisplay :value="data.included_hours" />h</template>
       </Column>
-      <Column field="fixed_price" :header="t('contracts.fixedPrice')" sortable>
+      <Column class="app-num" field="fixed_price" :header="t('contracts.fixedPrice')" sortable>
         <template #body="{ data }"><AppMoneyDisplay :amount="data.fixed_price" /></template>
       </Column>
       <Column :header="t('contracts.nextBilling')"><template #body="{ data }"><AppDateTimeDisplay :value="data.next_billing_date" /></template></Column>

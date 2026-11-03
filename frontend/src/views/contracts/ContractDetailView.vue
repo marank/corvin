@@ -84,8 +84,8 @@ async function runNow() {
     <h2 class="font-semibold mt-6 mb-2">{{ t('time.title') }}</h2>
     <AppDataTable :rows="entries" :state-key="tableStateKeys.contractTimeEntries">
       <Column field="start_datetime" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template></Column>
-      <Column field="description" :header="t('time.description')" sortable />
-      <Column field="duration_minutes" :header="t('time.duration')" sortable>
+      <Column class="app-text" field="description" :header="t('time.description')" sortable />
+      <Column class="app-num" field="duration_minutes" :header="t('time.duration')" sortable>
         <template #body="{ data }"><AppDurationDisplay :minutes="data.duration_minutes" /></template>
       </Column>
     </AppDataTable>
@@ -94,7 +94,7 @@ async function runNow() {
     <AppDataTable :rows="invoices" :state-key="tableStateKeys.contractInvoices" @row-click="(r: Invoice) => router.push(`/invoices/${r.id}`)">
       <Column field="number" :header="t('invoices.number')" sortable />
       <Column field="issue_date" :header="t('invoices.issueDate')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.issue_date" /></template></Column>
-      <Column field="total" :header="t('common.total')" sortable>
+      <Column class="app-num" field="total" :header="t('common.total')" sortable>
         <template #body="{ data }"><AppMoneyDisplay :amount="data.total" /></template>
       </Column>
     </AppDataTable>

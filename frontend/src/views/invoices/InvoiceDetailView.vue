@@ -163,12 +163,12 @@ async function addPayment() {
 
         <AppDataTable :rows="invoice.items" :state-key="tableStateKeys.invoiceItems">
           <Column field="position" header="#" class="w-10" sortable />
-          <Column field="description" :header="t('time.description')" sortable />
-          <Column :header="t('invoices.quantity')"><template #body="{ data }"><AppNumberDisplay :value="data.quantity" /></template></Column>
-          <Column :header="t('invoices.unitPrice')">
+          <Column class="app-text" field="description" :header="t('time.description')" sortable />
+          <Column class="app-num" :header="t('invoices.quantity')"><template #body="{ data }"><AppNumberDisplay :value="data.quantity" /></template></Column>
+          <Column class="app-num" :header="t('invoices.unitPrice')">
             <template #body="{ data }"><AppMoneyDisplay :amount="data.unit_price" :currency="invoice!.currency" /></template>
           </Column>
-          <Column :header="t('common.total')">
+          <Column class="app-num" :header="t('common.total')">
             <template #body="{ data }"><AppMoneyDisplay :amount="data.total" :currency="invoice!.currency" /></template>
           </Column>
         </AppDataTable>
@@ -195,10 +195,10 @@ async function addPayment() {
             <TabPanel value="payments">
               <AppDataTable :rows="invoice.payments" :state-key="tableStateKeys.invoicePayments">
                 <Column field="date" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
-                <Column field="amount" :header="t('common.total')" sortable>
+                <Column class="app-num" field="amount" :header="t('common.total')" sortable>
                   <template #body="{ data }"><AppMoneyDisplay :amount="data.amount" :currency="invoice.currency" /></template>
                 </Column>
-                <Column field="note" :header="t('common.notes')" sortable />
+                <Column class="app-text" field="note" :header="t('common.notes')" sortable />
                 <Column :header="t('common.actions')" :reorderable-column="false">
                   <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await paymentsApi.remove(data.id); load() })" /></template>
                 </Column>

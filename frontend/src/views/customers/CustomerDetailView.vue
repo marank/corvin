@@ -289,7 +289,7 @@ async function saveRate() {
           </div>
           <AppDataTable :rows="rates" :state-key="tableStateKeys.customerRates">
             <Column field="valid_from" :header="t('customers.validFrom')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.valid_from" /></template></Column>
-            <Column :header="t('customers.hourlyRate')">
+            <Column class="app-num" :header="t('customers.hourlyRate')">
               <template #body="{ data }"><AppMoneyDisplay :amount="data.amount" />/h</template>
             </Column>
             <Column field="valid_to" :header="t('customers.validTo')">

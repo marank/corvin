@@ -81,15 +81,15 @@ async function save() {
       @row-click="(r: Project) => router.push(`/projects/${r.id}`)"
     >
       <Column field="number" header="#" sortable />
-      <Column field="name" :header="t('common.name')" sortable />
-      <Column field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
+      <Column class="app-text" field="name" :header="t('common.name')" sortable />
+      <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
       <Column field="status" :header="t('common.status')" sortable>
         <template #body="{ data }"><AppStatusTag :status="data.status" :label="t(`projects.status.${data.status}`)" /></template>
       </Column>
-      <Column :header="t('projects.usedHours')">
+      <Column class="app-num" :header="t('projects.usedHours')">
         <template #body="{ data }"><AppDurationDisplay :minutes="data.used_hours * 60" /></template>
       </Column>
-      <Column :header="t('projects.budgetHours')">
+      <Column class="app-num" :header="t('projects.budgetHours')">
         <template #body="{ data }"><AppNumberDisplay :value="data.budget_hours" /></template>
       </Column>
       <Column :header="t('common.actions')" :reorderable-column="false">

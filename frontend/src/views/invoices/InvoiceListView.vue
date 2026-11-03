@@ -67,13 +67,13 @@ async function load() {
       @row-click="(r: Invoice) => router.push(`/invoices/${r.id}`)"
     >
       <Column field="number" :header="t('invoices.number')" sortable />
-      <Column field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
+      <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
       <Column field="issue_date" :header="t('invoices.issueDate')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.issue_date" /></template></Column>
       <Column field="due_date" :header="t('invoices.dueDate')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.due_date" /></template></Column>
-      <Column field="total" :header="t('common.total')" sortable>
+      <Column class="app-num" field="total" :header="t('common.total')" sortable>
         <template #body="{ data }"><AppMoneyDisplay :amount="data.total" :currency="data.currency" /></template>
       </Column>
-      <Column :header="t('invoices.remaining')">
+      <Column class="app-num" :header="t('invoices.remaining')">
         <template #body="{ data }">
           <AppMoneyDisplay v-if="Number(data.remaining) > 0 && data.status !== 'draft'" :amount="data.remaining" :currency="data.currency" />
           <span v-else>—</span>

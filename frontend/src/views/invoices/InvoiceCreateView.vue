@@ -162,21 +162,21 @@ async function create() {
       <p class="text-sm text-surface-500 mb-3">{{ t('invoices.entryCount', entrySummary.count) }} · <AppDurationDisplay :minutes="entrySummary.total_minutes" /></p>
       <AppDataTable :rows="entries" :state-key="tableStateKeys.invoiceSourceEntries">
         <Column field="start_datetime" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template></Column>
-        <Column field="project_name" :header="t('projects.project')" sortable />
-        <Column field="description" :header="t('time.description')" sortable />
-        <Column field="duration_minutes" :header="t('time.duration')" sortable>
+        <Column class="app-text" field="project_name" :header="t('projects.project')" sortable />
+        <Column class="app-text" field="description" :header="t('time.description')" sortable />
+        <Column class="app-num" field="duration_minutes" :header="t('time.duration')" sortable>
           <template #body="{ data }"><AppDurationDisplay :minutes="data.duration_minutes" /></template>
         </Column>
       </AppDataTable>
 
       <h3 class="font-medium mt-6 mb-2">{{ t('invoices.manualLines') }}</h3>
       <AppDataTable v-if="manualLines.length" :rows="manualLines" :state-key="tableStateKeys.invoiceManualLines" class="mb-3">
-        <Column field="description" :header="t('time.description')" sortable />
-        <Column field="quantity" :header="t('invoices.quantity')" sortable />
-        <Column :header="t('invoices.unitPrice')">
+        <Column class="app-text" field="description" :header="t('time.description')" sortable />
+        <Column class="app-num" field="quantity" :header="t('invoices.quantity')" sortable />
+        <Column class="app-num" :header="t('invoices.unitPrice')">
           <template #body="{ data }"><AppMoneyDisplay :amount="data.unit_price" /></template>
         </Column>
-        <Column :header="t('common.total')">
+        <Column class="app-num" :header="t('common.total')">
           <template #body="{ data }"><AppMoneyDisplay :amount="data.quantity * data.unit_price" /></template>
         </Column>
         <Column :header="t('common.actions')" :reorderable-column="false">

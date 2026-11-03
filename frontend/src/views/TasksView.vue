@@ -115,9 +115,9 @@ async function toggleDone(task: Task) {
         <template #body="{ data }"><Checkbox :model-value="data.status === 'done'" binary @click.stop @change="toggleDone(data)" /></template>
       </Column>
       <Column field="number" header="#" sortable />
-      <Column field="title" :header="t('common.name')" sortable style="min-width: 14rem" />
-      <Column field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
-      <Column field="project_name" sort-field="project__name" :header="t('projects.project')" sortable />
+      <Column class="app-text" field="title" :header="t('common.name')" sortable style="min-width: 14rem" />
+      <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
+      <Column class="app-text" field="project_name" sort-field="project__name" :header="t('projects.project')" sortable />
       <Column field="due_date" :header="t('tasks.dueDate')" sortable>
         <template #body="{ data }"><AppDateTimeDisplay :value="data.due_date" :class="{ 'text-red-500 font-medium': isOverdue(data) }" /></template>
       </Column>
