@@ -9,7 +9,9 @@ Project management for IT consultants: customers, projects with budgets, tasks, 
 
 ## Branding
 
-Name **Corvin**, from Latin *corvus*, the raven: Odin's ravens Hugin and Munin stand for thought and memory, and the *Bibliotheca Corviniana* was one of the great archives of the Renaissance. Mark: a raven head from basic shapes, a half circle in violet and blue with a cyan beak (`branding/corvin-mark.svg`). Wordmark in Space Grotesk 600 (OFL-1.1, self-hosted via `@fontsource/space-grotesk`). In the app: `src/components/ui/AppLogo.vue`; `frontend/public/favicon.svg` adapts to dark mode, `apple-touch-icon.png` is rendered from the mark on white.
+Name **Corvin**, from Latin *corvus*, the raven: Odin's ravens Hugin and Munin stand for thought and memory, and the *Bibliotheca Corviniana* was one of the great archives of the Renaissance. Mark: a raven head from basic shapes, a half circle in violet and blue with a cyan beak (`branding/corvin-mark.svg`). Wordmark in Space Grotesk 600 (OFL-1.1, self-hosted via `@fontsource/space-grotesk`). In the app: `src/components/ui/AppLogo.vue`; `frontend/public/favicon.svg` adapts to dark mode.
+
+`branding/` holds the mark (SVG, PNG 256/512, multi-size ICO), the lockup with the wordmark as outlines (`corvin-logo.svg`, `corvin-logo-white.svg` for dark backgrounds, PNG) and the link-preview image. `frontend/public/` gets `favicon.ico`, the manifest icons (`icon-192/512.png`, `icon-maskable-512.png`), `apple-touch-icon.png`, `og-image.png` and `manifest.webmanifest` (PWA install on Android/desktop). All raster files come from `scripts/brand-assets.py` (usage in its docstring) — change the mark there and rerun instead of editing PNGs by hand.
 
 ## Local development (Windows, no Docker)
 

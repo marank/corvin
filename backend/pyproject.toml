@@ -1,7 +1,7 @@
 [project]
-name = "projectmanager-backend"
+name = "corvin-backend"
 version = "0.1.0"
-description = "Project management app for IT consultants — Django backend"
+description = "Corvin — project management for IT consultants, Django backend"
 license = "AGPL-3.0-or-later"
 requires-python = ">=3.15"
 dependencies = [

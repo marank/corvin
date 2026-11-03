@@ -17,7 +17,7 @@ def test_template_export_import_round_trip(user, invoice_template):
     assert exported.status_code == 200
     assert exported["Content-Disposition"].endswith('.json"')
     payload = exported.json()
-    assert payload["format"] == "projectmanager.document-template"
+    assert payload["format"] == "corvin.document-template"
     assert payload["version"] == 1
     assert payload["template"]["primary_color"] == "#123456"
     assert "id" not in payload["template"]

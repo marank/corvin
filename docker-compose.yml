@@ -3,8 +3,8 @@ services:
     image: postgres:18
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-projectmanager}
-      POSTGRES_USER: ${POSTGRES_USER:-pm}
+      POSTGRES_DB: ${POSTGRES_DB:-corvin}
+      POSTGRES_USER: ${POSTGRES_USER:-corvin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
     volumes:
       # PostgreSQL 18+ keeps its data under /var/lib/postgresql/<major>/docker, so
@@ -18,12 +18,12 @@ services:
 
   backend:
     build: ./backend
-    image: ${BACKEND_IMAGE:-projectmanager-backend}
+    image: ${BACKEND_IMAGE:-corvin-backend}
     restart: unless-stopped
     env_file: .env
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.production
-      DATABASE_URL: postgres://${POSTGRES_USER:-pm}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-projectmanager}
+      DATABASE_URL: postgres://${POSTGRES_USER:-corvin}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-corvin}
     volumes:
       - media:/app/media
     depends_on:
@@ -42,12 +42,12 @@ services:
   # Creates the invoices of due support contracts once a day (process_recurring).
   # Same image as the backend; idempotent, so a restart never bills twice.
   scheduler:
-    image: ${BACKEND_IMAGE:-projectmanager-backend}
+    image: ${BACKEND_IMAGE:-corvin-backend}
     restart: unless-stopped
     env_file: .env
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.production
-      DATABASE_URL: postgres://${POSTGRES_USER:-pm}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-projectmanager}
+      DATABASE_URL: postgres://${POSTGRES_USER:-corvin}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-corvin}
       TZ: ${TIME_ZONE:-Europe/Berlin}
       RUN_AT: ${RECURRING_TIME:-06:00}
     command: ["sh", "scripts/daily.sh", "python", "manage.py", "process_recurring"]
@@ -68,7 +68,7 @@ services:
 
   frontend:
     build: ./frontend
-    image: ${FRONTEND_IMAGE:-projectmanager-frontend}
+    image: ${FRONTEND_IMAGE:-corvin-frontend}
     restart: unless-stopped
     environment:
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
@@ -98,8 +98,8 @@ services:
     user: postgres
     environment:
       PGHOST: db
-      PGDATABASE: ${POSTGRES_DB:-projectmanager}
-      PGUSER: ${POSTGRES_USER:-pm}
+      PGDATABASE: ${POSTGRES_DB:-corvin}
+      PGUSER: ${POSTGRES_USER:-corvin}
       PGPASSWORD: ${POSTGRES_PASSWORD}
       TZ: ${TIME_ZONE:-Europe/Berlin}
       BACKUP_TIME: ${BACKUP_TIME:-02:30}

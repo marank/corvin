@@ -94,7 +94,7 @@ class DocumentTemplateViewSet(OwnedViewSet):
         for field in ("id", "created_at", "updated_at"):
             data.pop(field, None)
         payload = {
-            "format": "projectmanager.document-template",
+            "format": "corvin.document-template",
             "version": 1,
             "template": data,
         }
@@ -114,7 +114,7 @@ class DocumentTemplateViewSet(OwnedViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if (
-            payload.get("format") != "projectmanager.document-template"
+            payload.get("format") != "corvin.document-template"
             or payload.get("version") != 1
             or not isinstance(payload.get("template"), dict)
         ):
