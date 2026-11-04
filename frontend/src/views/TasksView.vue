@@ -1,15 +1,16 @@
 <script setup lang="ts">
+import AppEnumSelect from '../components/ui/AppEnumSelect.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
-import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
 import AppDataTable from '../components/ui/AppDataTable.vue'
 import AppIconButton from '../components/ui/AppIconButton.vue'
 import AppStatusTag from '../components/ui/AppStatusTag.vue'
+import AppPriority from '../components/ui/AppPriority.vue'
 import AppModal from '../components/ui/AppModal.vue'
 import AppFormField from '../components/ui/AppFormField.vue'
 import AppFilterBar, { type ActiveFilter } from '../components/ui/AppFilterBar.vue'
@@ -127,27 +128,15 @@ async function toggleDone(task: Task) {
             <ProjectSelect v-model="filters.project" :customer-id="filters.customer" :placeholder="t('common.allProjects')" @select="(p) => names.project = p?.name ?? ''" />
           </AppFormField>
           <AppFormField :label="t('common.status')">
-            <Select v-model="filters.status" :options="statuses" :placeholder="t('common.all')" show-clear class="w-full">
-              <template #option="{ option }">{{ t(`tasks.status.${option}`) }}</template>
-              <template #value="{ value, placeholder }">
-                <span v-if="value">{{ t(`tasks.status.${value}`) }}</span>
-                <span v-else class="text-surface-500">{{ placeholder }}</span>
-              </template>
-            </Select>
+            <AppEnumSelect v-model="filters.status" :options="statuses" label-prefix="tasks.status" :placeholder="t('common.all')" show-clear class="w-full" />
           </AppFormField>
           <AppFormField :label="t('tasks.priority')">
-            <Select v-model="filters.priority" :options="priorities" :placeholder="t('common.all')" show-clear class="w-full">
-              <template #option="{ option }">{{ t(`tasks.priorities.${option}`) }}</template>
-              <template #value="{ value, placeholder }">
-                <span v-if="value">{{ t(`tasks.priorities.${value}`) }}</span>
-                <span v-else class="text-surface-500">{{ placeholder }}</span>
-              </template>
-            </Select>
+            <AppEnumSelect v-model="filters.priority" :options="priorities" label-prefix="tasks.priorities" :placeholder="t('common.all')" show-clear class="w-full" />
           </AppFormField>
         </AppFilterBar>
       </template>
       <Column :header="''" class="w-8" :reorderable-column="false">
-        <template #body="{ data }"><AppIconButton :icon="data.status === 'done' ? 'pi pi-check-circle' : 'pi pi-circle'" :class="data.status === 'done' ? 'text-green-600! opacity-100!' : 'opacity-100!'" :aria-label="data.status === 'done' ? t('tasks.reopen') : t('tasks.markDone')" :title="data.status === 'done' ? t('tasks.reopen') : t('tasks.markDone')" @click.stop="toggleDone(data)" /></template>
+        <template #body="{ data }"><AppIconButton :icon="data.status === 'done' ? 'pi pi-check-circle' : 'pi pi-circle'" :class="data.status === 'done' ? 'text-success! opacity-100!' : 'opacity-100!'" :aria-label="data.status === 'done' ? t('tasks.reopen') : t('tasks.markDone')" :title="data.status === 'done' ? t('tasks.reopen') : t('tasks.markDone')" @click.stop="toggleDone(data)" /></template>
       </Column>
       <Column field="number" :header="t('common.numberShort')" sortable />
       <Column class="app-text" field="title" :header="t('tasks.task')" sortable>
@@ -156,10 +145,10 @@ async function toggleDone(task: Task) {
       <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
       <Column class="app-text" field="project_name" sort-field="project__name" :header="t('projects.project')" sortable />
       <Column field="due_date" :header="t('tasks.dueDate')" sortable>
-        <template #body="{ data }"><AppDateTimeDisplay :value="data.due_date" :class="{ 'text-red-500 font-medium': isOverdue(data) }" /></template>
+        <template #body="{ data }"><AppDateTimeDisplay :value="data.due_date" :class="{ 'text-danger font-medium': isOverdue(data) }" /></template>
       </Column>
       <Column field="priority" :header="t('tasks.priority')" sortable>
-        <template #body="{ data }"><AppStatusTag :status="data.priority" :label="t(`tasks.priorities.${data.priority}`)" /></template>
+        <template #body="{ data }"><AppPriority :priority="data.priority" /></template>
       </Column>
       <Column field="status" :header="t('common.status')" sortable>
         <template #body="{ data }"><AppStatusTag :status="data.status" :label="t(`tasks.status.${data.status}`)" /></template>
@@ -169,33 +158,26 @@ async function toggleDone(task: Task) {
       </Column>
       <template #card="{ row }">
         <div class="flex items-center gap-2">
-          <AppIconButton :icon="row.status === 'done' ? 'pi pi-check-circle' : 'pi pi-circle'" :class="{ 'text-green-600!': row.status === 'done' }" :aria-label="row.status === 'done' ? t('tasks.reopen') : t('tasks.markDone')" @click.stop="toggleDone(row)" />
+          <AppIconButton :icon="row.status === 'done' ? 'pi pi-check-circle' : 'pi pi-circle'" :class="{ 'text-success!': row.status === 'done' }" :aria-label="row.status === 'done' ? t('tasks.reopen') : t('tasks.markDone')" @click.stop="toggleDone(row)" />
           <span class="font-medium flex-1" :class="{ 'line-through text-surface-500': row.status === 'done' }">{{ row.title }}</span>
-          <AppStatusTag :status="row.priority" :label="t(`tasks.priorities.${row.priority}`)" />
+          <AppPriority :priority="row.priority" />
         </div>
       </template>
     </AppDataTable>
 
-    <AppModal ref="modal" :form="form" :title="editing ? t('tasks.edit') : t('tasks.new')" @confirm="save">
+    <AppModal ref="modal" :form="form" :title="editing ? `${t('tasks.edit')} · ${editing.number}` : t('tasks.new')" @confirm="save">
       <div class="flex flex-col gap-4">
-        <AppFormField field="number" v-if="editing" :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
         <AppFormField field="title" :label="t('tasks.task')" required><InputText v-model="form.title" class="w-full" /></AppFormField>
         <AppFormField field="customer" :label="t('projects.customer')"><CustomerSelect v-model="form.customer" /></AppFormField>
         <AppFormField field="project" :label="t('projects.project')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
         <AppFormField field="description" :label="t('time.description')"><Textarea v-model="form.description" rows="2" class="w-full" /></AppFormField>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <AppFormField field="due_date" :label="t('tasks.dueDate')"><AppDateInput v-model="(form.due_date as any)" /></AppFormField>
           <AppFormField :label="t('tasks.priority')">
-            <Select v-model="form.priority" :options="priorities" class="w-full">
-              <template #option="{ option }">{{ t(`tasks.priorities.${option}`) }}</template>
-              <template #value="{ value }">{{ value ? t(`tasks.priorities.${value}`) : '' }}</template>
-            </Select>
+            <AppEnumSelect v-model="form.priority" :options="priorities" label-prefix="tasks.priorities" class="w-full" />
           </AppFormField>
           <AppFormField :label="t('common.status')">
-            <Select v-model="form.status" :options="statuses" class="w-full">
-              <template #option="{ option }">{{ t(`tasks.status.${option}`) }}</template>
-              <template #value="{ value }">{{ value ? t(`tasks.status.${value}`) : '' }}</template>
-            </Select>
+            <AppEnumSelect v-model="form.status" :options="statuses" label-prefix="tasks.status" class="w-full" />
           </AppFormField>
         </div>
       </div>

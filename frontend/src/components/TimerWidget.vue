@@ -18,6 +18,7 @@ const notify = useNotify()
 const stoppedEntry = ref<TimeEntry | null>(null)
 const askModal = ref<InstanceType<typeof AppModal>>()
 const entryModal = ref<InstanceType<typeof AppModal>>()
+const entryForm = ref<InstanceType<typeof TimeEntryForm>>()
 const startDialog = ref<InstanceType<typeof TimerStartDialog>>()
 
 onMounted(async () => {
@@ -78,15 +79,15 @@ function entrySaved() {
 
   <TimerStartDialog ref="startDialog" />
 
-  <AppModal ref="askModal" :title="t('time.openStoppedEntryTitle')" size="sm" :show-footer="false">
+  <AppModal ref="askModal" :title="t('time.openStoppedEntryTitle')" size="sm">
     <p>{{ t('time.openStoppedEntryPrompt') }}</p>
-    <div class="flex justify-end gap-2 mt-6">
-      <Button :label="t('common.no')" severity="secondary" text class="min-w-20" @click="answerOpenEntry(false)" />
+    <template #footer>
+      <Button :label="t('common.no')" text class="min-w-20" @click="answerOpenEntry(false)" />
       <Button :label="t('common.yes')" class="min-w-20" @click="answerOpenEntry(true)" />
-    </div>
+    </template>
   </AppModal>
 
-  <AppModal ref="entryModal" :title="t('time.editEntry')" size="lg" :show-footer="false" @closed="stoppedEntry = null">
-    <TimeEntryForm v-if="stoppedEntry" :entry="stoppedEntry" @saved="entrySaved" @cancel="entryModal?.close()" />
+  <AppModal ref="entryModal" :form="entryForm?.state" :loading="entryForm?.saving" :title="t('time.editEntry')" size="lg" @confirm="entryForm?.save()" @closed="stoppedEntry = null">
+    <TimeEntryForm v-if="stoppedEntry" ref="entryForm" :entry="stoppedEntry" @saved="entrySaved" />
   </AppModal>
 </template>

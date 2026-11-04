@@ -80,7 +80,7 @@ class TimeEntryViewSet(OwnedViewSet):
     def start(self, request):
         if self.get_queryset().filter(end_datetime__isnull=True).exists():
             return Response(
-                {"detail": "A timer is already running."},
+                {"detail": _("A timer is already running.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         ser = StartTimerSerializer(data=request.data)
@@ -92,7 +92,7 @@ class TimeEntryViewSet(OwnedViewSet):
             ).first()
             if not customer:
                 return Response(
-                    {"customer": ["Invalid customer."]},
+                    {"customer": [_("Invalid customer.")]},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         project = None
@@ -100,7 +100,7 @@ class TimeEntryViewSet(OwnedViewSet):
             project = customer.projects.filter(pk=ser.validated_data["project"]).first()
             if project is None:
                 return Response(
-                    {"project": ["Invalid project."]},
+                    {"project": [_("Invalid project.")]},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         entry = TimeEntry.objects.create(
@@ -124,7 +124,7 @@ class TimeEntryViewSet(OwnedViewSet):
         entry = self._active_entry()
         if not entry:
             return Response(
-                {"detail": "No timer is running."},
+                {"detail": _("No timer is running.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         # close any open break before stopping
@@ -139,13 +139,13 @@ class TimeEntryViewSet(OwnedViewSet):
         entry = self._active_entry()
         if not entry:
             return Response(
-                {"detail": "No timer is running."},
+                {"detail": _("No timer is running.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         open_break = entry.breaks.filter(end_datetime__isnull=True).first()
         if open_break:
             return Response(
-                {"detail": "Timer is already paused."},
+                {"detail": _("Timer is already paused.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         TimeEntryBreak.objects.create(
@@ -166,13 +166,13 @@ class TimeEntryViewSet(OwnedViewSet):
         entry = self._active_entry()
         if not entry:
             return Response(
-                {"detail": "No timer is running."},
+                {"detail": _("No timer is running.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         open_break = entry.breaks.filter(end_datetime__isnull=True).first()
         if not open_break:
             return Response(
-                {"detail": "Timer is not paused."},
+                {"detail": _("Timer is not paused.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         open_break.end_datetime = timezone.localtime()

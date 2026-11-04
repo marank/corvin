@@ -2,6 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 
+import django_filters
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import FileResponse, HttpResponse
 from django.utils import timezone
@@ -17,7 +18,7 @@ from core.serializers import InvoiceSerializer
 from core.services.archiving import archive_invoice
 from core.services.consolidation import consolidate, preview
 from core.services.erechnung import build_xrechnung_xml
-from core.services.mailer import send_invoice_email
+from core.services.mailer import render_invoice_email, send_invoice_email
 from core.services.pdf import render_invoice_html, render_invoice_pdf
 
 from .base import OwnedViewSet
@@ -71,18 +72,35 @@ def _validation_detail(error):
     return {"detail": error.messages}
 
 
+class InvoiceFilter(django_filters.FilterSet):
+    # The dashboard's "open" and "overdue" receivables, as one list filter.
+    receivable = django_filters.ChoiceFilter(
+        choices=[("open", "open"), ("overdue", "overdue")], method="filter_receivable"
+    )
+
+    class Meta:
+        model = Invoice
+        fields = {
+            "customer": ["exact"],
+            "project": ["exact"],
+            "contract": ["exact"],
+            "status": ["exact"],
+            "issue_date": ["gte", "lte"],
+        }
+
+    def filter_receivable(self, queryset, name, value):
+        queryset = queryset.filter(status__in=[Invoice.Status.ISSUED, Invoice.Status.SENT])
+        if value == "overdue":
+            queryset = queryset.filter(due_date__lt=timezone.localdate())
+        return queryset
+
+
 class InvoiceViewSet(OwnedViewSet):
     queryset = Invoice.objects.select_related(
         "customer", "project", "contract", "template"
     ).prefetch_related("contacts", "items", "payments")
     serializer_class = InvoiceSerializer
-    filterset_fields = {
-        "customer": ["exact"],
-        "project": ["exact"],
-        "contract": ["exact"],
-        "status": ["exact"],
-        "issue_date": ["gte", "lte"],
-    }
+    filterset_class = InvoiceFilter
     search_fields = ["number", "customer__name", "notes"]
     ordering_fields = [
         "issue_date",
@@ -298,6 +316,12 @@ class InvoiceViewSet(OwnedViewSet):
     def preview(self, request, pk=None):
         invoice = self.get_object()
         return HttpResponse(render_invoice_html(invoice), content_type="text/html")
+
+    @action(detail=True, methods=["get"])
+    def email_draft(self, request, pk=None):
+        """The subject and body that are sent when the dialog's fields stay as they are."""
+        subject, body = render_invoice_email(self.get_object())
+        return Response({"subject": subject, "body": body})
 
     @action(detail=True, methods=["post"])
     def send_email(self, request, pk=None):

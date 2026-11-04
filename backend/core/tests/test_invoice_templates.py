@@ -73,3 +73,19 @@ def test_preview_without_any_template_seeds_default(user, customer):
     assert "Industrieweg 5" in html  # customer address
     assert "Rechnungsdatum" in html
     assert DocumentTemplate.objects.filter(owner=user).count() == 1
+    assert "100,00 €" in html  # amounts formatted like in the app, not "100.00 EUR"
+
+
+@pytest.mark.django_db
+def test_template_preview_post_renders_unsaved_changes(user, invoice_template):
+    client = APIClient()
+    client.force_authenticate(user)
+    r = client.post(
+        f"/api/v1/document-templates/{invoice_template.id}/preview/",
+        {"body_html": "<p>Entwurf {{ invoice.number }}</p>"},
+        format="json",
+    )
+    assert r.status_code == 200
+    assert "<p>Entwurf RE-2026-0042</p>" in r.content.decode()
+    invoice_template.refresh_from_db()
+    assert "Entwurf" not in invoice_template.body_html

@@ -24,7 +24,32 @@
   --color-surface-950: var(--p-surface-950);
   --color-primary: var(--p-primary-color);
   --color-primary-contrast: var(--p-primary-contrast-color);
+  --color-danger: var(--app-danger);
+  --color-success: var(--app-success);
   --font-brand: 'Space Grotesk', sans-serif;
+}
+
+/* Status colors from the PrimeVue palette, one shade lighter in dark mode for contrast. */
+:root {
+  --app-danger: var(--p-red-600);
+  --app-success: var(--p-green-600);
+}
+.dark {
+  --app-danger: var(--p-red-400);
+  --app-success: var(--p-green-400);
+}
+
+/* Content card: the one bordered surface for key figures, sections and side panels.
+   In the components layer, so utilities like hover:border-primary still win. */
+@layer components {
+  .app-card {
+    border: 1px solid var(--p-surface-200);
+    background: #fff;
+  }
+  .dark .app-card {
+    border-color: var(--p-surface-800);
+    background: var(--p-surface-900);
+  }
 }
 
 html, body, #app {
@@ -124,4 +149,18 @@ body {
 
 .animate-breathe {
   animation: breathe 1.5s ease-in-out infinite;
+}
+
+/* Route loading indicator under the top bar (AppShell). */
+.app-route-progress.p-progressbar {
+  height: 2px;
+  margin-bottom: -2px;
+  position: relative;
+  z-index: 1;
+  border-radius: 0;
+}
+
+/* Table density "comfortable" (toggle in AppDataTable's toolbar). */
+.app-table-comfortable .p-datatable-tbody > tr > td {
+  padding-block: 0.8125rem;
 }

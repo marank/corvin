@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Corvin\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-03 23:48+0100\n"
+"POT-Creation-Date: 2026-11-04 23:54+0100\n"
 "PO-Revision-Date: 2026-11-03 01:10+0100\n"
 "Last-Translator: Corvin\n"
 "Language-Team: German\n"
@@ -78,6 +78,9 @@ msgstr "Alle Kontakte müssen zum Kunden der Rechnung gehören."
 msgid "No hourly rate found for %(customer)s on %(date)s."
 msgstr "Für %(customer)s ist am %(date)s kein Stundensatz hinterlegt."
 
+msgid "Services"
+msgstr "Leistungen"
+
 #, python-format
 msgid "Unknown grouping: %(group_by)s"
 msgstr "Unbekannte Gruppierung: %(group_by)s"
@@ -89,8 +92,29 @@ msgstr "Keine abrechenbaren, noch nicht abgerechneten Zeiteinträge gefunden."
 msgid "Missing required fields: %(fields)s"
 msgstr "Pflichtangaben fehlen: %(fields)s"
 
+msgid "Invoice {{ invoice.number }}"
+msgstr "Rechnung {{ invoice.number }}"
+
+msgid ""
+"Dear customer,\n"
+"\n"
+"please find attached your invoice."
+msgstr ""
+"Sehr geehrte Damen und Herren,\n"
+"\n"
+"anbei erhalten Sie unsere Rechnung."
+
+msgid "Invalid credentials."
+msgstr "Benutzername oder Passwort ist falsch."
+
+msgid "Invalid code."
+msgstr "Der Code ist ungültig."
+
 msgid "Username already taken."
 msgstr "Der Benutzername ist bereits vergeben."
+
+msgid "Registration is disabled."
+msgstr "Die Registrierung ist deaktiviert."
 
 msgid "This entry is still used by other records and cannot be deleted."
 msgstr ""
@@ -103,6 +127,18 @@ msgid ""
 msgstr ""
 "Zu diesem Kunden gibt es noch Rechnungen oder Zeiteinträge, daher kann er "
 "nicht gelöscht werden. Bitte den Kunden stattdessen deaktivieren."
+
+msgid "Consulting"
+msgstr "Beratung"
+
+msgid "On-site support"
+msgstr "Vor-Ort-Einsatz"
+
+msgid "Invalid template file."
+msgstr "Die Vorlagendatei ist ungültig."
+
+msgid "Unsupported template format or version."
+msgstr "Dieses Vorlagenformat bzw. diese Version wird nicht unterstützt."
 
 msgid "Only draft invoices can be edited."
 msgstr "Nur Rechnungsentwürfe können bearbeitet werden."
@@ -140,5 +176,23 @@ msgstr "Bezahlte Rechnungen können nicht storniert werden."
 msgid "A line item cannot be moved to another invoice."
 msgstr "Eine Position kann nicht in eine andere Rechnung verschoben werden."
 
+msgid "Wrong password."
+msgstr "Das Passwort ist falsch."
+
+msgid "At least 8 characters."
+msgstr "Mindestens 8 Zeichen."
+
 msgid "Invoiced time entries cannot be deleted."
 msgstr "Abgerechnete Zeiteinträge können nicht gelöscht werden."
+
+msgid "A timer is already running."
+msgstr "Es läuft bereits ein Timer."
+
+msgid "No timer is running."
+msgstr "Es läuft kein Timer."
+
+msgid "Timer is already paused."
+msgstr "Der Timer ist bereits pausiert."
+
+msgid "Timer is not paused."
+msgstr "Der Timer ist nicht pausiert."

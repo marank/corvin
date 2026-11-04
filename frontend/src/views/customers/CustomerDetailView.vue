@@ -21,15 +21,13 @@ import AppFormField from '../../components/ui/AppFormField.vue'
 import AppCheckboxField from '../../components/ui/AppCheckboxField.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
-import AppDateInput from '../../components/ui/AppDateInput.vue'
-import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
-import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
+import HourlyRateList from '../../components/HourlyRateList.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
 import RelatedOverview from '../../components/RelatedOverview.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
 import {
-  addressesApi, bankAccountsApi, contactsApi, customersApi, ratesApi,
-  type Address, type BankAccount, type Contact, type Customer, type HourlyRate,
+  addressesApi, bankAccountsApi, contactsApi, customersApi,
+  type Address, type BankAccount, type Contact, type Customer,
 } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
@@ -46,7 +44,6 @@ const id = route.params.id as string
 const customer = ref<Customer | null>(null)
 const contacts = ref<Contact[]>([])
 const addresses = ref<Address[]>([])
-const rates = ref<HourlyRate[]>([])
 const bankAccounts = ref<BankAccount[]>([])
 const saving = ref(false)
 const tab = ref('overview')
@@ -54,18 +51,16 @@ const tab = ref('overview')
 const form = ref<Partial<Customer>>({})
 const { markSaved } = useUnsavedChanges(form)
 const contactModal = ref<InstanceType<typeof AppModal>>()
-const rateModal = ref<InstanceType<typeof AppModal>>()
 const addressModal = ref<InstanceType<typeof AppModal>>()
 const editingContact = ref<Contact | null>(null)
 const contactForm = ref<Partial<Contact>>({ is_invoice_contact: false })
-const editingRate = ref<HourlyRate | null>(null)
-const rateForm = ref<Partial<HourlyRate>>({ amount: 0, valid_from: '', valid_to: null })
 const editingAddress = ref<Address | null>(null)
 const addressForm = ref<Partial<Address>>({ country: 'Deutschland', is_primary: false, is_invoice_address: false, is_delivery_address: false })
 
 const subtitle = computed(() => {
   const a = customer.value?.primary_address
-  return a ? `${a.postal_code} ${a.city}`.trim() : ''
+  const place = a ? `${a.postal_code} ${a.city}`.trim() : ''
+  return [customer.value?.number, place].filter(Boolean).join(' · ')
 })
 
 async function load() {
@@ -74,7 +69,6 @@ async function load() {
   markSaved()
   contacts.value = (await contactsApi.list(id)).results
   addresses.value = (await addressesApi.list(id)).results
-  rates.value = (await ratesApi.list(`customer=${id}&page_size=500`)).results
   bankAccounts.value = (await bankAccountsApi.list()).results.filter((account) => account.is_active)
 }
 const loadFailed = useLoadFailed(load)
@@ -154,38 +148,6 @@ function removeAddress(a: Address) {
     load()
   })
 }
-
-function removeRate(r: HourlyRate) {
-  confirmDelete(async () => {
-    await ratesApi.remove(r.id)
-    rates.value = (await ratesApi.list(`customer=${id}&page_size=500`)).results
-  })
-}
-
-function openRate(rate?: HourlyRate) {
-  editingRate.value = rate ?? null
-  rateForm.value = rate
-    ? { ...rate }
-    : { amount: 0, valid_from: '', valid_to: null }
-  rateModal.value?.open()
-}
-
-async function saveRate() {
-  try {
-    if (editingRate.value) {
-      await ratesApi.update(editingRate.value.id, rateForm.value)
-    } else {
-      await ratesApi.create({ ...rateForm.value, customer: id })
-    }
-    rateModal.value?.close()
-    notify.ok(t('common.saved'))
-    rateForm.value = { amount: 0, valid_from: '', valid_to: null }
-    editingRate.value = null
-    rates.value = (await ratesApi.list(`customer=${id}&page_size=500`)).results
-  } catch (e) {
-    notify.error(e)
-  }
-}
 </script>
 
 <template>
@@ -216,7 +178,6 @@ async function saveRate() {
             <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
               <legend class="ml-4 px-2 font-medium">{{ t('customers.groups.masterData') }}</legend>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AppFormField field="number" :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
                 <AppFormField field="name" :label="t('common.name')"><InputText v-model="form.name" class="w-full" /></AppFormField>
                 <AppCheckboxField v-model="form.is_active" :label="t('customers.active')" />
                 <AppFormField field="notes" :label="t('common.notes')" class="md:col-span-2"><Textarea v-model="form.notes" rows="3" class="w-full" /></AppFormField>
@@ -300,24 +261,7 @@ async function saveRate() {
           </AppDataTable>
         </TabPanel>
         <TabPanel value="rates">
-          <div class="flex justify-end pt-4 mb-2">
-            <Button :label="t('customers.newRate')" icon="pi pi-plus" size="small" @click="openRate()" />
-          </div>
-          <AppDataTable :rows="rates" :state-key="tableStateKeys.customerRates">
-            <Column field="valid_from" :header="t('customers.validFrom')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.valid_from" /></template></Column>
-            <Column class="app-num" :header="t('customers.hourlyRate')">
-              <template #body="{ data }"><AppMoneyDisplay :amount="data.amount" />/h</template>
-            </Column>
-            <Column field="valid_to" :header="t('customers.validTo')">
-              <template #body="{ data }"><AppDateTimeDisplay :value="data.valid_to" /></template>
-            </Column>
-            <Column :header="t('common.actions')" :reorderable-column="false">
-              <template #body="{ data }">
-                <AppIconButton icon="pi pi-pencil" @click.stop="openRate(data)" />
-                <AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeRate(data)" />
-              </template>
-            </Column>
-          </AppDataTable>
+          <div class="pt-4"><HourlyRateList :customer-id="id" /></div>
         </TabPanel>
         <TabPanel value="attachments">
           <div class="pt-4"><AttachmentList model="customer" :object-id="id" /></div>
@@ -347,7 +291,7 @@ async function saveRate() {
           <AppFormField field="city" :label="t('customers.city')" class="col-span-2"><InputText v-model="addressForm.city" class="w-full" /></AppFormField>
         </div>
         <AppFormField field="country" :label="t('customers.country')"><InputText v-model="addressForm.country" class="w-full" /></AppFormField>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <AppCheckboxField v-model="addressForm.is_primary" :label="t('customers.primary')" />
           <AppCheckboxField v-model="addressForm.is_invoice_address" :label="t('customers.invoiceAddress')" />
           <AppCheckboxField v-model="addressForm.is_delivery_address" :label="t('customers.deliveryAddress')" />
@@ -355,13 +299,6 @@ async function saveRate() {
       </div>
     </AppModal>
 
-    <AppModal ref="rateModal" :form="rateForm" :title="editingRate ? t('customers.editRate') : t('customers.newRate')" @confirm="saveRate">
-      <div class="flex flex-col gap-4">
-        <AppFormField field="amount" :label="t('customers.hourlyRate')" required><InputNumber v-model="rateForm.amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
-        <AppFormField field="valid_from" :label="t('customers.validFrom')" required><AppDateInput v-model="(rateForm.valid_from as any)" /></AppFormField>
-        <AppFormField field="valid_to" :label="t('customers.validTo')"><AppDateInput v-model="(rateForm.valid_to as any)" /></AppFormField>
-      </div>
-    </AppModal>
   </div>
   <AppLoadState v-else :failed="loadFailed" back-to="/customers" :back-label="t('nav.customers')" />
 </template>

@@ -189,3 +189,52 @@ def test_invoiced_time_entry_cannot_be_deleted(client, customer, two_entries):
     assert client.delete(f"/api/v1/time-tracking/{first.id}/").status_code == 400
     assert TimeEntry.objects.filter(id=first.id).exists()
     assert client.delete(f"/api/v1/time-tracking/{second.id}/").status_code == 204
+
+
+@pytest.mark.django_db
+def test_line_texts_skip_repeated_project_and_use_language_code(client, customer, make_entry, rate):
+    make_entry(description="Migration der Datenbank")
+    make_entry(d=date(2026, 9, 2), description="Review")
+    make_entry(d=date(2026, 9, 3))
+    client.credentials(HTTP_ACCEPT_LANGUAGE="en")
+    invoice = _consolidate(client, customer)
+    assert [item.description for item in invoice.items.order_by("position")] == [
+        "01.09.2026 — Migration der Datenbank",
+        "02.09.2026 — Migration: Review",
+        "03.09.2026 — Migration: Leistungen",
+    ]
+
+
+@pytest.mark.django_db
+def test_email_draft_falls_back_to_default_in_language_code(client, customer, two_entries):
+    invoice = _consolidate(client, customer)
+    r = client.get(f"/api/v1/invoices/{invoice.id}/email_draft/", HTTP_ACCEPT_LANGUAGE="en")
+    assert r.status_code == 200
+    assert r.json()["subject"] == f"Rechnung {invoice.number}"
+    assert r.json()["body"].startswith("Sehr geehrte")
+
+
+@pytest.mark.django_db
+def test_timer_messages_follow_accept_language(client):
+    assert client.post("/api/v1/time-tracking/stop/", HTTP_ACCEPT_LANGUAGE="de").json() == {
+        "detail": "Es läuft kein Timer."
+    }
+
+
+@pytest.mark.django_db
+def test_receivable_filter_matches_dashboard(client, customer, user):
+    today = date.today()
+    common = {"owner": user, "customer": customer, "issue_date": today, "total": Decimal("10")}
+    Invoice.objects.create(number="R1", status=Invoice.Status.ISSUED, due_date=today, **common)
+    Invoice.objects.create(
+        number="R2", status=Invoice.Status.SENT, due_date=date(2020, 1, 1), **common
+    )
+    Invoice.objects.create(number="R3", status=Invoice.Status.PAID, due_date=today, **common)
+    Invoice.objects.create(number="R4", status=Invoice.Status.DRAFT, due_date=today, **common)
+
+    def numbers(value):
+        r = client.get(f"/api/v1/invoices/?receivable={value}&ordering=number")
+        return [row["number"] for row in r.json()["results"]]
+
+    assert numbers("open") == ["R1", "R2"]
+    assert numbers("overdue") == ["R2"]

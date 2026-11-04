@@ -45,10 +45,11 @@ class DocumentTemplate(OwnedModel):
     mail_subject = models.CharField(
         max_length=255,
         blank=True,
-        default="Invoice {{ invoice.number }}",
+        default="",
+        help_text="Empty: a default in LANGUAGE_CODE.",
     )
     mail_body = models.TextField(
-        blank=True, default="Dear customer,\n\nplease find attached your invoice."
+        blank=True, default="", help_text="Empty: a default in LANGUAGE_CODE."
     )
 
     class Meta:

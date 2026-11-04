@@ -32,14 +32,14 @@ Status 2026-11-03: Alle Punkte dieser Tabelle sind behoben. Die letzten drei Zei
 - ✅ ~~Schritt 3 hat keine Zusammenfassung (Netto/Brutto, Anzahl Rechnungen bei Gruppierung), kein Rechnungs-/Fälligkeitsdatum.~~ → Zusammenfassung mit allen Positionen, Netto, MwSt., Brutto; Daten sind am Entwurf editierbar.
 - ✅ ~~„Weiter“ heißt „Bestätigen“, Schritt 3 heißt „Rechnungen“, Schritte sind per Klick überspringbar (`:readonly="false"`) → Schritt 3 ohne Kunde erreichbar. Kein Abbrechen-Button.~~ → „Weiter“, „Prüfen & erstellen“, Abbrechen, Schritte ohne Kunde gesperrt.
 - ✅ ~~Im Schritt 2 ist „Position hinzufügen“ genauso primär wie „Bestätigen“ — zwei konkurrierende Primary-Buttons. Eine leere manuelle Zeile ist immer vorbelegt.~~ → Text-Button, deaktiviert ohne Beschreibung.
-- 🟡 Positionstexte doppeln Infos: „03.11.2026 — Website-Relaunch: Arbeit #0 an Website-Relaunch“.
+- ✅ ~~Positionstexte doppeln Infos: „03.11.2026 — Website-Relaunch: Arbeit #0 an Website-Relaunch“.~~ → Der Projekt-/Kundenname wird nur noch vorangestellt, wenn die Beschreibung ihn nicht schon enthält.
 - ✅ ~~Die Positionstabelle links scrollt horizontal; Menge/Preis/Summe sind abgeschnitten, obwohl rechts die Vorschau Platz verschenkt.~~
-- 🟡 Generierte Positionstexte sind teils hart auf Englisch im Backend: „consulting services“ (Gruppierung pro Projekt) und „Services“ bei fehlender Beschreibung (`services/consolidation.py`). Dokumente sollen in `LANGUAGE_CODE` erscheinen.
+- ✅ ~~Generierte Positionstexte sind teils hart auf Englisch im Backend: „consulting services“ (Gruppierung pro Projekt) und „Services“ bei fehlender Beschreibung (`services/consolidation.py`). Dokumente sollen in `LANGUAGE_CODE` erscheinen.~~ → Positionstexte werden in `LANGUAGE_CODE` erzeugt („Leistungen“), Beispielpositionen im Designer ebenso.
 - ✅ Positionen werden jetzt chronologisch erzeugt (vorher in der Reihenfolge der Eintrags-IDs).
 - ✅ ~~Finalisieren scheitert erst im letzten Moment mit „kein Bankkonto mit IBAN hinterlegt“. Diese Voraussetzung sollte schon im Wizard (Schritt 3, Bankkonto) bzw. als Hinweis am Entwurf sichtbar sein, mit Link zu Einstellungen → Bankkonten.~~ → Hinweis am Entwurf und im Wizard-Schritt 3 mit Link zu Einstellungen → Bankkonten (`/settings?tab=bankAccounts`).
 - ✅ ~~Im Bestätigungsdialog (Finalisieren) sind „Abbrechen“ und „Finalisieren“ beide gefüllte Primary-Buttons~~ → „Abbrechen“ ist in allen Bestätigungsdialogen ein Text-Button.
-- 🟡 Im E-Mail-Dialog sind Betreff und Text leer, obwohl bei leeren Feldern die Vorlage greift. Besser mit der Vorlage vorbelegen oder als Platzhalter anzeigen.
-- 🟡 Vorschau zeigt „EUR“, die App „€“; der „Entwurf“-Status-Tag steht zwischen den Buttons und sieht selbst wie ein Button aus.
+- ✅ ~~Im E-Mail-Dialog sind Betreff und Text leer, obwohl bei leeren Feldern die Vorlage greift. Besser mit der Vorlage vorbelegen oder als Platzhalter anzeigen.~~ → Neuer Endpunkt `email_draft`; der Dialog ist mit dem gerenderten Betreff und Text vorbelegt (Vorlage der Rechnung bzw. Zuordnung bzw. Standard, Standardtexte jetzt auf Deutsch).
+- ✅ ~~Vorschau zeigt „EUR“, die App „€“; der „Entwurf“-Status-Tag steht zwischen den Buttons und sieht selbst wie ein Button aus.~~ → Standardvorlage nutzt `display_money`/`display_number` (unveränderte bestehende Standardvorlagen per Migration angepasst); der Status-Tag steht neben der Rechnungsnummer.
 
 ### Zeiterfassung
 - ✅ ~~„Timer starten“ legt sofort einen Eintrag **ohne Kunde/Projekt/Beschreibung** an. Stoppt man auf der Seite, kommt keine Nachfrage.~~ → Start-Dialog (Beschreibung, Kunde, Projekt; Projekt füllt den Kunden), überall gleich (Seite und Header-Widget). Stoppen auf der Seite löst denselben Folgedialog aus wie im Widget; beides läuft über den Timer-Store und das Widget.
@@ -49,21 +49,21 @@ Status 2026-11-03: Alle Punkte dieser Tabelle sind behoben. Die letzten drei Zei
 - ✅ ~~Start und Ende wiederholen jeweils das volle Datum~~ → Datum | 19:59–20:44.
 - ✅ ~~Bereits abgerechnete Einträge haben einen Löschen-Button.~~ → ausgeblendet; das Backend lehnt das Löschen abgerechneter Einträge ab.
 - ✅ Kunde/Projekt-Auswahlen lassen sich leeren und haben Platzhalter; ein Projekt fremder Kunden wird beim Kundenwechsel verworfen.
-- 🟡 Backend-Meldungen der Timer-Endpunkte („A timer is already running.“ …) sind nicht übersetzt.
+- ✅ ~~Backend-Meldungen der Timer-Endpunkte („A timer is already running.“ …) sind nicht übersetzt.~~ → Alle bisher literalen API-Meldungen (Timer, Login, 2FA, Passwort, Vorlagenimport) laufen über `gettext`.
 
 ### Filter (alle Listen)
 - ✅ Einheitliche `AppFilterBar` in der Tabellen-Toolbar (`AppDataTable` `#toolbar`, gleiche Zeile wie „Auswählen“): ein „Filter“-Button mit Zähler öffnet die Felder im Popover, aktive Filter erscheinen als entfernbare Chips, rechts optional eine Zusammenfassung. Eingesetzt in Zeiterfassung (Kunde, Projekt, Zeitraum, Status), Rechnungen (Kunde, Status) und Aufgaben (Kunde, Status, Priorität); die Status-Selects im Seitenkopf sind entfallen.
-- 🟡 Kunden, Projekte, Verträge und Termine haben noch keine Filter (Kunden nur die Suche im Seitenkopf); bei Bedarf dieselbe Leiste verwenden.
-- 🟡 Status-/Prioritäts-Selects ohne `option-label` haben als Accessible Name den Rohwert („open“, „in_progress“) statt des übersetzten Textes.
+- ✅ ~~Kunden, Projekte, Verträge und Termine haben noch keine Filter (Kunden nur die Suche im Seitenkopf); bei Bedarf dieselbe Leiste verwenden.~~ → Filterleiste mit Suche für Kunden (Status), Projekte, Verträge (Kunde, Zeitraum, Status) und Termine (Kunde, Projekt).
+- ✅ ~~Status-/Prioritäts-Selects ohne `option-label` haben als Accessible Name den Rohwert („open“, „in_progress“) statt des übersetzten Textes.~~ → Neue `AppEnumSelect` mit übersetzten Optionen ersetzt alle Status-/Prioritäts-/Einheiten-Selects.
 
 ### Aufgaben
 - ✅ ~~Die erste Checkbox-Spalte (Erledigt) ist nicht von einer Auswahl-Checkbox zu unterscheiden; dazu gibt es noch „Auswählen“. Die `#`-Spalte ist leer.~~ → runder Erledigt-Schalter mit Tooltip, erledigte Aufgaben durchgestrichen. Die leere „#“-Spalte kam nur von Testdaten ohne Nummer.
-- 🟡 Erledigte Aufgaben werden in der Tabelle nicht durchgestrichen bzw. ausgegraut (nur auf der Mobile-Karte).
+- ✅ ~~Erledigte Aufgaben werden in der Tabelle nicht durchgestrichen bzw. ausgegraut (nur auf der Mobile-Karte).~~ → In Tabelle und Karte durchgestrichen.
 
 ### Kunden und Projekte
 - ✅ ~~Die Kundendetailseite ist ein reines Bearbeitungsformular: **keine Projekte, Rechnungen, offenen Beträge, Zeiten** des Kunden. Man springt ständig zwischen Listen. Ein „Übersicht“-Tab mit Kennzahlen und verknüpften Listen wäre der größte Hebel. Für Projekte gilt dasselbe: keine Zeiteinträge, Aufgaben, Rechnungen.~~ → Neuer erster Tab „Übersicht“ bei Kunde und Projekt (`RelatedOverview`): Kennzahlen (nicht abgerechnet, offene Rechnungen, offene Aufgaben, aktive Projekte bzw. erfasste Stunden) und Listen für Projekte, letzte Zeiteinträge, Rechnungen und offene Aufgaben. „Alle anzeigen“ öffnet die jeweilige Liste gefiltert (`?customer=`/`?project=`), „Rechnung erstellen“ öffnet den Wizard vorbelegt.
 - ✅ ~~Der Speichern-Button bleibt auf allen Tabs sichtbar, obwohl Ansprechpartner/Adressen/Stundensätze sofort per Modal speichern. Man weiß nicht, was er speichert. Gleiches gilt für Einstellungen (Bankkonten, Bilder) und Vorlagen. Außerdem ist der Seitenkopf nicht sticky, sodass Speichern bei langen Formularen aus dem Bild scrollt.~~ → Speichern nur noch auf Tabs mit Formular (Kunde/Projekt/Vertrag: „Stammdaten“; Einstellungen: Unternehmen, Nummerngenerierung, Zeiterfassung; Vorlagen: Zuordnung).
-- 🟡 Leerer Tab „Stundensätze“ verschweigt, dass der Standardsatz (95 €) greift. Ein Hinweis „Es gilt der Standardsatz …“ fehlt.
+- ✅ ~~Leerer Tab „Stundensätze“ verschweigt, dass der Standardsatz (95 €) greift. Ein Hinweis „Es gilt der Standardsatz …“ fehlt.~~ → Hinweis mit aktuellem Standardsatz und Link; Standardsätze sind neu unter Einstellungen → Stundensätze pflegbar (vorher ging das gar nicht).
 - ✅ ~~Die Projektdetailseite hat eine Tab-Leiste mit genau einem Tab („Anhänge“)~~ → Übersicht / Stammdaten / Anhänge; der Kunden-Tab „Profil“ heißt jetzt „Stammdaten“. Der Vertrag hat weiterhin keine Tabs.
 
 ### Verträge
@@ -74,7 +74,7 @@ Status 2026-11-03: Alle Punkte dieser Tabelle sind behoben. Die letzten drei Zei
 ### Vorlagen
 - ✅ ~~Unter „Zuordnung“ stehen Gutschrift, Angebot, Bestellung, Lieferschein — Belegarten, die es in der App nicht gibt. Gleichzeitig zeigt „Rechnung“ „Keine Vorlage“, obwohl „Standard (DIN A4)“ existiert und benutzt wird. Es bleibt unklar, was eigentlich gilt.~~ → Belegarten bleiben (kommen später); ohne Zuordnung steht jetzt „Standard: <Vorlage>“.
 - ✅ ~~„Neu“ legt sofort eine Vorlage auf dem Server an; wer zurückgeht, behält einen Datenmüll-Eintrag.~~ → Dialog „Neue Vorlage“ mit Name, angelegt erst beim Bestätigen.
-- 🟡 Designer: Die Vorschau ist nicht auf die Breite skaliert (A4 wird rechts abgeschnitten, horizontaler Scroll), die Tabs laufen über („Fußzeilen-HT…“ + Pfeil), Scrollbereiche sind verschachtelt, und die Vorschau aktualisiert erst nach Speichern. Untertitel „Rechnungsdesigner“, obwohl Vorlagen für mehrere Belegarten gedacht sind.
+- ✅ ~~Designer: Die Vorschau ist nicht auf die Breite skaliert (A4 wird rechts abgeschnitten, horizontaler Scroll), die Tabs laufen über („Fußzeilen-HT…“ + Pfeil), Scrollbereiche sind verschachtelt, und die Vorschau aktualisiert erst nach Speichern. Untertitel „Rechnungsdesigner“, obwohl Vorlagen für mehrere Belegarten gedacht sind.~~ → Live-Vorschau ohne Speichern (POST auf die Vorschau-Endpunkte), auf Breite gezoomt, kurze Tab-Namen, Untertitel „Vorlagen-Designer“.
 
 ### Allgemein
 - ✅ ~~**Kein Unsaved-Changes-Schutz** (Formulare, Designer-Editoren, Wizard); auch Esc/X im Modal verwirft Eingaben.~~ → `useUnsavedChanges` fragt vor Routenwechsel/Tab-Schließen (Kunde, Projekt, Vertrag, Termin, Einstellungen, Designer, Wizard); `AppModal` mit `form` fragt bei X/Esc/Abbrechen. Offen: das Zeiteintrag-Modal (eigenes Formular in `TimeEntryForm`).
@@ -83,8 +83,8 @@ Status 2026-11-03: Alle Punkte dieser Tabelle sind behoben. Die letzten drei Zei
 - ✅ ~~„Auswählen“ auf jeder Liste führt ins Leere: Es gibt keine Bulk-Aktionen. Bis welche existieren, den Button entfernen.~~ → Sammel-Löschen „Löschen (n)“ mit Rückfrage; Abgelehntes wird gezählt gemeldet. „Auswahl löschen“ heißt jetzt „Auswahl aufheben“.
 - ✅ ~~Zeilenaktionen (Löschen/Bearbeiten) werden erst beim Hover sichtbar (`style.css:54`), die Spalte „Aktionen“ wirkt leer. Zusätzlich zeigt `cursor-pointer` auf allen Tabellen, auch auf read-only (Rechnungspositionen, Zahlungen).~~ → mit dem Tabellen-Redesign behoben (gedimmt sichtbar, `cursor-pointer` nur bei klickbaren Zeilen).
 - ✅ ~~Fehlendes Feedback: Erfolgs-Toasts fehlen bei Vertrag/Termin anlegen, Aufgaben, Zeiteinträgen, Kunden-Unterobjekten und Einstellungen-Modalen. Ohne `try/catch` laufen TimerWidget, Anhänge, Sitzungen widerrufen und Dashboard-Load. Ohne `:loading` sind viele Modale doppelt absendbar.~~ → Erfolgsmeldungen und Fehlerbehandlung ergänzt (Termin, Aufgaben, Zeiteinträge, Kunden-Unterobjekte, Einstellungen-Modale, Textbausteine, Anhänge inkl. Lösch-Rückfrage und „Hochladen“, Sitzungen abmelden mit Rückfrage, 2FA-Start, Dashboard, Vorlagen).
-- 🟡 Die Dashboard-KPIs (offene/überfällige Rechnungen) sind nicht klickbar. Der Umsatzchart ohne Daten zeigt eine leere 0–1,0-Achse statt eines Empty-States.
-- 🟡 Sicherheit (Passwort, 2FA) ist nur über einen Textlink im Einstellungen-Header erreichbar.
+- ✅ ~~Die Dashboard-KPIs (offene/überfällige Rechnungen) sind nicht klickbar. Der Umsatzchart ohne Daten zeigt eine leere 0–1,0-Achse statt eines Empty-States.~~ → Kennzahlen verlinken auf gefilterte Listen (`?receivable=open|overdue`, `?status=open`, `?from=`), Anzahl als eigene Zeile, Leerzustände statt leerer Achsen.
+- ✅ ~~Sicherheit (Passwort, 2FA) ist nur über einen Textlink im Einstellungen-Header erreichbar.~~ → Konto-Menü oben rechts mit „Sicherheit“ und „Abmelden“.
 
 ## 3. Visuelle Inkonsistenzen / „unschön“
 
@@ -92,15 +92,15 @@ Status 2026-11-03: Alle Punkte dieser Tabelle sind behoben. Die letzten drei Zei
 - ✅ ~~Bei 1440 px scrollen Kunden-, Vertrags-, Zeiterfassungs- und Rechnungspositionstabellen horizontal (lange Namen brechen nicht um, viele Spalten). Lange Texte mit `truncate` + Tooltip versehen, unwichtige Spalten ausblenden.~~ → mit dem Tabellen-Redesign behoben (`app-text`-Spalten mit „…“ und Tooltip).
 - ✅ ~~Der Sprachwähler im Topbar ist abgeschnitten („Deut…“). Er gehört eher in Einstellungen/Benutzermenü; „Abmelden“ als blauer Primary-Link ist zu prominent.~~ → kompakt „🌐 DE“, Abmelden als dezenter Text-Button.
 - ✅ ~~Das Hamburger-Menü erscheint auch auf Desktop, obwohl die Sidebar sichtbar ist.~~ → nur noch unterhalb `lg`.
-- 🟡 Die Login-Seite ist sehr karg: nur Platzhalter statt Labels, eigene Fehlerdarstellung, kein Hintergrund/Branding.
-- 🟡 Rote Töne gibt es doppelt (`text-red-500` vs. `--p-red-500`). Das aktive Nav-Item nutzt `bg-blue-50` statt Primary-Token, die Vorschau `bg-neutral-200`, und `text-green-600` hat im Dark Mode schlechten Kontrast. Dazu kommen hart codierte Hex-Farben im Dashboard.
-- 🟡 Karten: Dashboard/Rechnung mit Hintergrund, Vertrag/Projekt/Sicherheit ohne. Überschriften mal `h2 font-semibold`, mal `h3 font-medium`, mal `fieldset legend`. Tab-Panels mal mit, mal ohne `pt-4`. Formularbreiten `max-w-lg`/`2xl`/`3xl`/`4xl` gemischt.
-- 🟡 Formate: ~~Dauer `5h` (Verträge)~~ (behoben) vs. `5:00 h` vs. `HH:MM` (TimeEntryForm). Budget „40“ ohne Einheit neben „10:15 h“ — besser als Fortschrittsbalken. Auf dem Dashboard steht „(0)“ winzig hinter Beträgen.
-- 🟡 „Mittel“ (Priorität) und „Offen“ (Status) haben dieselbe blaue Tag-Farbe.
-- 🟡 Die Nummer erscheint auf Detailseiten als (scheinbar editierbares) Input statt im Header-Untertitel. Visit-Titel zeigen ein ISO-Datum.
-- 🟡 Es gibt drei verschiedene Upload-Patterns, und der Anhang-Upload ist mit „Erstellen“ beschriftet.
-- 🟡 Modale: Buttons stehen mal im Footer, mal im Body, mal zentriert. Grid-Layouts in Modalen (`grid-cols-3/5`) werden auf dem Handy zu eng.
-- 🟡 Seitenwechsel zeigen kurz eine komplett weiße Seite (Lazy-Route ohne Skeleton).
+- ✅ ~~Die Login-Seite ist sehr karg: nur Platzhalter statt Labels, eigene Fehlerdarstellung, kein Hintergrund/Branding.~~ → Labels, Markenhintergrund und Akzentlinie, Fehler als `Message`, OTP-Hinweis.
+- ✅ ~~Rote Töne gibt es doppelt (`text-red-500` vs. `--p-red-500`). Das aktive Nav-Item nutzt `bg-blue-50` statt Primary-Token, die Vorschau `bg-neutral-200`, und `text-green-600` hat im Dark Mode schlechten Kontrast. Dazu kommen hart codierte Hex-Farben im Dashboard.~~ → Tokens `text-danger`/`text-success`/`bg-danger` (im Dark Mode heller), Chart-Farben aus PrimeVue-Tokens.
+- ✅ ~~Karten: Dashboard/Rechnung mit Hintergrund, Vertrag/Projekt/Sicherheit ohne. Überschriften mal `h2 font-semibold`, mal `h3 font-medium`, mal `fieldset legend`. Tab-Panels mal mit, mal ohne `pt-4`. Formularbreiten `max-w-lg`/`2xl`/`3xl`/`4xl` gemischt.~~ → Gemeinsame `.app-card`, Abschnittsüberschriften `h2 font-semibold`, alle Tab-Panels mit `pt-4`. Bewusst gelassen: schmale Einspalten-Formulare (`max-w-lg`) neben `max-w-3xl` für Seitenformulare.
+- ✅ ~~Formate: ~~Dauer `5h` (Verträge)~~ (behoben) vs. `5:00 h` vs. `HH:MM` (TimeEntryForm). Budget „40“ ohne Einheit neben „10:15 h“ — besser als Fortschrittsbalken. Auf dem Dashboard steht „(0)“ winzig hinter Beträgen.~~ → Projektliste zeigt „verbraucht / Budget h“ mit Mini-Balken, Dashboard-Anzahl als eigene Zeile, Einheit „h“ übersetzt. `HH:MM` bleibt als Eingabeformat in der Zeiterfassung.
+- ✅ ~~„Mittel“ (Priorität) und „Offen“ (Status) haben dieselbe blaue Tag-Farbe.~~ → Priorität als Icon + Text statt Tag.
+- ✅ ~~Die Nummer erscheint auf Detailseiten als (scheinbar editierbares) Input statt im Header-Untertitel. Visit-Titel zeigen ein ISO-Datum.~~ → Nummernfelder entfernt, Nummer im Untertitel bzw. Modaltitel.
+- ✅ ~~Es gibt drei verschiedene Upload-Patterns, und der Anhang-Upload ist mit „Erstellen“ beschriftet.~~ → Beschriftung „Hochladen“. Die drei Upload-Wege (Anhänge, Firmenbilder, Vorlagenimport) bleiben bewusst unterschiedlich, weil sie Verschiedenes tun.
+- ✅ ~~Modale: Buttons stehen mal im Footer, mal im Body, mal zentriert. Grid-Layouts in Modalen (`grid-cols-3/5`) werden auf dem Handy zu eng.~~ → Alle Buttons im Footer (Zeiteintrag, Timer-Nachfrage, 2FA); Raster in Modalen werden auf dem Handy einspaltig. Zeiteintrag hat jetzt auch die Verwerfen-Nachfrage.
+- ✅ ~~Seitenwechsel zeigen kurz eine komplett weiße Seite (Lazy-Route ohne Skeleton).~~ → Schmaler Ladebalken unter der Kopfzeile, sobald ein Seitenwechsel länger als 120 ms dauert.
 
 ## 3a. Tabellen-Redesign (Wunsch: alle Tabellen überarbeiten)
 
@@ -113,7 +113,7 @@ Status 2026-11-03: Alle Punkte dieser Tabelle sind behoben. Die letzten drei Zei
 - **Klickbarkeit:** `cursor-pointer` erscheint nur bei Tabellen mit `@row-click`.
 - **Mobile-Karten:** Sie sind kompakter.
 - **Gespeicherte Spaltenbreiten:** Die Tabellen-State-Keys wurden versioniert angehoben, weil alte Spaltenbreiten aus `localStorage` das neue Layout sonst zusammengedrückt hätten. Dadurch werden Sortierung und Spaltenbreiten einmalig zurückgesetzt.
-- **Offen:** Die Toolbar („Auswählen“ in eigener Zeile über der Tabelle) und der Dichte-Umschalter sind nicht umgesetzt.
+- **Toolbar und Dichte:** „Auswählen“, Filterleiste und Suche teilen sich eine Zeile; daneben schaltet ein Icon-Button global zwischen kompakt und „Mehr Abstand“ (pro Browser gespeichert).
 
 Ursprünglicher Befund:
 
@@ -170,7 +170,7 @@ Ursprünglicher Befund:
   - „Leitweg-ID“ → „Käuferreferenz (Leitweg-ID)“.
   - „Start“ → „Beginn“.
   - „PDF wird erstellt..“ (zwei Punkte).
-- 🟡 Hart codiert: „PLZ“, „Deutschland“, „/h“, „h“-Suffixe, „(teilw.)“, „●“, englische Designer-Labels („contact loop“) sowie die `iframe`-Titel.
+- ✅ ~~Hart codiert: „PLZ“, „Deutschland“, „/h“, „h“-Suffixe, „(teilw.)“, „●“, englische Designer-Labels („contact loop“) sowie die `iframe`-Titel.~~ → Restliche Texte übersetzt (Designer-Schleife, aktuelle Sitzung, iframe-Titel, Stundeneinheit).
 - ✅ Du/Sie ist durchgängig „Sie“; de/en-Keys sind vollständig.
 
 ## 5. Empfohlene Reihenfolge

@@ -21,7 +21,7 @@ import {
 import { useNotify } from '../composables/useNotify'
 
 const props = defineProps<{ entry?: TimeEntry | null }>()
-const emit = defineEmits<{ saved: [entry: TimeEntry]; cancel: [] }>()
+const emit = defineEmits<{ saved: [entry: TimeEntry] }>()
 const { t } = useI18n()
 const notify = useNotify()
 
@@ -179,6 +179,10 @@ async function save() {
     saving.value = false
   }
 }
+
+// The surrounding AppModal renders Save/Cancel and checks `state` for unsaved changes.
+const state = computed(() => ({ ...form.value, customer: customerId.value }))
+defineExpose({ save, saving, state })
 </script>
 
 <template>
@@ -190,21 +194,21 @@ async function save() {
     <AppFormField v-if="contracts.length" field="contract" :label="t('time.coveredByContract')">
       <Select v-model="form.contract" :options="contractOptions" option-label="name" option-value="id" class="w-full" />
     </AppFormField>
-    <div class="grid grid-cols-5 gap-3">
-      <AppFormField field="start_datetime" class="col-span-2" :label="t('time.start')" required><AppDateTimeInput v-model="form.start_datetime" /></AppFormField>
-      <AppFormField field="end_datetime" class="col-span-2" :label="t('time.end')"><AppDateTimeInput v-model="form.end_datetime" /></AppFormField>
+    <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+      <AppFormField field="start_datetime" class="sm:col-span-2" :label="t('time.start')" required><AppDateTimeInput v-model="form.start_datetime" /></AppFormField>
+      <AppFormField field="end_datetime" class="sm:col-span-2" :label="t('time.end')"><AppDateTimeInput v-model="form.end_datetime" /></AppFormField>
       <AppFormField :label="t('time.duration')">
         <InputText :value="durationText" class="w-full" @input="onDurationInput(($event.target as HTMLInputElement).value)" />
       </AppFormField>
     </div>
-    <div class="grid grid-cols-5 gap-3">
-      <AppFormField class="col-span-2" :label="t('time.normalizedStart')">
+    <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+      <AppFormField class="sm:col-span-2" :label="t('time.normalizedStart')">
         <div class="min-h-10 flex items-center px-3 border border-surface-300 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 text-sm">
           <AppDateTimeDisplay v-if="props.entry?.normalized_start_datetime" :value="props.entry.normalized_start_datetime" type="datetime" />
           <span v-else class="text-surface-500">—</span>
         </div>
       </AppFormField>
-      <AppFormField class="col-span-2" :label="t('time.normalizedEnd')">
+      <AppFormField class="sm:col-span-2" :label="t('time.normalizedEnd')">
         <div class="min-h-10 flex items-center px-3 border border-surface-300 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 text-sm">
           <AppDateTimeDisplay v-if="props.entry?.normalized_end_datetime" :value="props.entry.normalized_end_datetime" type="datetime" />
           <span v-else class="text-surface-500">—</span>
@@ -222,11 +226,11 @@ async function save() {
         <span class="text-sm font-medium">{{ t('time.breaks') }}</span>
         <Button :label="t('time.addBreak')" icon="pi pi-plus" size="small" text @click="addBreak" />
       </div>
-      <div v-for="(b, index) in form.breaks" :key="index" class="grid grid-cols-5 gap-3 items-end">
-        <AppFormField class="col-span-2" :label="t('time.start')">
+      <div v-for="(b, index) in form.breaks" :key="index" class="grid grid-cols-[1fr_1fr_auto] sm:grid-cols-5 gap-3 items-end">
+        <AppFormField class="sm:col-span-2" :label="t('time.start')">
           <AppDateTimeInput v-model="b.start_datetime" />
         </AppFormField>
-        <AppFormField class="col-span-2" :label="t('time.end')">
+        <AppFormField class="sm:col-span-2" :label="t('time.end')">
           <AppDateTimeInput v-model="b.end_datetime" />
         </AppFormField>
         <AppIconButton icon="pi pi-trash" severity="danger" :aria-label="t('common.delete')" @click="removeBreak(index)" />
@@ -236,9 +240,5 @@ async function save() {
       <Textarea v-model="form.description" rows="3" class="w-full" />
     </AppFormField>
     <AppCheckboxField v-model="form.billable" :label="t('time.billable')" />
-    <div class="flex justify-end gap-2">
-      <Button :label="t('common.cancel')" text @click="emit('cancel')" />
-      <Button :label="t('common.save')" :loading="saving" @click="save" />
-    </div>
   </div>
 </template>

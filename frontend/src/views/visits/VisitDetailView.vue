@@ -67,7 +67,7 @@ async function save() {
 
 <template>
   <div v-if="visit">
-    <AppPageHeader back-to="/visits" :back-label="t('nav.visits')" :title="`${visit.customer_name} — ${dayjs(visit.date).format(formatting.dateFormat)}`" :subtitle="visit.location">
+    <AppPageHeader back-to="/visits" :back-label="t('nav.visits')" :title="`${visit.customer_name} — ${dayjs(visit.date).format(formatting.dateFormat)}`" :subtitle="[visit.number, visit.location].filter(Boolean).join(' · ')">
       <template #actions>
         <Button :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await visitsApi.remove(id); router.push('/visits') })" />
         <Button :label="t('common.save')" :loading="saving" @click="save" />
@@ -76,7 +76,6 @@ async function save() {
 
     <div class="flex flex-wrap items-start gap-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl flex-[1_1_48rem]">
-        <AppFormField field="number" :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
         <AppFormField field="customer" :label="t('projects.customer')"><CustomerSelect v-model="form.customer" /></AppFormField>
         <AppFormField field="project" :label="t('projects.project')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
         <AppFormField field="date" :label="t('common.date')"><AppDateInput v-model="(form.date as any)" /></AppFormField>
@@ -92,7 +91,7 @@ async function save() {
           <Tab value="attachments">{{ t('customers.attachments') }}</Tab>
         </TabList>
         <TabPanels>
-          <TabPanel value="entries">
+          <TabPanel value="entries" class="pt-4">
             <AppDataTable :rows="entries" :state-key="tableStateKeys.visitTimeEntries">
               <Column field="start_datetime" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template></Column>
               <Column class="app-text" field="description" :header="t('time.description')" sortable />
@@ -101,7 +100,7 @@ async function save() {
               </Column>
             </AppDataTable>
           </TabPanel>
-          <TabPanel value="attachments"><AttachmentList model="onsitevisit" :object-id="id" /></TabPanel>
+          <TabPanel value="attachments" class="pt-4"><AttachmentList model="onsitevisit" :object-id="id" /></TabPanel>
         </TabPanels>
       </Tabs>
     </div>

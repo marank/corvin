@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppEnumSelect from '../../components/ui/AppEnumSelect.vue'
 import { ref } from 'vue'
 import { useLoadFailed } from '../../composables/useLoadFailed'
 import { useI18n } from 'vue-i18n'
@@ -6,7 +7,6 @@ import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import ProgressBar from 'primevue/progressbar'
 import Tabs from 'primevue/tabs'
@@ -63,7 +63,7 @@ async function save() {
 
 <template>
   <div v-if="project">
-    <AppPageHeader back-to="/projects" :back-label="t('nav.projects')" :title="project.name" :subtitle="project.customer_name">
+    <AppPageHeader back-to="/projects" :back-label="t('nav.projects')" :title="project.name" :subtitle="[project.number, project.customer_name].filter(Boolean).join(' · ')">
       <template #actions>
         <Button :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await projectsApi.remove(id); router.push('/projects') })" />
         <Button v-if="tab === 'overview'" :label="t('overview.createInvoice')" icon="pi pi-file" @click="router.push(`/invoices/new?customer=${project.customer}&project=${id}`)" />
@@ -81,19 +81,19 @@ async function save() {
         <TabPanel value="overview">
           <div class="flex flex-col gap-4 pt-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
+              <div class="app-card p-4">
                 <div class="flex justify-between text-sm mb-1">
                   <span>{{ t('projects.usedHours') }}</span>
                   <span class="tabular-nums"><AppDurationDisplay :minutes="project.used_hours * 60" /> / <AppDurationDisplay :minutes="project.budget_hours == null ? null : project.budget_hours * 60" /></span>
                 </div>
-                <ProgressBar :value="project.budget_hours_percent ?? 0" :show-value="false" :pt="{ value: { class: (project.budget_hours_percent ?? 0) >= 80 ? 'bg-red-500' : '' } }" />
+                <ProgressBar :value="project.budget_hours_percent ?? 0" :show-value="false" :pt="{ value: { class: (project.budget_hours_percent ?? 0) >= 80 ? 'bg-danger' : '' } }" />
               </div>
-              <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
+              <div class="app-card p-4">
                 <div class="flex justify-between text-sm mb-1">
                   <span>{{ t('projects.usedAmount') }}</span>
                   <span class="tabular-nums"><AppMoneyDisplay :amount="project.used_amount" /> / <AppMoneyDisplay :amount="project.budget_amount" /></span>
                 </div>
-                <ProgressBar :value="project.budget_amount_percent ?? 0" :show-value="false" :pt="{ value: { class: (project.budget_amount_percent ?? 0) >= 80 ? 'bg-red-500' : '' } }" />
+                <ProgressBar :value="project.budget_amount_percent ?? 0" :show-value="false" :pt="{ value: { class: (project.budget_amount_percent ?? 0) >= 80 ? 'bg-danger' : '' } }" />
               </div>
             </div>
             <RelatedOverview scope="project" :id="id" />
@@ -101,14 +101,10 @@ async function save() {
         </TabPanel>
         <TabPanel value="details">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl pt-4">
-            <AppFormField field="number" :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
             <AppFormField field="customer" :label="t('projects.customer')"><CustomerSelect v-model="form.customer" /></AppFormField>
             <AppFormField field="name" :label="t('common.name')"><InputText v-model="form.name" class="w-full" /></AppFormField>
             <AppFormField :label="t('common.status')">
-              <Select v-model="form.status" :options="statuses" class="w-full">
-                <template #option="{ option }">{{ t(`projects.status.${option}`) }}</template>
-                <template #value="{ value }">{{ value ? t(`projects.status.${value}`) : '' }}</template>
-              </Select>
+              <AppEnumSelect v-model="form.status" :options="statuses" label-prefix="projects.status" class="w-full" />
             </AppFormField>
             <AppFormField field="rounding_increment_minutes" :label="t('customers.rounding')"><InputNumber v-model="form.rounding_increment_minutes" :min="0" class="w-full" /></AppFormField>
             <AppFormField field="budget_hours" :label="t('projects.budgetHours')"><InputNumber v-model="form.budget_hours" class="w-full" /></AppFormField>

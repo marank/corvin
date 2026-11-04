@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
+import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import QRCode from 'qrcode'
@@ -101,8 +102,8 @@ function revokeOthers() {
   <div>
     <AppPageHeader back-to="/settings" :back-label="t('nav.settings')" :title="t('settings.security')" />
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
-      <section class="border border-surface-200 dark:border-surface-800 p-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl">
+      <section class="app-card p-4">
         <h2 class="font-semibold mb-3">{{ t('settings.changePassword') }}</h2>
         <div class="flex flex-col gap-3">
           <AppFormField :label="t('settings.oldPassword')"><Password v-model="oldPw" :feedback="false" class="w-full" input-class="w-full" /></AppFormField>
@@ -111,7 +112,7 @@ function revokeOthers() {
         </div>
       </section>
 
-      <section class="border border-surface-200 dark:border-surface-800 p-4">
+      <section class="app-card p-4">
         <h2 class="font-semibold mb-3">{{ t('settings.totp') }}</h2>
         <p class="text-sm text-surface-500 mb-3">
           {{ auth.user?.totp_enabled ? t('settings.totpEnabled') : t('settings.totpDisabled') }}
@@ -120,7 +121,7 @@ function revokeOthers() {
         <Button v-else :label="t('settings.totpDisable')" severity="danger" text @click="disableModal?.open()" />
       </section>
 
-      <section class="border border-surface-200 dark:border-surface-800 p-4 md:col-span-2">
+      <section class="app-card p-4 md:col-span-2">
         <div class="flex items-center justify-between mb-3">
           <h2 class="font-semibold">{{ t('settings.sessions') }}</h2>
           <Button :label="t('settings.revokeOthers')" size="small" text @click="revokeOthers" />
@@ -128,26 +129,36 @@ function revokeOthers() {
         <ul class="divide-y divide-surface-200 dark:divide-surface-800 text-sm">
           <li v-for="s in sessions" :key="s.key" class="py-2 flex justify-between">
             <span class="font-mono truncate max-w-72">{{ s.key }}</span>
-            <span class="text-surface-500">{{ s.current ? '●' : '' }} <AppDateTimeDisplay :value="s.expire_date" type="datetime" /></span>
+            <span class="flex items-center gap-2 text-surface-500">
+              <Tag v-if="s.current" :value="t('settings.currentSession')" severity="success" />
+              {{ t('settings.expires') }} <AppDateTimeDisplay :value="s.expire_date" type="datetime" />
+            </span>
           </li>
         </ul>
       </section>
     </div>
 
-    <AppModal ref="totpModal" :title="t('settings.totp')" :show-footer="false">
+    <AppModal ref="totpModal" :title="t('settings.totp')">
       <div v-if="!backupCodes.length" class="flex flex-col items-center gap-4">
         <img v-if="qrDataUrl" :src="qrDataUrl" :alt="t('settings.totpScan')" />
         <p class="text-sm text-surface-500">{{ t('settings.totpScan') }}</p>
-        <InputText v-model="totpCode" :placeholder="t('settings.totpConfirm')" class="w-full" autocomplete="one-time-code" />
-        <Button :label="t('common.confirm')" :disabled="!totpCode" @click="confirmTotp" />
+        <AppFormField :label="t('settings.totpConfirm')" class="w-full">
+          <InputText v-model="totpCode" class="w-full" autocomplete="one-time-code" inputmode="numeric" @keydown.enter="totpCode && confirmTotp()" />
+        </AppFormField>
       </div>
       <div v-else>
         <p class="text-sm mb-3">{{ t('settings.backupCodes') }}</p>
-        <div class="grid grid-cols-2 gap-1 font-mono text-sm mb-4">
+        <div class="grid grid-cols-2 gap-1 font-mono text-sm">
           <code v-for="c in backupCodes" :key="c">{{ c }}</code>
         </div>
-        <Button :label="t('common.done')" @click="totpModal?.close()" />
       </div>
+      <template #footer>
+        <template v-if="!backupCodes.length">
+          <Button :label="t('common.cancel')" text @click="totpModal?.close()" />
+          <Button :label="t('common.confirm')" :disabled="!totpCode" @click="confirmTotp" />
+        </template>
+        <Button v-else :label="t('common.done')" @click="totpModal?.close()" />
+      </template>
     </AppModal>
 
     <AppModal ref="disableModal" :title="t('settings.totpDisableTitle')" :confirm-label="t('settings.totpDisable')" @confirm="disableTotp">

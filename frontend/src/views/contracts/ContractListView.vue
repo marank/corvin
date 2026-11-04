@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
+import AppFilterBar, { type ActiveFilter } from '../../components/ui/AppFilterBar.vue'
+import AppSearchInput from '../../components/ui/AppSearchInput.vue'
+import { useQueryFilters } from '../../composables/useQueryFilters'
+import AppEnumSelect from '../../components/ui/AppEnumSelect.vue'
+import AppFormField from '../../components/ui/AppFormField.vue'
+import Select from 'primevue/select'
+import CustomerSelect from '../../components/CustomerSelect.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
@@ -32,6 +39,23 @@ const emptyForm = (): Partial<SupportContract> => ({
   next_billing_date: new Date().toISOString().slice(0, 10),
 })
 const form = ref(emptyForm())
+const preset = useQueryFilters()
+const names = preset.names
+const search = ref('')
+const filters = ref({ customer: preset.customer, period: null as string | null, active: null as string | null })
+const periods = ['monthly', 'quarterly', 'yearly']
+const activeOptions = [
+  { label: t('common.active'), value: 'true' },
+  { label: t('common.inactive'), value: 'false' },
+]
+const activeFilters = computed<ActiveFilter[]>(() => {
+  const f = filters.value
+  const active: ActiveFilter[] = []
+  if (f.customer) active.push({ key: 'customer', label: t('projects.customer'), value: names.value.customer })
+  if (f.period) active.push({ key: 'period', label: t('contracts.period'), value: t(`contracts.periods.${f.period}`) })
+  if (f.active) active.push({ key: 'active', label: t('common.status'), value: activeOptions.find((o) => o.value === f.active)!.label })
+  return active
+})
 const pagination = usePagination(load, 'number')
 const sortOptions = [
   { label: '#', value: 'number' },
@@ -42,9 +66,13 @@ const sortOptions = [
 ]
 
 onMounted(pagination.start)
+watch([search, filters], () => pagination.refresh(), { deep: true })
 
 async function load() {
-  const results = await pagination.fetchPage(contractsApi.list)
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(filters.value)) if (value) params.set(key, value)
+  if (search.value) params.set('search', search.value)
+  const results = await pagination.fetchPage(contractsApi.list, params)
   if (results) rows.value = results
 }
 
@@ -79,6 +107,20 @@ async function save() {
       :state-key="tableStateKeys.contracts" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort"
       @row-click="(r: SupportContract) => router.push(`/contracts/${r.id}`)"
     >
+      <template #toolbar>
+        <AppFilterBar :active="activeFilters" @remove="(key) => filters[key as 'customer' | 'period' | 'active'] = null" @clear="filters = { customer: null, period: null, active: null }">
+          <AppFormField :label="t('projects.customer')">
+            <CustomerSelect v-model="filters.customer" :placeholder="t('common.allCustomers')" @select="(c) => names.customer = c?.name ?? ''" />
+          </AppFormField>
+          <AppFormField :label="t('contracts.period')">
+            <AppEnumSelect v-model="filters.period" :options="periods" label-prefix="contracts.periods" :placeholder="t('common.all')" show-clear class="w-full" />
+          </AppFormField>
+          <AppFormField :label="t('common.status')">
+            <Select v-model="filters.active" :options="activeOptions" option-label="label" option-value="value" :placeholder="t('common.all')" show-clear class="w-full" />
+          </AppFormField>
+          <template #end><AppSearchInput v-model="search" /></template>
+        </AppFilterBar>
+      </template>
       <Column field="number" :header="t('common.numberShort')" sortable />
       <Column class="app-text" field="name" :header="t('common.name')" sortable />
       <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />

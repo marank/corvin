@@ -202,7 +202,7 @@ async function importTemplate(event: Event) {
             </AppFormField>
           </div>
         </TabPanel>
-        <TabPanel value="templates">
+        <TabPanel value="templates" class="pt-4">
           <AppDataTable
             :rows="rows" :loading="loading"
             :state-key="tableStateKeys.documentTemplates"
@@ -220,7 +220,7 @@ async function importTemplate(event: Event) {
             </Column>
           </AppDataTable>
         </TabPanel>
-        <TabPanel value="textBlocks">
+        <TabPanel value="textBlocks" class="pt-4">
           <AppDataTable
             :rows="textBlocks" :loading="textBlockPagination.loading.value" lazy
             :total-records="textBlockPagination.totalRecords.value" :first="textBlockPagination.first.value"

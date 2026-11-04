@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
@@ -13,6 +13,9 @@ import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
+import AppFilterBar, { type ActiveFilter } from '../../components/ui/AppFilterBar.vue'
+import AppSearchInput from '../../components/ui/AppSearchInput.vue'
+import Select from 'primevue/select'
 import { customersApi, type Customer } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
@@ -25,6 +28,14 @@ const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const rows = ref<Customer[]>([])
 const search = ref('')
+const filters = ref({ is_active: null as string | null })
+const activeOptions = [
+  { label: t('common.active'), value: 'true' },
+  { label: t('common.inactive'), value: 'false' },
+]
+const activeFilters = computed<ActiveFilter[]>(() => filters.value.is_active
+  ? [{ key: 'is_active', label: t('common.status'), value: activeOptions.find((o) => o.value === filters.value.is_active)!.label }]
+  : [])
 const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
 const form = ref({ name: '', email: '', phone: '', website: '', vat_id: '', buyer_reference: '', payment_terms_days: null as number | null, notes: '' })
@@ -36,21 +47,15 @@ const sortOptions = [
   { label: t('nav.projects'), value: 'project_count' },
   { label: t('customers.uninvoicedHours'), value: 'uninvoiced_hours' },
 ]
-let searchTimer: ReturnType<typeof setTimeout> | undefined
-
 onMounted(pagination.start)
-onBeforeUnmount(() => clearTimeout(searchTimer))
+watch([search, filters], () => pagination.refresh(), { deep: true })
 
 async function load() {
   const params = new URLSearchParams()
-  if (search.value.trim()) params.set('search', search.value.trim())
+  if (search.value) params.set('search', search.value)
+  if (filters.value.is_active) params.set('is_active', filters.value.is_active)
   const results = await pagination.fetchPage(customersApi.list, params)
   if (results) rows.value = results
-}
-
-function searchChanged() {
-  clearTimeout(searchTimer)
-  searchTimer = setTimeout(pagination.refresh, 300)
 }
 
 async function save() {
@@ -73,7 +78,6 @@ async function save() {
   <div>
     <AppPageHeader :title="t('customers.title')">
       <template #actions>
-        <InputText v-model="search" :placeholder="t('common.search')" class="w-48" @input="searchChanged" />
         <Button :label="t('customers.new')" icon="pi pi-plus" @click="modal?.open()" />
       </template>
     </AppPageHeader>
@@ -95,6 +99,14 @@ async function save() {
       @sort="pagination.onSort"
       @row-click="(r: Customer) => router.push(`/customers/${r.id}`)"
     >
+      <template #toolbar>
+        <AppFilterBar :active="activeFilters" @remove="filters.is_active = null" @clear="filters.is_active = null">
+          <AppFormField :label="t('common.status')">
+            <Select v-model="filters.is_active" :options="activeOptions" option-label="label" option-value="value" :placeholder="t('common.all')" show-clear class="w-full" />
+          </AppFormField>
+          <template #end><AppSearchInput v-model="search" /></template>
+        </AppFilterBar>
+      </template>
       <Column field="number" :header="t('common.numberShort')" sortable />
       <Column class="app-text" field="name" :header="t('common.name')" sortable />
       <Column :header="t('customers.place')">

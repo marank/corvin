@@ -78,7 +78,8 @@
     "saved": "Saved",
     "created": "Created",
     "numberShort": "No.",
-    "amount": "Amount"
+    "amount": "Amount",
+    "hoursUnit": "h"
   },
   "auth": {
     "login": "Sign in",
@@ -87,7 +88,11 @@
     "username": "Username",
     "password": "Password",
     "otpCode": "Authentication code",
-    "loginFailed": "Login failed"
+    "loginFailed": "Wrong username or password.",
+    "account": "Account",
+    "tagline": "Time tracking, projects and invoices in one place.",
+    "otpHint": "Enter the code from your authenticator app.",
+    "otpFailed": "The code is invalid."
   },
   "table": {
     "select": "Select",
@@ -101,7 +106,9 @@
     "sortBy": "Sort by",
     "ascending": "Ascending",
     "descending": "Descending",
-    "pageReport": "{first}–{last} of {totalRecords}"
+    "pageReport": "{first}–{last} of {totalRecords}",
+    "comfortable": "More spacing",
+    "compact": "Compact"
   },
   "customers": {
     "newContact": "New contact",
@@ -277,10 +284,15 @@
     "editLine": "Edit line",
     "lineDeleteHint": "Deleting a line makes the time entries billed on it billable again.",
     "noIbanHint": "To finalize, the invoice needs a bank account with an IBAN (on the customer, the invoice or as the default).",
-    "noIbanLink": "Add a bank account"
+    "noIbanLink": "Add a bank account",
+    "receivable": "Payment",
+    "receivables": {
+      "open": "Open",
+      "overdue": "Overdue"
+    }
   },
   "designer": {
-    "title": "Invoice designer",
+    "title": "Template designer",
     "editor": "Editor",
     "general": "General",
     "templateName": "Template name",
@@ -305,9 +317,9 @@
     "tertiary_color": "Tertiary color",
     "background_color": "Background color",
     "text_color": "Text color",
-    "headerHtml": "Header HTML",
-    "bodyHtml": "Body HTML",
-    "footerHtml": "Footer HTML",
+    "headerHtml": "Header",
+    "bodyHtml": "Body",
+    "footerHtml": "Footer",
     "preview": "Preview",
     "generatingPdf": "Generating PDF...",
     "pageSize": "Page size",
@@ -329,7 +341,9 @@
     "defaultTemplate": "Default: {name}",
     "defaultTemplateAuto": "Default (created automatically)",
     "newTemplate": "New template",
-    "newTextBlock": "New text block"
+    "newTextBlock": "New text block",
+    "css": "CSS",
+    "contactLoop": "All contacts (loop)"
   },
   "settings": {
     "title": "Settings",
@@ -414,7 +428,9 @@
     "newBankAccount": "New bank account",
     "editBankAccount": "Edit bank account",
     "newCompanyContact": "New contact",
-    "editCompanyContact": "Edit contact"
+    "editCompanyContact": "Edit contact",
+    "currentSession": "This session",
+    "expires": "expires"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -426,6 +442,18 @@
     "hoursPerCustomer": "Hours per customer",
     "budgetWarnings": "Budget warnings",
     "contractUsage": "Contract usage",
-    "noCustomer": "No customer"
+    "noCustomer": "No customer",
+    "invoiceCount": "{n} invoice | {n} invoices",
+    "noRevenue": "No revenue in the last 12 months yet.",
+    "noHours": "No time tracked yet."
+  },
+  "rates": {
+    "perHour": "/h",
+    "defaultsHint": "Default rates apply to every customer and project without a rate of its own.",
+    "customerHint": "Without a rate of its own, the default rate applies:",
+    "noDefaultHint": "No default rate is set – without a rate of its own, time can’t be billed.",
+    "manageDefaults": "Manage default rates",
+    "newDefault": "New default rate",
+    "title": "Hourly rates"
   }
 }

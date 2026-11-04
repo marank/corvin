@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import AppEnumSelect from '../components/ui/AppEnumSelect.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import dayjs from 'dayjs'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
-import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
 import AppDataTable from '../components/ui/AppDataTable.vue'
@@ -42,6 +43,7 @@ const dayTotals = computed(() => {
   return totals
 })
 const modal = ref<InstanceType<typeof AppModal>>()
+const entryForm = ref<InstanceType<typeof TimeEntryForm>>()
 const editing = ref<TimeEntry | null>(null)
 const pagination = usePagination(load, '-start_datetime')
 const sortOptions = [
@@ -52,12 +54,15 @@ const sortOptions = [
 ]
 
 const preset = useQueryFilters()
+// The dashboard links here with ?status=open (uninvoiced) or ?from=<monday> (this week).
+const query = useRoute().query
+const queryString = (value: unknown) => (typeof value === 'string' && value ? value : null)
 const filters = ref({
   customer: preset.customer,
   project: preset.project,
-  from: null as string | null,
+  from: queryString(query.from),
   to: null as string | null,
-  status: null as string | null,
+  status: ['open', 'invoiced'].includes(queryString(query.status) ?? '') ? queryString(query.status) : null,
 })
 const statuses = ['open', 'invoiced']
 const summary = ref({ count: 0, total_minutes: 0 })
@@ -175,13 +180,7 @@ async function run(action: () => Promise<unknown>) {
             </div>
           </AppFormField>
           <AppFormField :label="t('common.status')">
-            <Select v-model="filters.status" :options="statuses" :placeholder="t('common.all')" show-clear class="w-full">
-              <template #option="{ option }">{{ t(`time.statuses.${option}`) }}</template>
-              <template #value="{ value, placeholder }">
-                <span v-if="value">{{ t(`time.statuses.${value}`) }}</span>
-                <span v-else class="text-surface-500">{{ placeholder }}</span>
-              </template>
-            </Select>
+            <AppEnumSelect v-model="filters.status" :options="statuses" label-prefix="time.statuses" :placeholder="t('common.all')" show-clear class="w-full" />
           </AppFormField>
           <template #end>
             <span class="text-sm text-surface-500 whitespace-nowrap">{{ t('time.entries', summary.count) }} · <AppDurationDisplay :minutes="summary.total_minutes" class="font-semibold text-surface-900 dark:text-surface-0" /></span>
@@ -228,8 +227,8 @@ async function run(action: () => Promise<unknown>) {
       </template>
     </AppDataTable>
 
-    <AppModal ref="modal" :title="editing ? t('time.editEntry') : t('time.new')" size="lg" :show-footer="false">
-      <TimeEntryForm :entry="editing" @saved="modal?.close(); load()" @cancel="modal?.close()" />
+    <AppModal ref="modal" :form="entryForm?.state" :loading="entryForm?.saving" :title="editing ? t('time.editEntry') : t('time.new')" size="lg" @confirm="entryForm?.save()">
+      <TimeEntryForm ref="entryForm" :entry="editing" @saved="modal?.close(); load()" />
     </AppModal>
   </div>
 </template>

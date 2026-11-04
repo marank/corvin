@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useLoadFailed } from '../composables/useLoadFailed'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -36,7 +36,6 @@ const id = route.params.id as string
 const template = ref<DocumentTemplate | null>(null)
 const { markSaved } = useUnsavedChanges(template)
 const saving = ref(false)
-const previewKey = ref(0)
 const previewMode = ref<'html' | 'pdf'>('html')
 const previewModes = [
   { value: 'html' as const, label: 'HTML' },
@@ -64,33 +63,42 @@ const mobileFooterEditor = ref<InstanceType<typeof AppCodeEditor>>()
 const images = ref<CompanyImage[]>([])
 const textBlocks = ref<TextBlock[]>([])
 
-const htmlPreviewUrl = computed(() => `${templatesApi.previewUrl(id)}?k=${previewKey.value}`)
-const previewUrl = computed(() =>
-  previewMode.value === 'pdf' && pdfBlobUrl.value ? pdfBlobUrl.value : htmlPreviewUrl.value,
-)
+// The preview renders the unsaved state: every change re-renders it after a short pause.
+const previewHtml = ref<string>()
+let previewTimer: ReturnType<typeof setTimeout> | undefined
+let previewRun = 0
 
-async function loadPdfPreview() {
-  pdfLoading.value = true
+async function refreshPreview() {
+  if (!template.value) return
+  const run = ++previewRun
+  const draft = { ...template.value }
   try {
-    // Revoke old blob
-    if (pdfBlobUrl.value) {
-      URL.revokeObjectURL(pdfBlobUrl.value)
-      pdfBlobUrl.value = null
+    if (previewMode.value === 'pdf') {
+      pdfLoading.value = !pdfBlobUrl.value
+      const blob = await templatesApi.previewDraftPdf(id, draft)
+      if (run !== previewRun) return
+      if (pdfBlobUrl.value) URL.revokeObjectURL(pdfBlobUrl.value)
+      pdfBlobUrl.value = URL.createObjectURL(blob)
+    } else {
+      const html = await templatesApi.previewDraft(id, draft)
+      if (run === previewRun) previewHtml.value = html
     }
-    const res = await fetch(templatesApi.previewPdfUrl(id), { credentials: 'same-origin' })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const blob = await res.blob()
-    pdfBlobUrl.value = URL.createObjectURL(blob)
   } catch (e) {
-    notify.error(e)
-    previewMode.value = 'html'
+    // Half-typed template tags fail to render; keep the last good preview until it parses again.
+    if (run === previewRun && previewHtml.value === undefined) notify.error(e)
   } finally {
-    pdfLoading.value = false
+    if (run === previewRun) pdfLoading.value = false
   }
 }
 
-watch(previewMode, (mode) => {
-  if (mode === 'pdf') loadPdfPreview()
+watch(template, () => {
+  clearTimeout(previewTimer)
+  previewTimer = setTimeout(refreshPreview, previewMode.value === 'pdf' ? 1200 : 400)
+}, { deep: true })
+watch(previewMode, refreshPreview)
+onBeforeUnmount(() => {
+  clearTimeout(previewTimer)
+  if (pdfBlobUrl.value) URL.revokeObjectURL(pdfBlobUrl.value)
 })
 
 const variableGroups = computed<VariableGroup[]>(() => [
@@ -133,7 +141,7 @@ const variableGroups = computed<VariableGroup[]>(() => [
   {
     label: t('designer.variableGroups.invoiceContacts'),
     entries: [
-      { label: 'contact loop', code: '{% for contact in invoice_contacts %}\n{{ contact.name }}{% if not forloop.last %}, {% endif %}\n{% endfor %}' },
+      { label: t('designer.contactLoop'), code: '{% for contact in invoice_contacts %}\n{{ contact.name }}{% if not forloop.last %}, {% endif %}\n{% endfor %}' },
       { label: 'name', code: '{{ contact.name }}' },
       { label: 'role', code: '{{ contact.role }}' },
       { label: 'email', code: '{{ contact.email }}' },
@@ -143,7 +151,7 @@ const variableGroups = computed<VariableGroup[]>(() => [
   {
     label: t('designer.variableGroups.companyContacts'),
     entries: [
-      { label: 'contact loop', code: '{% for contact in company_contacts %}\n{{ contact.name }} {{ contact.role }} {{ contact.email }} {{ contact.phone }}\n{% endfor %}' },
+      { label: t('designer.contactLoop'), code: '{% for contact in company_contacts %}\n{{ contact.name }} {{ contact.role }} {{ contact.email }} {{ contact.phone }}\n{% endfor %}' },
       { label: 'name', code: '{{ contact.name }}' },
       { label: 'role', code: '{{ contact.role }}' },
       { label: 'email', code: '{{ contact.email }}' },
@@ -221,8 +229,6 @@ async function save() {
   try {
     template.value = await templatesApi.update(id, template.value)
     markSaved()
-    previewKey.value++
-    if (previewMode.value === 'pdf') loadPdfPreview()
     notify.ok(t('common.saved'))
   } catch (e) {
     notify.error(e)
@@ -231,9 +237,6 @@ async function save() {
   }
 }
 
-watch(() => template.value && [template.value.page_size, template.value.margin_top, template.value.margin_right, template.value.margin_bottom, template.value.margin_left], () => {
-  // margins/size change → refresh preview after save only; keep manual
-}, { deep: true })
 </script>
 
 <template>
@@ -262,7 +265,7 @@ watch(() => template.value && [template.value.page_size, template.value.margin_t
                 <Tab value="header">{{ t('designer.headerHtml') }}</Tab>
                 <Tab value="body">{{ t('designer.bodyHtml') }}</Tab>
                 <Tab value="footer">{{ t('designer.footerHtml') }}</Tab>
-                <Tab value="css">CSS</Tab>
+                <Tab value="css">{{ t('designer.css') }}</Tab>
               </TabList>
               <TabPanels>
                 <TabPanel value="general" class="h-[60vh] overflow-y-auto border border-surface-200 dark:border-surface-800 p-4">
@@ -304,7 +307,7 @@ watch(() => template.value && [template.value.page_size, template.value.margin_t
             <div v-if="pdfLoading" class="flex items-center justify-center h-full text-surface-500">
               <i class="pi pi-spin pi-spinner mr-2" />{{ t('designer.generatingPdf') }}
             </div>
-            <InvoicePreviewFrame v-else :url="previewUrl" :mode="previewMode" />
+            <InvoicePreviewFrame v-else :url="pdfBlobUrl ?? undefined" :html="previewHtml" :mode="previewMode" />
           </TabPanel>
         </TabPanels>
       </Tabs>
@@ -319,7 +322,7 @@ watch(() => template.value && [template.value.page_size, template.value.margin_t
             <Tab value="header">{{ t('designer.headerHtml') }}</Tab>
             <Tab value="body">{{ t('designer.bodyHtml') }}</Tab>
             <Tab value="footer">{{ t('designer.footerHtml') }}</Tab>
-            <Tab value="css">CSS</Tab>
+            <Tab value="css">{{ t('designer.css') }}</Tab>
           </TabList>
           <TabPanels class="flex-1 min-h-0">
             <TabPanel value="general" class="h-full overflow-y-auto p-4">
@@ -361,7 +364,7 @@ watch(() => template.value && [template.value.page_size, template.value.margin_t
         <div v-if="pdfLoading" class="flex items-center justify-center h-full text-surface-500">
           <i class="pi pi-spin pi-spinner mr-2" />{{ t('designer.generatingPdf') }}
         </div>
-        <InvoicePreviewFrame v-else :url="previewUrl" :mode="previewMode" />
+        <InvoicePreviewFrame v-else :url="pdfBlobUrl ?? undefined" :html="previewHtml" :mode="previewMode" />
       </div>
     </div>
   </div>

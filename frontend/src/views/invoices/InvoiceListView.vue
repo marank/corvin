@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import AppEnumSelect from '../../components/ui/AppEnumSelect.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
-import Select from 'primevue/select'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppStatusTag from '../../components/ui/AppStatusTag.vue'
@@ -26,7 +26,14 @@ const router = useRouter()
 const confirmDelete = useConfirmDelete()
 const rows = ref<Invoice[]>([])
 const preset = useQueryFilters()
-const filters = ref({ customer: preset.customer, project: preset.project, status: null as string | null })
+const receivableQuery = useRoute().query.receivable
+const receivables = ['open', 'overdue']
+const filters = ref({
+  customer: preset.customer,
+  project: preset.project,
+  status: null as string | null,
+  receivable: typeof receivableQuery === 'string' && receivables.includes(receivableQuery) ? receivableQuery : null,
+})
 const names = preset.names
 const activeFilters = computed<ActiveFilter[]>(() => {
   const f = filters.value
@@ -34,6 +41,7 @@ const activeFilters = computed<ActiveFilter[]>(() => {
   if (f.customer) active.push({ key: 'customer', label: t('projects.customer'), value: names.value.customer })
   if (f.project) active.push({ key: 'project', label: t('projects.project'), value: names.value.project })
   if (f.status) active.push({ key: 'status', label: t('common.status'), value: t(`invoices.status.${f.status}`) })
+  if (f.receivable) active.push({ key: 'receivable', label: t('invoices.receivable'), value: t(`invoices.receivables.${f.receivable}`) })
   return active
 })
 const statuses = ['draft', 'issued', 'sent', 'paid', 'cancelled']
@@ -76,7 +84,7 @@ async function load() {
       @row-click="(r: Invoice) => router.push(`/invoices/${r.id}`)"
     >
       <template #toolbar>
-        <AppFilterBar :active="activeFilters" @remove="(key) => filters[key as 'customer' | 'project' | 'status'] = null" @clear="filters = { customer: null, project: null, status: null }">
+        <AppFilterBar :active="activeFilters" @remove="(key) => filters[key as 'customer' | 'project' | 'status' | 'receivable'] = null" @clear="filters = { customer: null, project: null, status: null, receivable: null }">
           <AppFormField :label="t('projects.customer')">
             <CustomerSelect v-model="filters.customer" :placeholder="t('common.allCustomers')" @select="(c) => names.customer = c?.name ?? ''" />
           </AppFormField>
@@ -84,13 +92,10 @@ async function load() {
             <ProjectSelect v-model="filters.project" :customer-id="filters.customer" :placeholder="t('common.allProjects')" @select="(p) => names.project = p?.name ?? ''" />
           </AppFormField>
           <AppFormField :label="t('common.status')">
-            <Select v-model="filters.status" :options="statuses" :placeholder="t('common.all')" show-clear class="w-full">
-              <template #option="{ option }">{{ t(`invoices.status.${option}`) }}</template>
-              <template #value="{ value, placeholder }">
-                <span v-if="value">{{ t(`invoices.status.${value}`) }}</span>
-                <span v-else class="text-surface-500">{{ placeholder }}</span>
-              </template>
-            </Select>
+            <AppEnumSelect v-model="filters.status" :options="statuses" label-prefix="invoices.status" :placeholder="t('common.all')" show-clear class="w-full" />
+          </AppFormField>
+          <AppFormField :label="t('invoices.receivable')">
+            <AppEnumSelect v-model="filters.receivable" :options="receivables" label-prefix="invoices.receivables" :placeholder="t('common.all')" show-clear class="w-full" />
           </AppFormField>
         </AppFilterBar>
       </template>

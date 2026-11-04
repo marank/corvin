@@ -22,15 +22,15 @@ DEFAULT_BODY = """<div class="sender">{{ company.company_name }} · {{ company.s
 <tbody>
 {% for item in items %}
 <tr><td>{{ item.position }}</td><td>{{ item.description }}</td>
-<td>{{ item.quantity }} {% if item.unit == "hours" %}Std.{% elif item.unit == "flat" %}pauschal{% else %}Stk.{% endif %}</td>
-<td>{{ item.unit_price }} {{ invoice.currency }}</td>
-<td>{{ item.total }} {{ invoice.currency }}</td></tr>
+<td>{% display_number item.quantity %} {% if item.unit == "hours" %}Std.{% elif item.unit == "flat" %}pauschal{% else %}Stk.{% endif %}</td>
+<td>{% display_money item.unit_price invoice.currency %}</td>
+<td>{% display_money item.total invoice.currency %}</td></tr>
 {% endfor %}
 </tbody></table>
 <table class="totals">
-<tr><td>Nettobetrag</td><td>{{ invoice.subtotal }} {{ invoice.currency }}</td></tr>
-<tr><td>USt. {{ invoice.vat_rate }} %</td><td>{{ invoice.vat_amount }} {{ invoice.currency }}</td></tr>
-<tr><td><b>Gesamtbetrag</b></td><td><b>{{ invoice.total }} {{ invoice.currency }}</b></td></tr>
+<tr><td>Nettobetrag</td><td>{% display_money invoice.subtotal invoice.currency %}</td></tr>
+<tr><td>USt. {% display_number invoice.vat_rate %} %</td><td>{% display_money invoice.vat_amount invoice.currency %}</td></tr>
+<tr><td><b>Gesamtbetrag</b></td><td><b>{% display_money invoice.total invoice.currency %}</b></td></tr>
 </table>
 {% if company and not company.vat_enabled %}<p>Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.</p>{% endif %}
 {% if invoice.notes %}<p>{{ invoice.notes|linebreaksbr }}</p>{% endif %}"""

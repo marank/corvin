@@ -48,10 +48,9 @@ ignore = ["E501"]
 extend_exclude = [".*/tests/.*"]
 
 [tool.deptry.per_rule_ignores]
-# Used at runtime but never imported: DB driver (DATABASE_URL), WSGI server,
-# Pillow (needed by ImageField) and django-filter (referenced by path strings in
-# settings).
-DEP002 = ["psycopg", "gunicorn", "pillow", "django-filter"]
+# Used at runtime but never imported: DB driver (DATABASE_URL), WSGI server and
+# Pillow (needed by ImageField).
+DEP002 = ["psycopg", "gunicorn", "pillow"]
 
 [tool.coverage.run]
 source = ["core", "config"]
@@ -61,4 +60,4 @@ omit = ["*/migrations/*", "config/asgi.py", "config/wsgi.py", "manage.py"]
 skip_covered = true
 show_missing = true
 # Current level; raise it as tests are added, never lower it.
-fail_under = 89
+fail_under = 90

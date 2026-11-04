@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
@@ -7,6 +7,9 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
+import AppFilterBar, { type ActiveFilter } from '../../components/ui/AppFilterBar.vue'
+import AppSearchInput from '../../components/ui/AppSearchInput.vue'
+import { useQueryFilters } from '../../composables/useQueryFilters'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppModal from '../../components/ui/AppModal.vue'
@@ -29,6 +32,17 @@ const rows = ref<Visit[]>([])
 const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
 const form = ref<Partial<Visit>>({ date: new Date().toISOString().slice(0, 10) })
+const preset = useQueryFilters()
+const names = preset.names
+const search = ref('')
+const filters = ref({ customer: preset.customer, project: preset.project })
+const activeFilters = computed<ActiveFilter[]>(() => {
+  const f = filters.value
+  const active: ActiveFilter[] = []
+  if (f.customer) active.push({ key: 'customer', label: t('projects.customer'), value: names.value.customer })
+  if (f.project) active.push({ key: 'project', label: t('projects.project'), value: names.value.project })
+  return active
+})
 const pagination = usePagination(load, '-date')
 const sortOptions = [
   { label: '#', value: 'number' },
@@ -39,9 +53,13 @@ const sortOptions = [
 ]
 
 onMounted(pagination.start)
+watch([search, filters], () => pagination.refresh(), { deep: true })
 
 async function load() {
-  const results = await pagination.fetchPage(visitsApi.list)
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(filters.value)) if (value) params.set(key, value)
+  if (search.value) params.set('search', search.value)
+  const results = await pagination.fetchPage(visitsApi.list, params)
   if (results) rows.value = results
 }
 
@@ -77,6 +95,17 @@ async function save() {
       :state-key="tableStateKeys.visits" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort"
       @row-click="(r: Visit) => router.push(`/visits/${r.id}`)"
     >
+      <template #toolbar>
+        <AppFilterBar :active="activeFilters" @remove="(key) => filters[key as 'customer' | 'project'] = null" @clear="filters = { customer: null, project: null }">
+          <AppFormField :label="t('projects.customer')">
+            <CustomerSelect v-model="filters.customer" :placeholder="t('common.allCustomers')" @select="(c) => names.customer = c?.name ?? ''" />
+          </AppFormField>
+          <AppFormField :label="t('projects.project')">
+            <ProjectSelect v-model="filters.project" :customer-id="filters.customer" :placeholder="t('common.allProjects')" @select="(p) => names.project = p?.name ?? ''" />
+          </AppFormField>
+          <template #end><AppSearchInput v-model="search" /></template>
+        </AppFilterBar>
+      </template>
       <Column field="number" :header="t('common.numberShort')" sortable />
       <Column field="date" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
       <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
@@ -95,7 +124,7 @@ async function save() {
       <div class="flex flex-col gap-4">
         <AppFormField field="customer" :label="t('projects.customer')" required><CustomerSelect v-model="form.customer" /></AppFormField>
         <AppFormField field="project" :label="t('projects.project')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <AppFormField field="date" :label="t('common.date')" required><AppDateInput v-model="(form.date as any)" /></AppFormField>
           <AppFormField field="arrival" :label="t('visits.arrival')"><InputText v-model="form.arrival" type="time" class="w-full" /></AppFormField>
           <AppFormField field="departure" :label="t('visits.departure')"><InputText v-model="form.departure" type="time" class="w-full" /></AppFormField>

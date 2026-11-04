@@ -78,7 +78,8 @@
     "saved": "Gespeichert",
     "created": "Angelegt",
     "numberShort": "Nr.",
-    "amount": "Betrag"
+    "amount": "Betrag",
+    "hoursUnit": "h"
   },
   "auth": {
     "login": "Anmelden",
@@ -87,7 +88,11 @@
     "username": "Benutzername",
     "password": "Passwort",
     "otpCode": "Authentifizierungscode",
-    "loginFailed": "Anmeldung fehlgeschlagen"
+    "loginFailed": "Benutzername oder Passwort ist falsch.",
+    "account": "Konto",
+    "tagline": "Zeiterfassung, Projekte und Rechnungen an einem Ort.",
+    "otpHint": "Bitte den Code aus Ihrer Authenticator-App eingeben.",
+    "otpFailed": "Der Code ist ungültig."
   },
   "table": {
     "select": "Auswählen",
@@ -101,7 +106,9 @@
     "sortBy": "Sortieren nach",
     "ascending": "Aufsteigend",
     "descending": "Absteigend",
-    "pageReport": "{first}–{last} von {totalRecords}"
+    "pageReport": "{first}–{last} von {totalRecords}",
+    "comfortable": "Mehr Abstand",
+    "compact": "Kompakt"
   },
   "customers": {
     "newContact": "Neuer Ansprechpartner",
@@ -277,10 +284,15 @@
     "editLine": "Position bearbeiten",
     "lineDeleteHint": "Wird eine Position gelöscht, sind die darin abgerechneten Zeiteinträge wieder abrechenbar.",
     "noIbanHint": "Zum Finalisieren braucht die Rechnung ein Bankkonto mit IBAN (am Kunden, an der Rechnung oder als Standard).",
-    "noIbanLink": "Bankkonto anlegen"
+    "noIbanLink": "Bankkonto anlegen",
+    "receivable": "Zahlung",
+    "receivables": {
+      "open": "Offen",
+      "overdue": "Überfällig"
+    }
   },
   "designer": {
-    "title": "Rechnungsdesigner",
+    "title": "Vorlagen-Designer",
     "editor": "Editor",
     "general": "Allgemein",
     "templateName": "Vorlagenname",
@@ -305,9 +317,9 @@
     "tertiary_color": "Tertiärfarbe",
     "background_color": "Hintergrundfarbe",
     "text_color": "Textfarbe",
-    "headerHtml": "Kopfzeilen-HTML",
-    "bodyHtml": "Inhalts-HTML",
-    "footerHtml": "Fußzeilen-HTML",
+    "headerHtml": "Kopfzeile",
+    "bodyHtml": "Inhalt",
+    "footerHtml": "Fußzeile",
     "preview": "Vorschau",
     "generatingPdf": "PDF wird erstellt …",
     "pageSize": "Seitenformat",
@@ -329,7 +341,9 @@
     "defaultTemplate": "Standard: {name}",
     "defaultTemplateAuto": "Standard (wird automatisch angelegt)",
     "newTemplate": "Neue Vorlage",
-    "newTextBlock": "Neuer Textbaustein"
+    "newTextBlock": "Neuer Textbaustein",
+    "css": "CSS",
+    "contactLoop": "Alle Kontakte (Schleife)"
   },
   "settings": {
     "title": "Einstellungen",
@@ -414,7 +428,9 @@
     "newBankAccount": "Neues Bankkonto",
     "editBankAccount": "Bankkonto bearbeiten",
     "newCompanyContact": "Neuer Ansprechpartner",
-    "editCompanyContact": "Ansprechpartner bearbeiten"
+    "editCompanyContact": "Ansprechpartner bearbeiten",
+    "currentSession": "Diese Sitzung",
+    "expires": "läuft ab"
   },
   "dashboard": {
     "title": "Übersicht",
@@ -426,6 +442,18 @@
     "hoursPerCustomer": "Stunden pro Kunde",
     "budgetWarnings": "Budget-Warnungen",
     "contractUsage": "Vertragsverbrauch",
-    "noCustomer": "Ohne Kunde"
+    "noCustomer": "Ohne Kunde",
+    "invoiceCount": "{n} Rechnung | {n} Rechnungen",
+    "noRevenue": "Noch keine Umsätze in den letzten 12 Monaten.",
+    "noHours": "Noch keine Zeiten erfasst."
+  },
+  "rates": {
+    "perHour": "/Std.",
+    "defaultsHint": "Standardsätze gelten für alle Kunden und Projekte ohne eigenen Stundensatz.",
+    "customerHint": "Ohne eigenen Stundensatz gilt der Standardsatz von",
+    "noDefaultHint": "Es ist kein Standardsatz hinterlegt – ohne eigenen Stundensatz kann nicht abgerechnet werden.",
+    "manageDefaults": "Standardsätze verwalten",
+    "newDefault": "Neuer Standardsatz",
+    "title": "Stundensätze"
   }
 }

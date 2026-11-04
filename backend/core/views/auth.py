@@ -44,7 +44,7 @@ class LoginView(APIView):
         user = authenticate(request, username=username, password=password)
         if user is None:
             return Response(
-                {"detail": "Invalid credentials."},
+                {"detail": _("Invalid credentials.")},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
         if _has_totp(user):
@@ -52,7 +52,7 @@ class LoginView(APIView):
                 return Response({"requires_otp": True}, status=status.HTTP_401_UNAUTHORIZED)
             if not _verify_otp(user, otp_code):
                 return Response(
-                    {"detail": "Invalid code.", "requires_otp": True},
+                    {"detail": _("Invalid code."), "requires_otp": True},
                     status=status.HTTP_401_UNAUTHORIZED,
                 )
         login(request, user)
@@ -107,7 +107,7 @@ class RegisterView(APIView):
     def post(self, request):
         if not django_settings.REGISTRATION_OPEN:
             return Response(
-                {"detail": "Registration is disabled."},
+                {"detail": _("Registration is disabled.")},
                 status=status.HTTP_403_FORBIDDEN,
             )
         ser = RegisterSerializer(data=request.data)

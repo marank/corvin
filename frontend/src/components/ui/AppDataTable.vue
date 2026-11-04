@@ -9,6 +9,7 @@ import Select from 'primevue/select'
 import AppEmptyState from './AppEmptyState.vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useNotify } from '../../composables/useNotify'
+import { useTableDensity } from '../../composables/useTableDensity'
 import { useI18n } from 'vue-i18n'
 
 export interface AppTableSortOption {
@@ -66,6 +67,7 @@ const deleting = ref(false)
 // a hidden DataTable measures zero-width columns and saves them to its state.
 const desktopQuery = window.matchMedia('(min-width: 768px)')
 const isDesktop = ref(desktopQuery.matches)
+const density = useTableDensity()
 const onMediaChange = (e: MediaQueryListEvent) => { isDesktop.value = e.matches }
 desktopQuery.addEventListener('change', onMediaChange)
 onUnmounted(() => desktopQuery.removeEventListener('change', onMediaChange))
@@ -297,6 +299,16 @@ function toggleSortOrder() {
         <Button :label="t('common.done')" size="small" @click="finishSelection" />
       </template>
       <Button v-else-if="selectable" :label="t('table.select')" icon="pi pi-check-square" size="small" text @click="startSelection" />
+      <Button
+        v-if="isDesktop"
+        :icon="density === 'compact' ? 'pi pi-expand' : 'pi pi-compress'"
+        size="small"
+        text
+        severity="secondary"
+        :aria-label="density === 'compact' ? t('table.comfortable') : t('table.compact')"
+        :title="density === 'compact' ? t('table.comfortable') : t('table.compact')"
+        @click="density = density === 'compact' ? 'comfortable' : 'compact'"
+      />
     </div>
 
     <DataTable
@@ -321,6 +333,7 @@ function toggleSortOrder() {
       paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
       :current-page-report-template="t('table.pageReport')"
       class="border border-surface-200 dark:border-surface-800"
+      :class="{ 'app-table-comfortable': density === 'comfortable' }"
       :row-class="() => (hasRowClickListener || selectionMode ? 'cursor-pointer' : '')"
       :row-group-mode="groupField ? 'subheader' : undefined"
       :group-rows-by="groupField"
@@ -362,7 +375,7 @@ function toggleSortOrder() {
         <div
           v-for="(row, index) in visibleMobileRows"
           :key="row.id"
-          class="flex items-start gap-3 border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 px-3 py-2 text-sm"
+          class="flex items-start gap-3 app-card px-3 py-2 text-sm"
           :class="{ 'cursor-pointer': hasRowClickListener || selectionMode }"
           @click="handleRowClick(row)"
         >

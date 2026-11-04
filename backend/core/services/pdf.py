@@ -121,14 +121,9 @@ body > #page-content {{ flex: 1 1 auto; min-height: 0; }}
 </html>"""
 
 
-# Documents use the configured language, not the viewer's UI language.
-@override(settings.LANGUAGE_CODE)
-def render_invoice_html(
-    invoice: Invoice, template: DocumentTemplate | None = None, for_pdf=False
-) -> str:
-    """Render the invoice's DB-stored template to a full HTML document."""
-    if template is None:
-        template = invoice.template
+def invoice_template(invoice: Invoice) -> DocumentTemplate:
+    """The invoice's own template, else the one assigned to invoices, else the default."""
+    template = invoice.template
     if template is None:
         company = getattr(invoice.owner, "company_settings", None)
         assignments = getattr(company, "template_assignments", {}) or {}
@@ -138,8 +133,17 @@ def render_invoice_html(
                 id=tid,
                 owner=invoice.owner,
             ).first()
+    return template or ensure_default_template(invoice.owner)
+
+
+# Documents use the configured language, not the viewer's UI language.
+@override(settings.LANGUAGE_CODE)
+def render_invoice_html(
+    invoice: Invoice, template: DocumentTemplate | None = None, for_pdf=False
+) -> str:
+    """Render the invoice's DB-stored template to a full HTML document."""
     if template is None:
-        template = ensure_default_template(invoice.owner)
+        template = invoice_template(invoice)
 
     context = Context(default_template_context(invoice, for_pdf))
     context["page"] = template_page_context(template, "invoice")

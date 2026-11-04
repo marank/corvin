@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppEnumSelect from '../../components/ui/AppEnumSelect.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -242,7 +243,7 @@ async function create() {
         </Column>
       </AppDataTable>
 
-      <h3 class="font-medium mt-6 mb-2">{{ t('invoices.manualLines') }}</h3>
+      <h2 class="font-semibold mt-6 mb-2">{{ t('invoices.manualLines') }}</h2>
       <AppDataTable v-if="manualLines.length" :rows="manualLines" :state-key="tableStateKeys.invoiceManualLines" class="mb-3">
         <Column class="app-text" field="description" :header="t('time.description')" sortable />
         <Column class="app-num" field="quantity" :header="t('invoices.quantity')" sortable />
@@ -260,10 +261,7 @@ async function create() {
         <AppFormField field="description" :label="t('time.description')" class="min-w-0"><InputText v-model="lineForm.description" class="w-full min-w-0" /></AppFormField>
         <AppFormField field="quantity" :label="t('invoices.quantity')" class="min-w-0"><InputNumber v-model="lineForm.quantity" :min="0" :min-fraction-digits="0" :max-fraction-digits="2" class="w-full min-w-0" fluid /></AppFormField>
         <AppFormField :label="t('invoices.unit')" class="min-w-0">
-          <Select v-model="lineForm.unit" :options="units" class="w-full min-w-0">
-            <template #option="{ option }">{{ t(`invoices.units.${option}`) }}</template>
-            <template #value="{ value }">{{ t(`invoices.units.${value}`) }}</template>
-          </Select>
+          <AppEnumSelect v-model="lineForm.unit" :options="units" label-prefix="invoices.units" class="w-full min-w-0" />
         </AppFormField>
         <AppFormField field="unit_price" :label="t('invoices.unitPrice')" class="min-w-0"><InputNumber v-model="lineForm.unit_price" mode="currency" currency="EUR" class="w-full min-w-0" fluid /></AppFormField>
       </div>
@@ -278,10 +276,7 @@ async function create() {
     <div v-else class="grid grid-cols-1 lg:grid-cols-[minmax(0,28rem)_minmax(0,1fr)] gap-6 items-start">
       <div class="flex flex-col gap-4">
         <AppFormField :label="t('invoices.groupBy')">
-          <Select v-model="groupBy" :options="groupBys" class="w-full">
-            <template #option="{ option }">{{ t(`invoices.groupBys.${option}`) }}</template>
-            <template #value="{ value }">{{ t(`invoices.groupBys.${value}`) }}</template>
-          </Select>
+          <AppEnumSelect v-model="groupBy" :options="groupBys" label-prefix="invoices.groupBys" class="w-full" />
         </AppFormField>
         <Message v-if="!bankAccounts.some((account) => account.iban)" severity="warn">
           {{ t('invoices.noIbanHint') }}
@@ -291,14 +286,11 @@ async function create() {
           <Select v-model="bankAccountId" :options="bankAccounts" option-label="name" option-value="id" show-clear :placeholder="t('invoices.inheritedBankAccount')" class="w-full" />
         </AppFormField>
         <AppFormField :label="t('invoices.eInvoice')">
-          <Select v-model="eInvoiceFormat" :options="formats" class="w-full">
-            <template #option="{ option }">{{ t(`invoices.eInvoiceFormats.${option}`) }}</template>
-            <template #value="{ value }">{{ t(`invoices.eInvoiceFormats.${value}`) }}</template>
-          </Select>
+          <AppEnumSelect v-model="eInvoiceFormat" :options="formats" label-prefix="invoices.eInvoiceFormats" class="w-full" />
         </AppFormField>
       </div>
 
-      <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 text-sm">
+      <div class="app-card text-sm">
         <div class="px-4 py-2 border-b border-surface-200 dark:border-surface-800 font-medium">{{ t('invoices.summary') }}</div>
         <Message v-if="previewError" severity="warn" class="m-4">{{ previewError }}</Message>
         <template v-else-if="preview">

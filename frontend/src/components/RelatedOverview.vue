@@ -5,6 +5,7 @@ import AppDurationDisplay from './ui/AppDurationDisplay.vue'
 import AppMoneyDisplay from './ui/AppMoneyDisplay.vue'
 import AppDateTimeDisplay from './ui/AppDateTimeDisplay.vue'
 import AppStatusTag from './ui/AppStatusTag.vue'
+import AppPriority from './ui/AppPriority.vue'
 import {
   invoicesApi, projectsApi, tasksApi, timeTrackingApi,
   type Invoice, type Project, type Task, type TimeEntry,
@@ -50,29 +51,28 @@ onMounted(async () => {
   loaded.value = true
 })
 
-const card = 'border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900'
 const row = 'flex items-center gap-3 px-4 py-2 border-t border-surface-100 dark:border-surface-800 text-sm hover:bg-surface-50 dark:hover:bg-surface-800'
 </script>
 
 <template>
   <div v-if="loaded" class="flex flex-col gap-4">
     <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
-      <div :class="card" class="p-4">
+      <div class="app-card p-4">
         <p class="text-sm text-surface-500">{{ t('overview.uninvoiced') }}</p>
         <p class="text-xl font-semibold mt-1"><AppDurationDisplay :minutes="uninvoicedMinutes" /></p>
       </div>
-      <div :class="card" class="p-4">
+      <div class="app-card p-4">
         <p class="text-sm text-surface-500">{{ t('overview.openInvoices') }}</p>
         <p class="text-xl font-semibold mt-1">
           <AppMoneyDisplay :amount="openAmount" />
           <span class="text-sm font-normal text-surface-500"> · {{ openInvoices.length }}</span>
         </p>
       </div>
-      <div :class="card" class="p-4">
+      <div class="app-card p-4">
         <p class="text-sm text-surface-500">{{ t('overview.openTasks') }}</p>
         <p class="text-xl font-semibold mt-1">{{ openTasks.length }}</p>
       </div>
-      <div :class="card" class="p-4">
+      <div class="app-card p-4">
         <template v-if="scope === 'customer'">
           <p class="text-sm text-surface-500">{{ t('overview.activeProjects') }}</p>
           <p class="text-xl font-semibold mt-1">{{ activeProjects.length }}</p>
@@ -85,9 +85,9 @@ const row = 'flex items-center gap-3 px-4 py-2 border-t border-surface-100 dark:
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
-      <section v-if="scope === 'customer'" :class="card">
+      <section v-if="scope === 'customer'" class="app-card">
         <header class="flex items-center justify-between px-4 py-2">
-          <h2 class="font-medium">{{ t('nav.projects') }}</h2>
+          <h2 class="font-semibold">{{ t('nav.projects') }}</h2>
           <router-link :to="`/projects?customer=${id}`" class="text-sm text-primary">{{ t('overview.showAll') }}</router-link>
         </header>
         <router-link v-for="project in projects.slice(0, 5)" :key="project.id" :to="`/projects/${project.id}`" :class="row">
@@ -98,9 +98,9 @@ const row = 'flex items-center gap-3 px-4 py-2 border-t border-surface-100 dark:
         <p v-if="!projects.length" class="px-4 py-3 border-t border-surface-100 dark:border-surface-800 text-sm text-surface-500">{{ t('common.empty') }}</p>
       </section>
 
-      <section :class="card">
+      <section class="app-card">
         <header class="flex items-center justify-between px-4 py-2">
-          <h2 class="font-medium">{{ t('overview.recentTime') }}</h2>
+          <h2 class="font-semibold">{{ t('overview.recentTime') }}</h2>
           <router-link :to="`/time?${filter}`" class="text-sm text-primary">{{ t('overview.showAll') }}</router-link>
         </header>
         <router-link v-for="entry in entries" :key="entry.id" :to="`/time?${filter}`" :class="row">
@@ -111,9 +111,9 @@ const row = 'flex items-center gap-3 px-4 py-2 border-t border-surface-100 dark:
         <p v-if="!entries.length" class="px-4 py-3 border-t border-surface-100 dark:border-surface-800 text-sm text-surface-500">{{ t('common.empty') }}</p>
       </section>
 
-      <section :class="card">
+      <section class="app-card">
         <header class="flex items-center justify-between px-4 py-2">
-          <h2 class="font-medium">{{ t('invoices.title') }}</h2>
+          <h2 class="font-semibold">{{ t('invoices.title') }}</h2>
           <router-link :to="`/invoices?${filter}`" class="text-sm text-primary">{{ t('overview.showAll') }}</router-link>
         </header>
         <router-link v-for="invoice in invoices.slice(0, 5)" :key="invoice.id" :to="`/invoices/${invoice.id}`" :class="row">
@@ -125,15 +125,15 @@ const row = 'flex items-center gap-3 px-4 py-2 border-t border-surface-100 dark:
         <p v-if="!invoices.length" class="px-4 py-3 border-t border-surface-100 dark:border-surface-800 text-sm text-surface-500">{{ t('common.empty') }}</p>
       </section>
 
-      <section :class="card">
+      <section class="app-card">
         <header class="flex items-center justify-between px-4 py-2">
-          <h2 class="font-medium">{{ t('overview.openTasks') }}</h2>
+          <h2 class="font-semibold">{{ t('overview.openTasks') }}</h2>
           <router-link :to="`/tasks?${filter}`" class="text-sm text-primary">{{ t('overview.showAll') }}</router-link>
         </header>
         <router-link v-for="task in openTasks.slice(0, 5)" :key="task.id" :to="`/tasks?${filter}`" :class="row">
           <span class="flex-1 min-w-0 truncate">{{ task.title }}</span>
           <AppDateTimeDisplay v-if="task.due_date" :value="task.due_date" class="text-surface-500 tabular-nums" />
-          <AppStatusTag :status="task.priority" :label="t(`tasks.priorities.${task.priority}`)" />
+          <AppPriority :priority="task.priority" />
         </router-link>
         <p v-if="!openTasks.length" class="px-4 py-3 border-t border-surface-100 dark:border-surface-800 text-sm text-surface-500">{{ t('common.empty') }}</p>
       </section>

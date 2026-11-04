@@ -22,8 +22,8 @@ const over = computed(() => props.usage.used_hours > props.usage.included_hours)
       <span>{{ t('contracts.used') }}: <AppDurationDisplay :minutes="usage.used_hours * 60" /></span>
       <span>{{ t('contracts.included') }}: <AppDurationDisplay :minutes="usage.included_hours * 60" /></span>
     </div>
-    <ProgressBar :value="pct" :show-value="false" :pt="{ value: { class: over ? 'bg-red-500' : '' } }" />
-    <p v-if="over" class="text-sm text-red-500 mt-1">
+    <ProgressBar :value="pct" :show-value="false" :pt="{ value: { class: over ? 'bg-danger' : '' } }" />
+    <p v-if="over" class="text-sm text-danger mt-1">
       {{ t('contracts.overage') }}: <AppDurationDisplay :minutes="usage.overage_hours * 60" />
     </p>
   </div>

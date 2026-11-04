@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppEnumSelect from '../../components/ui/AppEnumSelect.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -6,7 +7,6 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
@@ -14,10 +14,10 @@ import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
-import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
 import AppFilterBar, { type ActiveFilter } from '../../components/ui/AppFilterBar.vue'
+import AppSearchInput from '../../components/ui/AppSearchInput.vue'
 import { useQueryFilters } from '../../composables/useQueryFilters'
 import { projectsApi, type Project } from '../../api'
 import { useNotify } from '../../composables/useNotify'
@@ -46,6 +46,7 @@ const sortOptions = [
 const preset = useQueryFilters()
 const filters = ref({ customer: preset.customer, status: null as string | null })
 const names = preset.names
+const search = ref('')
 const activeFilters = computed<ActiveFilter[]>(() => {
   const f = filters.value
   const active: ActiveFilter[] = []
@@ -55,11 +56,12 @@ const activeFilters = computed<ActiveFilter[]>(() => {
 })
 
 onMounted(pagination.start)
-watch(filters, () => pagination.refresh(), { deep: true })
+watch([search, filters], () => pagination.refresh(), { deep: true })
 
 async function load() {
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(filters.value)) if (value) params.set(key, value)
+  if (search.value) params.set('search', search.value)
   const results = await pagination.fetchPage(projectsApi.list, params)
   if (results) rows.value = results
 }
@@ -102,14 +104,9 @@ async function save() {
             <CustomerSelect v-model="filters.customer" :placeholder="t('common.allCustomers')" @select="(c) => names.customer = c?.name ?? ''" />
           </AppFormField>
           <AppFormField :label="t('common.status')">
-            <Select v-model="filters.status" :options="statuses" :placeholder="t('common.all')" show-clear class="w-full">
-              <template #option="{ option }">{{ t(`projects.status.${option}`) }}</template>
-              <template #value="{ value, placeholder }">
-                <span v-if="value">{{ t(`projects.status.${value}`) }}</span>
-                <span v-else class="text-surface-500">{{ placeholder }}</span>
-              </template>
-            </Select>
+            <AppEnumSelect v-model="filters.status" :options="statuses" label-prefix="projects.status" :placeholder="t('common.all')" show-clear class="w-full" />
           </AppFormField>
+          <template #end><AppSearchInput v-model="search" /></template>
         </AppFilterBar>
       </template>
       <Column field="number" :header="t('common.numberShort')" sortable />
@@ -119,10 +116,20 @@ async function save() {
         <template #body="{ data }"><AppStatusTag :status="data.status" :label="t(`projects.status.${data.status}`)" /></template>
       </Column>
       <Column class="app-num" :header="t('projects.usedHours')">
-        <template #body="{ data }"><AppDurationDisplay :minutes="data.used_hours * 60" /></template>
-      </Column>
-      <Column class="app-num" :header="t('projects.budgetHours')">
-        <template #body="{ data }"><AppNumberDisplay :value="data.budget_hours" /></template>
+        <template #body="{ data }">
+          <span class="inline-flex items-center justify-end gap-2">
+            <span
+              v-if="data.budget_hours"
+              class="inline-block w-12 h-1.5 bg-surface-200 dark:bg-surface-700 overflow-hidden"
+              :title="`${Math.round(data.budget_hours_percent ?? 0)} %`"
+            >
+              <span class="block h-full" :class="(data.budget_hours_percent ?? 0) >= 80 ? 'bg-danger' : 'bg-primary'" :style="{ width: `${Math.min(100, data.budget_hours_percent ?? 0)}%` }" />
+            </span>
+            <span>
+              <AppDurationDisplay :minutes="data.used_hours * 60" /><template v-if="data.budget_hours"> / <AppDurationDisplay :minutes="data.budget_hours * 60" /></template>
+            </span>
+          </span>
+        </template>
       </Column>
       <Column :header="t('common.actions')" :reorderable-column="false">
         <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await projectsApi.remove(data.id); load() })" /></template>
@@ -146,10 +153,7 @@ async function save() {
           <AppFormField field="budget_amount" :label="t('projects.budgetAmount')"><InputNumber v-model="form.budget_amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
         </div>
         <AppFormField :label="t('common.status')">
-          <Select v-model="form.status" :options="statuses" class="w-full">
-            <template #option="{ option }">{{ t(`projects.status.${option}`) }}</template>
-            <template #value="{ value }">{{ value ? t(`projects.status.${value}`) : '' }}</template>
-          </Select>
+          <AppEnumSelect v-model="form.status" :options="statuses" label-prefix="projects.status" class="w-full" />
         </AppFormField>
       </div>
     </AppModal>

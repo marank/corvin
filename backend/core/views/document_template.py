@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.template import Context, Template
 from django.utils import timezone
 from django.utils.text import slugify
+from django.utils.translation import gettext as _
 from django.utils.translation import override
 from django.views.decorators.clickjacking import xframe_options_exempt
 from rest_framework import status
@@ -36,8 +37,8 @@ def _sample_invoice(request):
         _SampleObj(position=i, description=d, quantity=q, unit="hours", unit_price=p, total=q * p)
         for i, (d, q, p) in enumerate(
             [
-                ("Consulting services", Decimal("8"), Decimal("85")),
-                ("On-site support", Decimal("4"), Decimal("95")),
+                (_("Consulting"), Decimal("8"), Decimal("85")),
+                (_("On-site support"), Decimal("4"), Decimal("95")),
             ],
             start=1,
         )
@@ -110,7 +111,7 @@ class DocumentTemplateViewSet(OwnedViewSet):
         payload = request.data
         if not isinstance(payload, dict):
             return Response(
-                {"detail": "Invalid template file."},
+                {"detail": _("Invalid template file.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if (
@@ -119,7 +120,7 @@ class DocumentTemplateViewSet(OwnedViewSet):
             or not isinstance(payload.get("template"), dict)
         ):
             return Response(
-                {"detail": "Unsupported template format or version."},
+                {"detail": _("Unsupported template format or version.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         data = {**payload["template"]}
@@ -155,12 +156,22 @@ class DocumentTemplateViewSet(OwnedViewSet):
         ctx["text_blocks"] = text_block_context(request.user, ctx)
         return ctx
 
+    def _preview_template(self, request):
+        """The stored template; a POST previews unsaved designer changes without storing them."""
+        template = self.get_object()
+        if request.method == "POST":
+            serializer = self.get_serializer(template, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            for field, value in serializer.validated_data.items():
+                setattr(template, field, value)
+        return template
+
     @xframe_options_exempt
-    @action(detail=True, methods=["get"])
+    @action(detail=True, methods=["get", "post"])
     @override(settings.LANGUAGE_CODE)
     def preview(self, request, pk=None):
         """Render the template with sample data (HTML)."""
-        template = self.get_object()
+        template = self._preview_template(request)
         ctx = self._build_preview_context(request, template)
         body = Template(template.body_html).render(ctx)
         header = Template(template.header_html).render(ctx)
@@ -194,13 +205,13 @@ body {{
 </body></html>"""
         return HttpResponse(html, content_type="text/html")
 
-    @action(detail=True, methods=["get"], url_path="preview-pdf")
+    @action(detail=True, methods=["get", "post"], url_path="preview-pdf")
     @override(settings.LANGUAGE_CODE)
     def preview_pdf(self, request, pk=None):
         """Render the template with sample data as a PDF (inline)."""
         from io import BytesIO
 
-        template = self.get_object()
+        template = self._preview_template(request)
         ctx = self._build_preview_context(request, template)
 
         # Use PDF image paths instead of URLs for WeasyPrint

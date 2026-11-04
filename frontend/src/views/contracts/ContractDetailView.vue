@@ -96,7 +96,6 @@ async function runNow() {
   }
 }
 
-const card = 'border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900'
 </script>
 
 <template>
@@ -118,16 +117,16 @@ const card = 'border border-surface-200 dark:border-surface-800 bg-white dark:bg
         <TabPanel value="overview">
           <div class="flex flex-col gap-4 pt-4">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div :class="card" class="p-4">
+              <div class="app-card p-4">
                 <p class="text-sm text-surface-500 mb-2">{{ t('contracts.usage') }} (<AppDateTimeDisplay :value="usage?.period_start" /> – <AppDateTimeDisplay :value="usage?.period_end" />)</p>
                 <ContractUsageBar v-if="usage" :usage="usage" />
               </div>
-              <div :class="card" class="p-4">
+              <div class="app-card p-4">
                 <p class="text-sm text-surface-500">{{ t('contracts.fixedPrice') }}</p>
                 <p class="text-xl font-semibold mt-1"><AppMoneyDisplay :amount="contract.fixed_price" /></p>
                 <p class="text-sm text-surface-500 mt-1">{{ t(`contracts.periods.${contract.period}`) }} · <AppDurationDisplay :minutes="contract.included_hours * 60" /></p>
               </div>
-              <div :class="card" class="p-4">
+              <div class="app-card p-4">
                 <p class="text-sm text-surface-500">{{ t('contracts.nextBilling') }}</p>
                 <p class="text-xl font-semibold mt-1"><AppDateTimeDisplay :value="contract.next_billing_date" /></p>
                 <p class="text-sm text-surface-500 mt-1"><AppDateTimeDisplay :value="contract.start_date" /> – <AppDateTimeDisplay v-if="contract.end_date" :value="contract.end_date" /><span v-else>∞</span></p>
@@ -136,7 +135,7 @@ const card = 'border border-surface-200 dark:border-surface-800 bg-white dark:bg
 
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
               <section>
-                <h2 class="font-medium mb-2">{{ t('time.title') }}</h2>
+                <h2 class="font-semibold mb-2">{{ t('time.title') }}</h2>
                 <AppDataTable :rows="entries" :state-key="tableStateKeys.contractTimeEntries">
                   <Column field="start_datetime" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" /></template></Column>
                   <Column class="app-text" field="description" :header="t('time.description')" sortable />
@@ -146,7 +145,7 @@ const card = 'border border-surface-200 dark:border-surface-800 bg-white dark:bg
                 </AppDataTable>
               </section>
               <section>
-                <h2 class="font-medium mb-2">{{ t('invoices.title') }}</h2>
+                <h2 class="font-semibold mb-2">{{ t('invoices.title') }}</h2>
                 <AppDataTable :rows="invoices" :state-key="tableStateKeys.contractInvoices" @row-click="(r: Invoice) => router.push(`/invoices/${r.id}`)">
                   <Column field="number" :header="t('common.numberShort')" sortable />
                   <Column field="issue_date" :header="t('invoices.issueDate')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.issue_date" /></template></Column>

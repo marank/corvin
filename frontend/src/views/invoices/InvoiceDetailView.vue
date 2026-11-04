@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppEnumSelect from '../../components/ui/AppEnumSelect.vue'
 import { computed, ref } from 'vue'
 import { useLoadFailed } from '../../composables/useLoadFailed'
 import { useI18n } from 'vue-i18n'
@@ -72,14 +73,18 @@ async function load() {
   bankAccounts.value = accountPage.results.filter((account) => account.is_active)
 }
 
-// Prefill the recipient from the invoice contacts, falling back to the customer's address.
+// Prefill the recipient from the invoice contacts, falling back to the customer's address,
+// and subject/body with the text the template would send.
 async function openEmail() {
   if (!invoice.value) return
+  const [customer, draft] = await Promise.all([
+    emailForm.value.to ? null : customersApi.get(invoice.value.customer).catch(() => null),
+    emailForm.value.subject || emailForm.value.body ? null : invoicesApi.emailDraft(id).catch(() => null),
+  ])
   if (!emailForm.value.to) {
-    emailForm.value.to = invoice.value.contacts.find((contact) => contact.email)?.email
-      ?? (await customersApi.get(invoice.value.customer).catch(() => null))?.email
-      ?? ''
+    emailForm.value.to = invoice.value.contacts.find((contact) => contact.email)?.email ?? customer?.email ?? ''
   }
+  if (draft) emailForm.value = { ...emailForm.value, ...draft }
   emailModal.value?.open()
 }
 
@@ -194,8 +199,10 @@ async function addPayment() {
 <template>
   <div v-if="invoice">
     <AppPageHeader back-to="/invoices" :back-label="t('nav.invoices')" :title="invoice.number || '—'" :subtitle="invoice.customer_name">
-      <template #actions>
+      <template #title-end>
         <AppStatusTag :status="statusKey" :label="t(`invoices.status.${statusKey}`)" />
+      </template>
+      <template #actions>
         <Button v-if="isDraft" :label="t('invoices.finalize')" icon="pi pi-lock" :loading="busy" @click="confirmFinalize" />
         <Button v-if="canReceivePayment" :label="t('invoices.sendEmail')" icon="pi pi-send" :loading="busy" @click="openEmail" />
         <Button v-if="canReceivePayment && Number(invoice.remaining) > 0" :label="t('invoices.addPayment')" icon="pi pi-money-bill" @click="paymentForm.amount = Number(invoice.remaining); paymentModal?.open()" />
@@ -212,7 +219,7 @@ async function addPayment() {
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
       <div>
-        <div class="relative border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4 mb-4 grid grid-cols-2 gap-3 text-sm">
+        <div class="relative app-card p-4 mb-4 grid grid-cols-2 gap-3 text-sm">
           <Button v-if="isDraft" :label="t('common.edit')" icon="pi pi-pencil" text size="small" class="absolute! top-2 right-2" @click="openHeader" />
           <div><span class="text-surface-500">{{ t('invoices.issueDate') }}</span><br><AppDateTimeDisplay :value="invoice.issue_date" /></div>
           <div><span class="text-surface-500">{{ t('invoices.dueDate') }}</span><br><AppDateTimeDisplay :value="invoice.due_date" /></div>
@@ -260,8 +267,8 @@ async function addPayment() {
           <div class="flex justify-between"><span>{{ t('invoices.subtotal') }}</span><AppMoneyDisplay :amount="invoice.subtotal" :currency="invoice.currency" /></div>
           <div class="flex justify-between"><span>{{ t('invoices.vat') }}</span><AppMoneyDisplay :amount="invoice.vat_amount" :currency="invoice.currency" /></div>
           <div class="flex justify-between font-semibold text-base mt-1"><span>{{ t('common.total') }}</span><AppMoneyDisplay :amount="invoice.total" :currency="invoice.currency" /></div>
-          <div v-if="Number(invoice.amount_paid) > 0" class="flex justify-between text-green-600"><span>{{ t('invoices.paid') }}</span><AppMoneyDisplay :amount="invoice.amount_paid" :currency="invoice.currency" /></div>
-          <div v-if="Number(invoice.remaining) > 0" class="flex justify-between" :class="{ 'text-red-500': !isDraft }"><span>{{ t('invoices.remaining') }}</span><AppMoneyDisplay :amount="invoice.remaining" :currency="invoice.currency" /></div>
+          <div v-if="Number(invoice.amount_paid) > 0" class="flex justify-between text-success"><span>{{ t('invoices.paid') }}</span><AppMoneyDisplay :amount="invoice.amount_paid" :currency="invoice.currency" /></div>
+          <div v-if="Number(invoice.remaining) > 0" class="flex justify-between" :class="{ 'text-danger': !isDraft }"><span>{{ t('invoices.remaining') }}</span><AppMoneyDisplay :amount="invoice.remaining" :currency="invoice.currency" /></div>
         </div>
 
         <div class="flex gap-2 mt-3">
@@ -275,7 +282,7 @@ async function addPayment() {
             <Tab value="attachments">{{ t('customers.attachments') }}</Tab>
           </TabList>
           <TabPanels>
-            <TabPanel value="payments">
+            <TabPanel value="payments" class="pt-4">
               <AppDataTable :rows="invoice.payments" :state-key="tableStateKeys.invoicePayments">
                 <Column field="date" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
                 <Column class="app-num" field="amount" :header="t('common.amount')" sortable>
@@ -287,7 +294,7 @@ async function addPayment() {
                 </Column>
               </AppDataTable>
             </TabPanel>
-            <TabPanel value="attachments"><AttachmentList model="invoice" :object-id="id" /></TabPanel>
+            <TabPanel value="attachments" class="pt-4"><AttachmentList model="invoice" :object-id="id" /></TabPanel>
           </TabPanels>
         </Tabs>
       </div>
@@ -301,7 +308,7 @@ async function addPayment() {
       <div class="flex flex-col gap-4">
         <AppFormField field="to" :label="t('common.email')" required><InputText v-model="emailForm.to" class="w-full" /></AppFormField>
         <AppFormField field="subject" :label="t('designer.mailSubject')"><InputText v-model="emailForm.subject" class="w-full" /></AppFormField>
-        <AppFormField field="body" :label="t('designer.mailBody')"><Textarea v-model="emailForm.body" rows="5" class="w-full" /></AppFormField>
+        <AppFormField field="body" :label="t('designer.mailBody')"><Textarea v-model="emailForm.body" rows="8" class="w-full" /></AppFormField>
       </div>
     </AppModal>
 
@@ -312,10 +319,7 @@ async function addPayment() {
           <AppFormField field="due_date" :label="t('invoices.dueDate')"><AppDateInput v-model="(headerForm.due_date as any)" /></AppFormField>
           <AppFormField field="vat_rate" :label="t('invoices.vatRate')"><InputNumber v-model="headerForm.vat_rate" :min="0" :max="100" :max-fraction-digits="2" suffix=" %" class="w-full" fluid /></AppFormField>
           <AppFormField field="e_invoice_format" :label="t('invoices.eInvoice')">
-            <Select v-model="headerForm.e_invoice_format" :options="formats" class="w-full">
-              <template #option="{ option }">{{ t(`invoices.eInvoiceFormats.${option}`) }}</template>
-              <template #value="{ value }">{{ value ? t(`invoices.eInvoiceFormats.${value}`) : '' }}</template>
-            </Select>
+            <AppEnumSelect v-model="headerForm.e_invoice_format" :options="formats" label-prefix="invoices.eInvoiceFormats" class="w-full" />
           </AppFormField>
         </div>
         <AppFormField field="contact_ids" :label="t('invoices.contacts')">
@@ -331,10 +335,7 @@ async function addPayment() {
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <AppFormField field="quantity" :label="t('invoices.quantity')" required><InputNumber v-model="itemForm.quantity" :min="0" :max-fraction-digits="2" class="w-full" fluid /></AppFormField>
           <AppFormField field="unit" :label="t('invoices.unit')">
-            <Select v-model="itemForm.unit" :options="units" class="w-full">
-              <template #option="{ option }">{{ t(`invoices.units.${option}`) }}</template>
-              <template #value="{ value }">{{ value ? t(`invoices.units.${value}`) : '' }}</template>
-            </Select>
+            <AppEnumSelect v-model="itemForm.unit" :options="units" label-prefix="invoices.units" class="w-full" />
           </AppFormField>
           <AppFormField field="unit_price" :label="t('invoices.unitPrice')" required><InputNumber v-model="itemForm.unit_price" mode="currency" :currency="invoice.currency" class="w-full" fluid /></AppFormField>
         </div>

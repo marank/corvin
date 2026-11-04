@@ -14,9 +14,9 @@ onUnmounted(() => props.field && unregisterField(props.field))
 <template>
   <div class="flex flex-col gap-1" role="group" :aria-labelledby="labelId">
     <label :id="labelId" class="text-sm font-medium">
-      {{ label }}<span v-if="required" class="text-red-500"> *</span>
+      {{ label }}<span v-if="required" class="text-danger"> *</span>
     </label>
     <slot />
-    <small v-if="shownError" class="text-red-500">{{ shownError }}</small>
+    <small v-if="shownError" class="text-danger">{{ shownError }}</small>
   </div>
 </template>

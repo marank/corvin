@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
+import Menu from 'primevue/menu'
+import ProgressBar from 'primevue/progressbar'
 import Select from 'primevue/select'
 import AppIconButton from '../components/ui/AppIconButton.vue'
 import AppLogo from '../components/ui/AppLogo.vue'
@@ -20,6 +22,28 @@ const menuOpen = ref(false)
 const dark = ref(document.documentElement.classList.contains('dark'))
 const sidebarNav = ref<HTMLElement | null>(null)
 const indicatorStyle = ref({ top: '0px', height: '0px' })
+const accountMenu = ref<InstanceType<typeof Menu>>()
+// Thin progress bar while a lazy route loads, shown only if it takes noticeably long.
+const navigating = ref(false)
+let navigationTimer: ReturnType<typeof setTimeout> | undefined
+const stopBefore = router.beforeEach(() => {
+  clearTimeout(navigationTimer)
+  navigationTimer = setTimeout(() => { navigating.value = true }, 120)
+})
+const stopAfter = router.afterEach(() => {
+  clearTimeout(navigationTimer)
+  navigating.value = false
+})
+const stopError = router.onError(() => {
+  clearTimeout(navigationTimer)
+  navigating.value = false
+})
+onBeforeUnmount(() => { stopBefore(); stopAfter(); stopError() })
+const accountItems = computed(() => [
+  { label: t('settings.security'), icon: 'pi pi-shield', command: () => router.push('/settings/security') },
+  { separator: true },
+  { label: t('auth.logout'), icon: 'pi pi-sign-out', command: logout },
+])
 
 const items = computed(() => [
   { to: '/', icon: 'pi pi-chart-bar', label: t('nav.dashboard'), exact: true },
@@ -161,9 +185,19 @@ async function logout() {
           </template>
         </Select>
         <AppIconButton :icon="dark ? 'pi pi-sun' : 'pi pi-moon'" :aria-label="t('common.toggleTheme')" @click="toggleDark" />
-        <Button icon="pi pi-sign-out" text severity="secondary" :label="t('auth.logout')" class="hidden sm:inline-flex" @click="logout" />
-        <AppIconButton icon="pi pi-sign-out" class="sm:hidden" :aria-label="t('auth.logout')" @click="logout" />
+        <Button
+          icon="pi pi-user"
+          text
+          severity="secondary"
+          :label="auth.user?.username"
+          :aria-label="t('auth.account')"
+          aria-haspopup="menu"
+          class="max-sm:[&_.p-button-label]:hidden"
+          @click="accountMenu?.toggle($event)"
+        />
+        <Menu ref="accountMenu" :model="accountItems" popup />
       </header>
+      <ProgressBar v-if="navigating" mode="indeterminate" class="app-route-progress" />
       <main class="flex-1 overflow-y-auto p-4 lg:p-6">
         <router-view />
       </main>

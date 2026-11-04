@@ -5,7 +5,7 @@ import Chart from 'primevue/chart'
 import ProgressBar from 'primevue/progressbar'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
 import AppMoneyDisplay from '../components/ui/AppMoneyDisplay.vue'
-import AppNumberDisplay from '../components/ui/AppNumberDisplay.vue'
+import AppEmptyState from '../components/ui/AppEmptyState.vue'
 import AppDurationDisplay from '../components/ui/AppDurationDisplay.vue'
 import ContractUsageBar from '../components/ContractUsageBar.vue'
 import { statsApi } from '../api'
@@ -42,18 +42,38 @@ onMounted(async () => {
 })
 onUnmounted(() => themeObserver.disconnect())
 
-const revenueChart = computed(() => stats.value && {
+// Charts only with data; otherwise the cards show an empty state instead of bare axes.
+const revenueChart = computed(() => stats.value?.revenue_by_month.some((r) => Number(r.total) > 0) && {
   labels: stats.value.revenue_by_month.map((r) =>
     new Date(r.month).toLocaleDateString(locale.value, { month: 'short', year: 'numeric' })),
   datasets: [{ label: t('dashboard.revenue'), data: stats.value.revenue_by_month.map((r) => r.total), backgroundColor: brandColors.blue }],
 })
-const hoursChart = computed(() => stats.value && {
+const hoursChart = computed(() => stats.value?.hours_by_customer.length && {
   labels: stats.value.hours_by_customer.map((r) => r.customer__name ?? t('dashboard.noCustomer')),
   datasets: [{ data: stats.value.hours_by_customer.map((r) => r.hours), backgroundColor: chartPalette }],
 })
 
-const textColor = computed(() => (isDark.value ? '#a1a1aa' : '#52525b'))
-const gridColor = computed(() => (isDark.value ? '#3f3f46' : '#e4e4e7'))
+// Each key figure opens the list it summarizes.
+const monday = () => {
+  const d = new Date()
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const kpis = computed(() => {
+  const s = stats.value
+  if (!s) return []
+  return [
+    { label: t('dashboard.weekHours'), minutes: s.week_hours * 60, to: `/time?from=${monday()}` },
+    { label: t('dashboard.uninvoiced'), minutes: s.uninvoiced_hours * 60, to: '/time?status=open' },
+    { label: t('dashboard.openInvoices'), money: s.open_invoices.total ?? 0, count: s.open_invoices.count, to: '/invoices?receivable=open' },
+    { label: t('dashboard.overdue'), money: s.overdue.total ?? 0, count: s.overdue.count, alert: s.overdue.count > 0, to: '/invoices?receivable=overdue' },
+  ] as { label: string; to: string; minutes?: number; money?: number; count?: number; alert?: boolean }[]
+})
+
+// Chart.js gets the PrimeVue tokens as values; reading `isDark` re-evaluates them after a theme switch.
+const cssVar = (name: string) => (isDark.value, getComputedStyle(document.documentElement).getPropertyValue(name).trim())
+const textColor = computed(() => cssVar('--p-text-muted-color'))
+const gridColor = computed(() => cssVar('--p-content-border-color'))
 const chartOpts = computed(() => ({
   maintainAspectRatio: false,
   plugins: { legend: { display: false } },
@@ -72,39 +92,31 @@ const pieOpts = computed(() => ({
   <div>
     <AppPageHeader :title="t('dashboard.title')" />
     <div v-if="stats" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-      <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
-        <p class="text-sm text-surface-500">{{ t('dashboard.weekHours') }}</p>
-        <p class="text-2xl font-semibold mt-1"><AppDurationDisplay :minutes="stats.week_hours * 60" /></p>
-      </div>
-      <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
-        <p class="text-sm text-surface-500">{{ t('dashboard.uninvoiced') }}</p>
-        <p class="text-2xl font-semibold mt-1"><AppDurationDisplay :minutes="stats.uninvoiced_hours * 60" /></p>
-      </div>
-      <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
-        <p class="text-sm text-surface-500">{{ t('dashboard.openInvoices') }}</p>
-        <p class="text-2xl font-semibold mt-1">
-          <AppMoneyDisplay :amount="stats.open_invoices.total ?? 0" />
-          <span class="text-sm font-normal text-surface-500"> (<AppNumberDisplay :value="stats.open_invoices.count" :maximum-fraction-digits="0" />)</span>
+      <router-link v-for="kpi in kpis" :key="kpi.label" :to="kpi.to" class="app-card p-4 hover:border-primary transition-colors">
+        <p class="text-sm text-surface-500">{{ kpi.label }}</p>
+        <p class="text-2xl font-semibold mt-1" :class="{ 'text-danger': kpi.alert }">
+          <AppMoneyDisplay v-if="kpi.money !== undefined" :amount="kpi.money" />
+          <AppDurationDisplay v-else :minutes="kpi.minutes ?? 0" />
         </p>
-      </div>
-      <div class="border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
-        <p class="text-sm text-surface-500">{{ t('dashboard.overdue') }}</p>
-        <p class="text-2xl font-semibold mt-1" :class="{ 'text-red-500': stats.overdue.count > 0 }">
-          <AppMoneyDisplay :amount="stats.overdue.total ?? 0" />
-          <span class="text-sm font-normal"> (<AppNumberDisplay :value="stats.overdue.count" :maximum-fraction-digits="0" />)</span>
-        </p>
-      </div>
+        <p v-if="kpi.count !== undefined" class="text-sm text-surface-500 mt-0.5">{{ t('dashboard.invoiceCount', { n: kpi.count }, kpi.count) }}</p>
+      </router-link>
 
-      <div class="sm:col-span-2 border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
+      <div class="app-card sm:col-span-2 p-4">
         <p class="text-sm text-surface-500 mb-2">{{ t('dashboard.revenue') }}</p>
-        <div class="h-56"><Chart v-if="revenueChart" type="bar" :data="(revenueChart as any)" :options="chartOpts" class="h-full" /></div>
+        <div class="h-56">
+          <Chart v-if="revenueChart" type="bar" :data="(revenueChart as any)" :options="chartOpts" class="h-full" />
+          <AppEmptyState v-else :message="t('dashboard.noRevenue')" icon="pi pi-chart-bar" class="h-full" />
+        </div>
       </div>
-      <div class="sm:col-span-2 border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
+      <div class="app-card sm:col-span-2 p-4">
         <p class="text-sm text-surface-500 mb-2">{{ t('dashboard.hoursPerCustomer') }}</p>
-        <div class="h-56"><Chart v-if="hoursChart" type="doughnut" :data="(hoursChart as any)" :options="pieOpts" class="h-full" /></div>
+        <div class="h-56">
+          <Chart v-if="hoursChart" type="doughnut" :data="(hoursChart as any)" :options="pieOpts" class="h-full" />
+          <AppEmptyState v-else :message="t('dashboard.noHours')" icon="pi pi-clock" class="h-full" />
+        </div>
       </div>
 
-      <div v-if="stats.budget_warnings.length" class="sm:col-span-2 border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
+      <div v-if="stats.budget_warnings.length" class="app-card sm:col-span-2 p-4">
         <p class="text-sm text-surface-500 mb-3">{{ t('dashboard.budgetWarnings') }}</p>
         <div v-for="w in stats.budget_warnings" :key="w.id" class="mb-3">
           <div class="flex justify-between text-sm">
@@ -115,7 +127,7 @@ const pieOpts = computed(() => ({
         </div>
       </div>
 
-      <div v-if="stats.contracts.length" class="sm:col-span-2 border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
+      <div v-if="stats.contracts.length" class="app-card sm:col-span-2 p-4">
         <p class="text-sm text-surface-500 mb-3">{{ t('dashboard.contractUsage') }}</p>
         <div v-for="c in stats.contracts" :key="c.id" class="mb-4">
           <router-link :to="`/contracts/${c.id}`" class="text-sm text-primary">{{ c.name }}</router-link>

@@ -415,6 +415,8 @@ export const invoicesApi = {
   finalize: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/finalize/`),
   markSent: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/mark_sent/`),
   cancel: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/cancel/`),
+  emailDraft: (id: string) =>
+    api.get<{ subject: string; body: string }>(`${base}/invoices/${id}/email_draft/`),
   sendEmail: (id: string, d: { to: string; subject?: string; body?: string }) =>
     api.post<Invoice>(`${base}/invoices/${id}/send_email/`, d),
   pdfUrl: (id: string) => `${base}/invoices/${id}/pdf/`,
@@ -452,6 +454,11 @@ export const templatesApi = {
   remove: (id: string) => api.delete(`${base}/document-templates/${id}/`),
   previewUrl: (id: string) => `${base}/document-templates/${id}/preview/`,
   previewPdfUrl: (id: string) => `${base}/document-templates/${id}/preview-pdf/`,
+  // Previews of unsaved designer changes (nothing is stored).
+  previewDraft: (id: string, d: Partial<DocumentTemplate>) =>
+    api.post<string>(`${base}/document-templates/${id}/preview/`, d),
+  previewDraftPdf: (id: string, d: Partial<DocumentTemplate>) =>
+    api.postBlob(`${base}/document-templates/${id}/preview-pdf/`, d),
   exportUrl: (id: string) => `${base}/document-templates/${id}/export/`,
   importTemplate: (data: unknown) =>
     api.post<DocumentTemplate>(`${base}/document-templates/import/`, data),

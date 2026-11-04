@@ -37,10 +37,30 @@ async function request<T>(
   return data as T
 }
 
+// Binary responses (PDF previews) as a Blob, with the same headers and error handling.
+async function requestBlob(path: string, options: RequestInit = {}): Promise<Blob> {
+  const res = await fetch(path, {
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken(),
+      'Accept-Language': i18n.global.locale.value,
+    },
+    ...options,
+  })
+  if (!res.ok) {
+    const contentType = res.headers.get('content-type') ?? ''
+    throw new ApiError(res.status, contentType.includes('json') ? await res.json() : await res.text())
+  }
+  return res.blob()
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'POST', body: JSON.stringify(body ?? {}) }),
+  postBlob: (path: string, body?: unknown) =>
+    requestBlob(path, { method: 'POST', body: JSON.stringify(body ?? {}) }),
   put: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
   patch: <T>(path: string, body: unknown) =>

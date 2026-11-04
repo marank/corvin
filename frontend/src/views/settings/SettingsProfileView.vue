@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import AppEnumSelect from '../../components/ui/AppEnumSelect.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useUnsavedChanges } from '../../composables/useUnsavedChanges'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
@@ -29,6 +30,7 @@ import AppIconButton from '../../components/ui/AppIconButton.vue'
 import { useFormattingStore } from '../../stores/formatting'
 import { useSettingsStore } from '../../stores/settings'
 import { currencies } from '../../currencies'
+import HourlyRateList from '../../components/HourlyRateList.vue'
 import { tableStateKeys } from '../../tableStateKeys'
 
 interface NumberScheme {
@@ -38,7 +40,6 @@ interface NumberScheme {
 }
 
 const { t } = useI18n()
-const router = useRouter()
 // ?tab=bankAccounts etc. opens a tab directly (e.g. from the invoice IBAN hint).
 const tab = ref(typeof useRoute().query.tab === 'string' ? useRoute().query.tab as string : 'company')
 // Bank accounts, contacts and images save in their own dialogs; Save is for the form tabs.
@@ -50,7 +51,7 @@ const settingsStore = useSettingsStore()
 const form = ref<Record<string, unknown>>({})
 const saving = ref(false)
 const entities = ['customer', 'project', 'invoice', 'contract', 'visit', 'task']
-const scopes = ['year', 'customer', 'project']
+const scopes = ['year', 'customer', 'project'].map((value) => ({ value, label: t(`settings.scopes.${value}`) }))
 const currencyDisplays = ['symbol', 'code']
 const currencyPositions = ['before', 'after']
 const roundingDirections = [
@@ -272,7 +273,6 @@ async function save() {
   <div>
     <AppPageHeader :title="t('settings.title')">
       <template #actions>
-        <Button :label="t('settings.security')" text icon="pi pi-shield" @click="router.push('/settings/security')" />
         <Button v-if="formTabs.includes(tab)" :label="t('common.save')" :loading="saving" @click="save" />
       </template>
     </AppPageHeader>
@@ -285,6 +285,7 @@ async function save() {
         <Tab value="images">{{ t('settings.images') }}</Tab>
         <Tab value="numbering">{{ t('settings.numbering') }}</Tab>
         <Tab value="timeTracking">{{ t('settings.timeTracking') }}</Tab>
+        <Tab value="rates">{{ t('rates.title') }}</Tab>
       </TabList>
       <TabPanels>
         <TabPanel value="company">
@@ -330,16 +331,10 @@ async function save() {
                   <Select v-model="form.currency" :options="currencies" option-label="label" option-value="code" filter class="w-full" />
                 </AppFormField>
                 <AppFormField :label="t('settings.currencyDisplay')">
-                  <Select v-model="form.currency_display" :options="currencyDisplays" class="w-full">
-                    <template #option="{ option }">{{ t(`settings.currencyDisplays.${option}`) }}</template>
-                    <template #value="{ value }">{{ t(`settings.currencyDisplays.${value}`) }}</template>
-                  </Select>
+                  <AppEnumSelect v-model="(form.currency_display as string)" :options="currencyDisplays" label-prefix="settings.currencyDisplays" class="w-full" />
                 </AppFormField>
                 <AppFormField :label="t('settings.currencyPosition')">
-                  <Select v-model="form.currency_position" :options="currencyPositions" class="w-full">
-                    <template #option="{ option }">{{ t(`settings.currencyPositions.${option}`) }}</template>
-                    <template #value="{ value }">{{ t(`settings.currencyPositions.${value}`) }}</template>
-                  </Select>
+                  <AppEnumSelect v-model="(form.currency_position as string)" :options="currencyPositions" label-prefix="settings.currencyPositions" class="w-full" />
                 </AppFormField>
                 <AppCheckboxField v-model="(form.currency_space as boolean)" :label="t('settings.currencySpace')" />
               </div>
@@ -444,16 +439,16 @@ async function save() {
                 <div class="font-medium lg:self-center">{{ t(`settings.entities.${entity}`) }}</div>
                 <AppFormField :label="t('settings.numberFormat')" class="lg:[&>label]:hidden"><InputText v-model="schemes[entity].format" class="w-full font-mono" /></AppFormField>
                 <AppFormField :label="t('settings.numberScope')" class="lg:[&>label]:hidden">
-                  <MultiSelect v-model="schemes[entity].scope" :options="scopes" class="w-full" display="chip" :placeholder="t('settings.scopes.global')">
-                    <template #option="{ option }">{{ t(`settings.scopes.${option}`) }}</template>
-                    <template #chip="{ value }">{{ t(`settings.scopes.${value}`) }}</template>
-                  </MultiSelect>
+                  <MultiSelect v-model="schemes[entity].scope" :options="scopes" option-label="label" option-value="value" class="w-full" display="chip" :placeholder="t('settings.scopes.global')" />
                 </AppFormField>
                 <AppFormField :label="t('settings.numberStart')" class="lg:[&>label]:hidden"><InputNumber v-model="schemes[entity].start" :min="1" fluid /></AppFormField>
                 <div class="font-mono text-sm bg-surface-100 dark:bg-surface-800 px-3 py-2 min-h-10 break-all">{{ previews[entity] || '—' }}</div>
               </div>
             </div>
           </div>
+        </TabPanel>
+        <TabPanel value="rates">
+          <div class="max-w-3xl pt-4"><HourlyRateList /></div>
         </TabPanel>
         <TabPanel value="timeTracking">
           <div class="flex flex-col gap-6 max-w-3xl pt-4">

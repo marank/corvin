@@ -4,10 +4,12 @@ from datetime import date, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.utils.translation import override
 
 from core.models import (
     Customer,
@@ -62,6 +64,16 @@ def _line_for_entries(owner, entries, description: str) -> dict:
         "unit": InvoiceLineItem.Unit.HOURS,
         "unit_price": unit_price,
     }
+
+
+def _entry_text(description: str, scope: str) -> str:
+    """The entry's description, prefixed with the project/customer unless it already names it."""
+    if not description:
+        description = _("Services")
+        return f"{scope}: {description}"
+    if scope.casefold() in description.casefold():
+        return description
+    return f"{scope}: {description}"
 
 
 def _default_vat_rate(company) -> Decimal:
@@ -125,12 +137,15 @@ def build_lines(*, owner, customer: Customer, entries, group_by: str):
             timezone.localdate(first.start_datetime),
             company.date_format if company else "DD.MM.YYYY",
         )
-        if group_by == "entry":
-            desc = f"{work_date} — {scope}: {first.description or 'Services'}"
-        elif group_by == "day":
-            desc = f"{work_date} — {scope}"
-        else:
-            desc = f"{scope} — consulting services"
+        # Line texts end up on the document, which always renders in LANGUAGE_CODE.
+        with override(settings.LANGUAGE_CODE):
+            if group_by == "entry":
+                desc = f"{work_date} — {_entry_text(first.description, scope)}"
+            elif group_by == "day":
+                desc = f"{work_date} — {scope}"
+            else:
+                services = _("Services")
+                desc = f"{scope} — {services}"
         lines.append((_line_for_entries(owner, group, desc), group))
     return lines
 

@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import AppEnumSelect from './ui/AppEnumSelect.vue'
 import { useI18n } from 'vue-i18n'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
 import AppFormField from './ui/AppFormField.vue'
 import AppCheckboxField from './ui/AppCheckboxField.vue'
 import AppDateInput from './ui/AppDateInput.vue'
@@ -22,10 +22,7 @@ const periods = ['monthly', 'quarterly', 'yearly']
     <AppFormField field="customer" :label="t('projects.customer')" required><CustomerSelect v-model="form.customer" /></AppFormField>
     <AppFormField field="project" :label="t('projects.project')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
     <AppFormField field="period" :label="t('contracts.period')">
-      <Select v-model="form.period" :options="periods" class="w-full">
-        <template #option="{ option }">{{ t(`contracts.periods.${option}`) }}</template>
-        <template #value="{ value }">{{ value ? t(`contracts.periods.${value}`) : '' }}</template>
-      </Select>
+      <AppEnumSelect v-model="form.period" :options="periods" label-prefix="contracts.periods" class="w-full" />
     </AppFormField>
     <AppFormField field="included_hours" :label="t('contracts.includedHours')"><InputNumber v-model="form.included_hours" :min="0" :max-fraction-digits="2" class="w-full" /></AppFormField>
     <AppFormField field="fixed_price" :label="t('contracts.fixedPrice')" required><InputNumber v-model="form.fixed_price" mode="currency" currency="EUR" class="w-full" /></AppFormField>
