@@ -1,5 +1,15 @@
+from django.template import Template, TemplateSyntaxError
 from django.utils.translation import gettext as _
 from rest_framework import serializers
+
+
+def validate_template_syntax(value: str) -> str:
+    """Reject markup that would only fail later, when an invoice or mail is rendered."""
+    try:
+        Template(value)
+    except TemplateSyntaxError as e:
+        raise serializers.ValidationError(_("Invalid template: %(error)s") % {"error": e}) from e
+    return value
 
 
 class OwnedSerializer(serializers.ModelSerializer):

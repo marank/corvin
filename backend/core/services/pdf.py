@@ -1,4 +1,3 @@
-from io import BytesIO
 from pathlib import Path
 
 from django.conf import settings
@@ -90,7 +89,9 @@ def build_pdf_html(
     """Build the full HTML document used by WeasyPrint for PDF generation.
 
     This is the single source of truth for the PDF page structure shared by
-    real invoice rendering and template preview.
+    real invoice rendering and template preview. The content flows over as many
+    pages as it needs; header and footer repeat on every page inside the top and
+    bottom page margins.
     """
     return f"""<!DOCTYPE html>
 <html>
@@ -99,26 +100,54 @@ def build_pdf_html(
 <style>
 {css}
 @page {{
-  size: {template.page_size};
-  margin: 0;
+  size: {template.page_width} {template.page_height};
+  margin: {template.margin_top}mm {template.margin_right}mm {template.margin_bottom}mm {template.margin_left}mm;
+  @top-center {{ content: element(page-header); width: 100%; }}
+  @bottom-center {{ content: element(page-footer); width: 100%; }}
 }}
 html, body {{ margin: 0; }}
-body {{
-  height: {template.page_height};
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+#page-header {{ position: running(page-header); }}
+#page-footer {{ position: running(page-footer); }}
+/* HTML previews: the first page on a grey desk, header and footer inside the margins. */
+@media screen {{
+  html {{ padding: 24px; background: #e5e7eb; }}
+  body {{
+    box-sizing: border-box;
+    width: {template.page_width};
+    min-height: {template.page_height};
+    margin: 0 auto;
+    padding: 0 {template.margin_right}mm 0 {template.margin_left}mm;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #9ca3af;
+  }}
+  #page-header, #page-footer {{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }}
+  #page-header {{ order: 0; min-height: {template.margin_top}mm; }}
+  #page-content {{ order: 1; flex: 1 1 auto; }}
+  #page-footer {{ order: 2; min-height: {template.margin_bottom}mm; }}
 }}
-body > #page-header, body > #page-footer {{ flex: 0 0 auto; min-height: 0; }}
-body > #page-content {{ flex: 1 1 auto; min-height: 0; }}
 </style>
 </head>
 <body>
 <div id="page-header">{header}</div>
-<div id="page-content">{body}</div>
 <div id="page-footer">{footer}</div>
+<div id="page-content">{body}</div>
 </body>
 </html>"""
+
+
+def write_pdf(html: str, owner, **options) -> bytes:
+    """Render HTML to PDF, loading only the owner's own images (see OwnerResourceFetcher)."""
+    from weasyprint import HTML  # deferred: native libs load lazily on Windows
+
+    from .pdf_fetcher import OwnerResourceFetcher
+
+    return HTML(string=html, url_fetcher=OwnerResourceFetcher(owner)).write_pdf(**options)
 
 
 def invoice_template(invoice: Invoice) -> DocumentTemplate:
@@ -162,16 +191,11 @@ def render_invoice_pdf(invoice: Invoice) -> bytes:
     """Render PDF. ZUGFeRD: PDF/A-3 with embedded XML; else plain PDF."""
     html = render_invoice_html(invoice, for_pdf=True)
 
-    from weasyprint import HTML  # deferred: native libs load lazily on Windows
-
-    pdf_io = BytesIO()
     if invoice.e_invoice_format == Invoice.EInvoiceFormat.ZUGFERD:
         xml = build_xrechnung_xml(invoice)
-        HTML(string=html).write_pdf(pdf_io, pdf_variant="pdf/a-3u")
+        pdf = write_pdf(html, invoice.owner, pdf_variant="pdf/a-3u")
         # embeds factur-x.xml + adds the Factur-X XMP extension schema
         from drafthorse.pdf import attach_xml
 
-        pdf_io = BytesIO(attach_xml(pdf_io.getvalue(), xml))
-    else:
-        HTML(string=html).write_pdf(pdf_io)
-    return pdf_io.getvalue()
+        return attach_xml(pdf, xml)
+    return write_pdf(html, invoice.owner)

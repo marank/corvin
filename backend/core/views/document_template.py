@@ -13,13 +13,14 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.models import CompanyContact, CompanyImage, DocumentTemplate
+from core.models import CompanyContact, DocumentTemplate
 from core.serializers import DocumentTemplateSerializer
 from core.services.pdf import (
     build_pdf_html,
     company_image_context,
     template_page_context,
     text_block_context,
+    write_pdf,
 )
 from core.services.templates import ensure_default_template
 
@@ -132,19 +133,20 @@ class DocumentTemplateViewSet(OwnedViewSet):
             status=status.HTTP_201_CREATED,
         )
 
-    def _build_preview_context(self, request, template):
+    def _build_preview_context(self, request, template, for_pdf=False):
         """Build shared sample-data context for HTML and PDF previews."""
         invoice, items, customer, company = _sample_invoice(request)
+        # WeasyPrint reads the images from disk, the browser through the API.
+        images = company_image_context(request.user, for_pdf)
+        if not for_pdf:
+            images = {key: request.build_absolute_uri(url) for key, url in images.items()}
         ctx = Context(
             {
                 "invoice": invoice,
                 "items": items,
                 "customer": customer,
                 "company": company,
-                "images": {
-                    key: request.build_absolute_uri(url)
-                    for key, url in company_image_context(request.user).items()
-                },
+                "images": images,
                 "company_contacts": list(CompanyContact.objects.filter(owner=request.user)),
                 "invoice_contacts": [
                     _SampleObj(name="Erika Musterfrau"),
@@ -166,63 +168,8 @@ class DocumentTemplateViewSet(OwnedViewSet):
                 setattr(template, field, value)
         return template
 
-    @xframe_options_exempt
-    @action(detail=True, methods=["get", "post"])
-    @override(settings.LANGUAGE_CODE)
-    def preview(self, request, pk=None):
-        """Render the template with sample data (HTML)."""
-        template = self._preview_template(request)
-        ctx = self._build_preview_context(request, template)
-        body = Template(template.body_html).render(ctx)
-        header = Template(template.header_html).render(ctx)
-        footer = Template(template.footer_html).render(ctx)
-        css = Template(template.css).render(ctx)
-        page_width = template.page_width
-        page_height = template.page_height
-        html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-{css}
-html, body {{ margin: 0; min-height: 100%; }}
-body {{
-  padding: 24px;
-  background: #e5e7eb;
-  box-sizing: border-box;
-}}
-.preview-page {{
-  width: {page_width};
-  height: {page_height};
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: #fff;
-  border: 1px solid #9ca3af;
-  box-sizing: border-box;
-}}
-.preview-page > #page-header, .preview-page > #page-footer {{ flex: 0 0 auto; min-height: 0; }}
-.preview-page > #page-content {{ flex: 1 1 auto; min-height: 0; }}
-</style></head><body>
-<div class="preview-page"><div id="page-header">{header}</div><div id="page-content">{body}</div><div id="page-footer">{footer}</div></div>
-</body></html>"""
-        return HttpResponse(html, content_type="text/html")
-
-    @action(detail=True, methods=["get", "post"], url_path="preview-pdf")
-    @override(settings.LANGUAGE_CODE)
-    def preview_pdf(self, request, pk=None):
-        """Render the template with sample data as a PDF (inline)."""
-        from io import BytesIO
-
-        template = self._preview_template(request)
-        ctx = self._build_preview_context(request, template)
-
-        # Use PDF image paths instead of URLs for WeasyPrint
-        from pathlib import Path
-
-        ctx["images"] = {
-            img.key: Path(img.image.path).as_uri()
-            for img in CompanyImage.objects.filter(owner=request.user)
-        }
-
-        html = build_pdf_html(
+    def _render_preview_html(self, ctx, template):
+        return build_pdf_html(
             template,
             header=Template(template.header_html).render(ctx),
             body=Template(template.body_html).render(ctx),
@@ -230,12 +177,23 @@ body {{
             css=Template(template.css).render(ctx),
         )
 
-        from weasyprint import HTML
+    @xframe_options_exempt
+    @action(detail=True, methods=["get", "post"])
+    @override(settings.LANGUAGE_CODE)
+    def preview(self, request, pk=None):
+        """Render the template with sample data (HTML)."""
+        template = self._preview_template(request)
+        ctx = self._build_preview_context(request, template)
+        return HttpResponse(self._render_preview_html(ctx, template), content_type="text/html")
 
-        pdf_io = BytesIO()
-        HTML(string=html).write_pdf(pdf_io)
+    @action(detail=True, methods=["get", "post"], url_path="preview-pdf")
+    @override(settings.LANGUAGE_CODE)
+    def preview_pdf(self, request, pk=None):
+        """Render the template with sample data as a PDF (inline)."""
+        template = self._preview_template(request)
+        ctx = self._build_preview_context(request, template, for_pdf=True)
         return HttpResponse(
-            pdf_io.getvalue(),
+            write_pdf(self._render_preview_html(ctx, template), request.user),
             content_type="application/pdf",
             headers={"Content-Disposition": "inline"},
         )

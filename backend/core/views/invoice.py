@@ -15,6 +15,7 @@ from rest_framework.response import Response
 
 from core.models import Invoice
 from core.serializers import InvoiceSerializer
+from core.serializers.base import validate_template_syntax
 from core.services.archiving import archive_invoice
 from core.services.consolidation import consolidate, preview
 from core.services.erechnung import build_xrechnung_xml
@@ -62,8 +63,12 @@ class ConsolidatePreviewSerializer(serializers.Serializer):
 
 class SendEmailSerializer(serializers.Serializer):
     to = serializers.EmailField()
-    subject = serializers.CharField(required=False, allow_blank=True)
-    body = serializers.CharField(required=False, allow_blank=True)
+    subject = serializers.CharField(
+        required=False, allow_blank=True, validators=[validate_template_syntax]
+    )
+    body = serializers.CharField(
+        required=False, allow_blank=True, validators=[validate_template_syntax]
+    )
 
 
 def _validation_detail(error):
