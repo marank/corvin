@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
+import Message from 'primevue/message'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import Tabs from 'primevue/tabs'
@@ -13,6 +14,8 @@ import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
+import Textarea from 'primevue/textarea'
+import AppFormField from '../components/ui/AppFormField.vue'
 import AppLoadState from '../components/ui/AppLoadState.vue'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
 import AppCodeEditor from '../components/ui/AppCodeEditor.vue'
@@ -22,6 +25,8 @@ import {
   companyImagesApi, templatesApi, textBlocksApi,
   type CompanyImage, type DocumentTemplate, type TextBlock,
 } from '../api'
+import { ApiError } from '../api/client'
+import { errorText } from '../composables/formErrors'
 import { useNotify } from '../composables/useNotify'
 import { useConfirmDelete } from '../composables/useConfirmDelete'
 import { useUnsavedChanges } from '../composables/useUnsavedChanges'
@@ -34,7 +39,7 @@ const confirmDelete = useConfirmDelete()
 const id = route.params.id as string
 
 const template = ref<DocumentTemplate | null>(null)
-const { markSaved } = useUnsavedChanges(template)
+const { isDirty, markSaved } = useUnsavedChanges(template)
 const saving = ref(false)
 const previewMode = ref<'html' | 'pdf'>('html')
 const previewModes = [
@@ -51,20 +56,20 @@ const pageSizes = [
   { value: 'LEGAL', label: 'US Legal — 8.5 × 14 in' },
   { value: 'TABLOID', label: 'US Tabloid — 11 × 17 in' },
 ]
+const colorFields = ['primary_color', 'secondary_color', 'tertiary_color', 'background_color', 'text_color'] as const
+// Below lg one column at a time (editor or preview); one set of editors serves both layouts.
 const mobileTab = ref('editor')
 const editorSection = ref('general')
-const mobileEditorSection = ref('general')
 const headerEditor = ref<InstanceType<typeof AppCodeEditor>>()
 const bodyEditor = ref<InstanceType<typeof AppCodeEditor>>()
 const footerEditor = ref<InstanceType<typeof AppCodeEditor>>()
-const mobileHeaderEditor = ref<InstanceType<typeof AppCodeEditor>>()
-const mobileBodyEditor = ref<InstanceType<typeof AppCodeEditor>>()
-const mobileFooterEditor = ref<InstanceType<typeof AppCodeEditor>>()
 const images = ref<CompanyImage[]>([])
 const textBlocks = ref<TextBlock[]>([])
 
 // The preview renders the unsaved state: every change re-renders it after a short pause.
 const previewHtml = ref<string>()
+// Set while the latest draft fails to render (e.g. a half-typed tag); the last good preview stays.
+const previewError = ref<string | null>(null)
 let previewTimer: ReturnType<typeof setTimeout> | undefined
 let previewRun = 0
 
@@ -81,11 +86,14 @@ async function refreshPreview() {
       pdfBlobUrl.value = URL.createObjectURL(blob)
     } else {
       const html = await templatesApi.previewDraft(id, draft)
-      if (run === previewRun) previewHtml.value = html
+      if (run !== previewRun) return
+      previewHtml.value = html
     }
+    previewError.value = null
   } catch (e) {
-    // Half-typed template tags fail to render; keep the last good preview until it parses again.
-    if (run === previewRun && previewHtml.value === undefined) notify.error(e)
+    if (run === previewRun) {
+      previewError.value = e instanceof ApiError && e.data ? errorText(e.data) : t('common.error')
+    }
   } finally {
     if (run === previewRun) pdfLoading.value = false
   }
@@ -100,6 +108,10 @@ onBeforeUnmount(() => {
   clearTimeout(previewTimer)
   if (pdfBlobUrl.value) URL.revokeObjectURL(pdfBlobUrl.value)
 })
+
+function escapeAttribute(value: string) {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/{/g, '&#123;')
+}
 
 const variableGroups = computed<VariableGroup[]>(() => [
   {
@@ -197,7 +209,7 @@ const variableGroups = computed<VariableGroup[]>(() => [
     label: t('designer.variableGroups.images'),
     entries: images.value.map((image) => ({
       label: image.name,
-      code: `<img src="{{ images.${image.key} }}" alt="${image.name}">`,
+      code: `<img src="{{ images.${image.key} }}" alt="${escapeAttribute(image.name)}">`,
     })),
   },
 ])
@@ -213,14 +225,22 @@ const loadFailed = useLoadFailed(async () => {
 })
 
 function insertSnippet(code: string) {
-  const mobile = window.innerWidth < 1024
-  const section = mobile ? mobileEditorSection.value : editorSection.value
-  const editors = mobile
-    ? { header: mobileHeaderEditor.value, body: mobileBodyEditor.value, footer: mobileFooterEditor.value }
-    : { header: headerEditor.value, body: bodyEditor.value, footer: footerEditor.value }
-  const editor = editors[section as keyof typeof editors] ?? editors.body
+  const editors = { header: headerEditor.value, body: bodyEditor.value, footer: footerEditor.value }
+  const editor = editors[editorSection.value as keyof typeof editors] ?? editors.body
   if (editor) editor.insert(code)
   else if (template.value) template.value.body_html += code
+}
+
+function remove() {
+  confirmDelete(async () => {
+    await templatesApi.remove(id)
+    markSaved() // nothing left to lose: don't ask about unsaved changes on the way out
+    router.push('/templates')
+  })
+}
+
+function exportTemplate() {
+  window.location.assign(templatesApi.exportUrl(id))
 }
 
 async function save() {
@@ -243,103 +263,49 @@ async function save() {
   <div v-if="template" class="h-full flex flex-col">
     <AppPageHeader back-to="/templates" :back-label="t('nav.templates')" :title="template.name" :subtitle="t('designer.title')">
       <template #actions>
-        <Button :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await templatesApi.remove(id); router.push('/templates') })" />
-        <a :href="templatesApi.exportUrl(id)" download><Button :label="t('designer.exportTemplate')" icon="pi pi-download" severity="secondary" /></a>
+        <Button :label="t('common.delete')" text severity="danger" @click="remove" />
+        <!-- The export is the saved template; unsaved edits would be missing from the file. -->
+        <span :title="isDirty ? t('designer.exportSaveFirst') : undefined">
+          <Button :label="t('designer.exportTemplate')" icon="pi pi-download" severity="secondary" :disabled="isDirty" @click="exportTemplate" />
+        </span>
         <SelectButton v-model="previewMode" :options="previewModes" option-label="label" option-value="value" :allow-empty="false" />
         <Button :label="t('common.save')" icon="pi pi-save" :loading="saving" @click="save" />
       </template>
     </AppPageHeader>
 
-    <!-- Mobile: tabs -->
-    <div class="lg:hidden flex-1 min-h-0 flex flex-col">
-      <Tabs v-model:value="mobileTab" class="flex-1 min-h-0 flex flex-col">
-        <TabList>
-          <Tab value="editor">{{ t('designer.editor') }}</Tab>
-          <Tab value="preview">{{ t('designer.preview') }}</Tab>
-        </TabList>
-        <TabPanels class="flex-1 min-h-0">
-          <TabPanel value="editor" class="h-full">
-            <Tabs v-model:value="mobileEditorSection">
-              <TabList>
-                <Tab value="general">{{ t('designer.general') }}</Tab>
-                <Tab value="header">{{ t('designer.headerHtml') }}</Tab>
-                <Tab value="body">{{ t('designer.bodyHtml') }}</Tab>
-                <Tab value="footer">{{ t('designer.footerHtml') }}</Tab>
-                <Tab value="css">{{ t('designer.css') }}</Tab>
-              </TabList>
-              <TabPanels>
-                <TabPanel value="general" class="h-[60vh] overflow-y-auto border border-surface-200 dark:border-surface-800 p-4">
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
-                    <label class="text-sm sm:col-span-2">{{ t('designer.templateName') }}<InputText v-model="template.name" class="w-full mt-1" /></label>
-                    <label class="text-sm sm:col-span-2">{{ t('designer.pageSize') }}<Select v-model="template.page_size" :options="pageSizes" option-label="label" option-value="value" class="w-full mt-1" /></label>
-                    <label class="text-sm">{{ t('designer.marginTop') }}<InputNumber v-model="template.margin_top" class="w-full mt-1" /></label>
-                    <label class="text-sm">{{ t('designer.marginRight') }}<InputNumber v-model="template.margin_right" class="w-full mt-1" /></label>
-                    <label class="text-sm">{{ t('designer.marginBottom') }}<InputNumber v-model="template.margin_bottom" class="w-full mt-1" /></label>
-                    <label class="text-sm">{{ t('designer.marginLeft') }}<InputNumber v-model="template.margin_left" class="w-full mt-1" /></label>
-                    <label class="text-sm">{{ t('designer.fontSize') }}<InputNumber v-model="template.font_size" :min="1" :max-fraction-digits="2" class="w-full mt-1" /></label>
-                    <label class="text-sm">{{ t('designer.primaryFont') }}<InputText v-model="template.primary_font" class="w-full mt-1" /></label>
-                    <label class="text-sm">{{ t('designer.secondaryFont') }}<InputText v-model="template.secondary_font" class="w-full mt-1" /></label>
-                    <label v-for="field in ['primary_color', 'secondary_color', 'tertiary_color', 'background_color', 'text_color'] as const" :key="field" class="text-sm">
-                      {{ t(`designer.${field}`) }}
-                      <div class="flex gap-2 mt-1"><input v-model="template[field]" type="color" class="h-10 w-12 border border-surface-300 dark:border-surface-700" /><InputText v-model="template[field]" class="flex-1 min-w-0" /></div>
-                    </label>
-                  </div>
-                </TabPanel>
-                <TabPanel value="header" class="h-[60vh] border border-surface-200 dark:border-surface-800">
-                  <AppCodeEditor ref="mobileHeaderEditor" v-model="template.header_html" language="html" />
-                </TabPanel>
-                <TabPanel value="body" class="h-[60vh] border border-surface-200 dark:border-surface-800">
-                  <AppCodeEditor ref="mobileBodyEditor" v-model="template.body_html" language="html" />
-                </TabPanel>
-                <TabPanel value="footer" class="h-[60vh] border border-surface-200 dark:border-surface-800">
-                  <AppCodeEditor ref="mobileFooterEditor" v-model="template.footer_html" language="html" />
-                </TabPanel>
-                <TabPanel value="css" class="h-[60vh] border border-surface-200 dark:border-surface-800">
-                  <AppCodeEditor v-model="template.css" language="css" />
-                </TabPanel>
-              </TabPanels>
-            </Tabs>
-            <InvoiceVariableBrowser :groups="variableGroups" @insert="insertSnippet">
-              <template #title>{{ t('designer.placeholders') }}</template>
-            </InvoiceVariableBrowser>
-          </TabPanel>
-          <TabPanel value="preview" class="h-full min-h-96">
-            <div v-if="pdfLoading" class="flex items-center justify-center h-full text-surface-500">
-              <i class="pi pi-spin pi-spinner mr-2" />{{ t('designer.generatingPdf') }}
-            </div>
-            <InvoicePreviewFrame v-else :url="pdfBlobUrl ?? undefined" :html="previewHtml" :mode="previewMode" />
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
-    </div>
+    <Tabs v-model:value="mobileTab" class="lg:hidden">
+      <TabList>
+        <Tab value="editor">{{ t('designer.editor') }}</Tab>
+        <Tab value="preview">{{ t('designer.preview') }}</Tab>
+      </TabList>
+    </Tabs>
 
-    <!-- Desktop: split -->
-    <div class="hidden lg:grid flex-1 min-h-0 grid-cols-2 gap-4">
-      <div class="flex flex-col min-h-0 border border-surface-200 dark:border-surface-800">
-        <Tabs v-model:value="editorSection" class="flex-1 min-h-0 flex flex-col">
+    <div class="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-2 gap-4">
+      <div class="flex-col flex-1 min-h-[70vh] lg:min-h-0 border border-surface-200 dark:border-surface-800" :class="mobileTab === 'editor' ? 'flex' : 'hidden lg:flex'">
+        <Tabs v-model:value="editorSection" scrollable class="flex-1 min-h-0 flex flex-col">
           <TabList>
             <Tab value="general">{{ t('designer.general') }}</Tab>
             <Tab value="header">{{ t('designer.headerHtml') }}</Tab>
             <Tab value="body">{{ t('designer.bodyHtml') }}</Tab>
             <Tab value="footer">{{ t('designer.footerHtml') }}</Tab>
             <Tab value="css">{{ t('designer.css') }}</Tab>
+            <Tab value="mail">{{ t('designer.mail') }}</Tab>
           </TabList>
           <TabPanels class="flex-1 min-h-0">
             <TabPanel value="general" class="h-full overflow-y-auto p-4">
-              <div class="grid grid-cols-2 gap-4 max-w-2xl">
-                <label class="text-sm col-span-2">{{ t('designer.templateName') }}<InputText v-model="template.name" class="w-full mt-1" /></label>
-                <label class="text-sm col-span-2">{{ t('designer.pageSize') }}<Select v-model="template.page_size" :options="pageSizes" option-label="label" option-value="value" class="w-full mt-1" /></label>
-                <label class="text-sm">{{ t('designer.marginTop') }}<InputNumber v-model="template.margin_top" class="w-full mt-1" /></label>
-                <label class="text-sm">{{ t('designer.marginRight') }}<InputNumber v-model="template.margin_right" class="w-full mt-1" /></label>
-                <label class="text-sm">{{ t('designer.marginBottom') }}<InputNumber v-model="template.margin_bottom" class="w-full mt-1" /></label>
-                <label class="text-sm">{{ t('designer.marginLeft') }}<InputNumber v-model="template.margin_left" class="w-full mt-1" /></label>
-                <label class="text-sm">{{ t('designer.fontSize') }}<InputNumber v-model="template.font_size" :min="1" :max-fraction-digits="2" class="w-full mt-1" /></label>
-                <label class="text-sm">{{ t('designer.primaryFont') }}<InputText v-model="template.primary_font" class="w-full mt-1" /></label>
-                <label class="text-sm">{{ t('designer.secondaryFont') }}<InputText v-model="template.secondary_font" class="w-full mt-1" /></label>
-                <label v-for="field in ['primary_color', 'secondary_color', 'tertiary_color', 'background_color', 'text_color'] as const" :key="field" class="text-sm">
-                  {{ t(`designer.${field}`) }}
-                  <div class="flex gap-2 mt-1"><input v-model="template[field]" type="color" class="h-10 w-12 border border-surface-300 dark:border-surface-700" /><InputText v-model="template[field]" class="flex-1 min-w-0" /></div>
-                </label>
+              <div class="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-4 max-w-2xl">
+                <AppFormField field="name" :label="t('designer.templateName')" class="col-span-full"><InputText v-model="template.name" class="w-full" /></AppFormField>
+                <AppFormField field="page_size" :label="t('designer.pageSize')" class="col-span-full"><Select v-model="template.page_size" :options="pageSizes" option-label="label" option-value="value" class="w-full" /></AppFormField>
+                <AppFormField field="margin_top" :label="t('designer.marginTop')"><InputNumber v-model="template.margin_top" :min="0" class="w-full" /></AppFormField>
+                <AppFormField field="margin_right" :label="t('designer.marginRight')"><InputNumber v-model="template.margin_right" :min="0" class="w-full" /></AppFormField>
+                <AppFormField field="margin_bottom" :label="t('designer.marginBottom')"><InputNumber v-model="template.margin_bottom" :min="0" class="w-full" /></AppFormField>
+                <AppFormField field="margin_left" :label="t('designer.marginLeft')"><InputNumber v-model="template.margin_left" :min="0" class="w-full" /></AppFormField>
+                <AppFormField field="font_size" :label="t('designer.fontSize')"><InputNumber v-model="template.font_size" :min="1" :max-fraction-digits="2" class="w-full" /></AppFormField>
+                <AppFormField field="primary_font" :label="t('designer.primaryFont')"><InputText v-model="template.primary_font" class="w-full" /></AppFormField>
+                <AppFormField field="secondary_font" :label="t('designer.secondaryFont')"><InputText v-model="template.secondary_font" class="w-full" /></AppFormField>
+                <AppFormField v-for="field in colorFields" :key="field" :field="field" :label="t(`designer.${field}`)">
+                  <div class="flex gap-2"><input v-model="template[field]" type="color" :aria-label="t(`designer.${field}`)" class="h-10 w-12 border border-surface-300 dark:border-surface-700" /><InputText v-model="template[field]" class="flex-1 min-w-0" /></div>
+                </AppFormField>
               </div>
             </TabPanel>
             <TabPanel value="header" class="h-full">
@@ -354,17 +320,25 @@ async function save() {
             <TabPanel value="css" class="h-full">
               <AppCodeEditor v-model="template.css" language="css" />
             </TabPanel>
+            <TabPanel value="mail" class="h-full overflow-y-auto p-4">
+              <div class="flex flex-col gap-4 max-w-2xl">
+                <p class="text-sm text-surface-500">{{ t('designer.mailHint') }}</p>
+                <AppFormField field="mail_subject" :label="t('designer.mailSubject')"><InputText v-model="template.mail_subject" class="w-full" /></AppFormField>
+                <AppFormField field="mail_body" :label="t('designer.mailBody')"><Textarea v-model="template.mail_body" rows="12" class="w-full font-mono text-sm" /></AppFormField>
+              </div>
+            </TabPanel>
           </TabPanels>
         </Tabs>
         <InvoiceVariableBrowser :groups="variableGroups" @insert="insertSnippet">
           <template #title>{{ t('designer.placeholders') }}</template>
         </InvoiceVariableBrowser>
       </div>
-      <div class="min-h-0 border border-surface-200 dark:border-surface-800">
-        <div v-if="pdfLoading" class="flex items-center justify-center h-full text-surface-500">
+      <div class="flex-col flex-1 min-h-[70vh] lg:min-h-0 border border-surface-200 dark:border-surface-800" :class="mobileTab === 'preview' ? 'flex' : 'hidden lg:flex'">
+        <Message v-if="previewError" severity="warn" size="small" class="m-2">{{ t('designer.previewStale', { error: previewError }) }}</Message>
+        <div v-if="pdfLoading" class="flex flex-1 items-center justify-center text-surface-500">
           <i class="pi pi-spin pi-spinner mr-2" />{{ t('designer.generatingPdf') }}
         </div>
-        <InvoicePreviewFrame v-else :url="pdfBlobUrl ?? undefined" :html="previewHtml" :mode="previewMode" />
+        <InvoicePreviewFrame v-else class="flex-1 min-h-0" :url="pdfBlobUrl ?? undefined" :html="previewHtml" :mode="previewMode" />
       </div>
     </div>
   </div>

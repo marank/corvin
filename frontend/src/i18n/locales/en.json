@@ -343,7 +343,11 @@
     "newTemplate": "New template",
     "newTextBlock": "New text block",
     "css": "CSS",
-    "contactLoop": "All contacts (loop)"
+    "contactLoop": "All contacts (loop)",
+    "mail": "Email",
+    "mailHint": "Subject and body of the invoice email. Leave empty for the default text. Available: {'{{'} invoice {'}}'}, {'{{'} customer {'}}'} and {'{{'} company {'}}'}.",
+    "previewStale": "Preview not updated: {error}",
+    "exportSaveFirst": "Save first – the export contains the saved template."
   },
   "settings": {
     "title": "Settings",

@@ -52,23 +52,34 @@ def template_page_context(template: DocumentTemplate, document_type="invoice") -
     }
 
 
-def default_template_context(invoice: Invoice, for_pdf=False) -> dict:
-    company = getattr(invoice.owner, "company_settings", None)
+def document_context(invoice, *, owner, items, payments, contacts, for_pdf=False) -> dict:
+    """The variables a document template sees; real invoices and the designer's sample alike."""
     return {
         "invoice": invoice,
-        "items": list(invoice.items.all()),
+        "items": items,
         "customer": invoice.customer,
         "project": invoice.project,
         "contract": invoice.contract,
-        "company": company,
-        "payments": list(invoice.payments.all()),
+        "company": getattr(owner, "company_settings", None),
+        "payments": payments,
         "amount_paid": invoice.amount_paid,
         "remaining": invoice.remaining,
         "now": timezone.now(),
-        "images": company_image_context(invoice.owner, for_pdf),
-        "company_contacts": list(CompanyContact.objects.filter(owner=invoice.owner)),
-        "invoice_contacts": list(invoice.contacts.all()),
+        "images": company_image_context(owner, for_pdf),
+        "company_contacts": list(CompanyContact.objects.filter(owner=owner)),
+        "invoice_contacts": contacts,
     }
+
+
+def default_template_context(invoice: Invoice, for_pdf=False) -> dict:
+    return document_context(
+        invoice,
+        owner=invoice.owner,
+        items=list(invoice.items.all()),
+        payments=list(invoice.payments.all()),
+        contacts=list(invoice.contacts.all()),
+        for_pdf=for_pdf,
+    )
 
 
 def text_block_context(owner, context: Context) -> dict:
@@ -141,6 +152,21 @@ html, body {{ margin: 0; }}
 </html>"""
 
 
+def render_document_html(template: DocumentTemplate, data: dict, owner) -> str:
+    """Render a template's parts with the given variables into the full document."""
+    context = Context(data)
+    context["page"] = template_page_context(template, "invoice")
+    context["text_blocks"] = text_block_context(owner, context)
+    body = {
+        part: Template(getattr(template, f"{part}_html")).render(context)
+        for part in ("header", "body", "footer")
+    }
+    # CSS is not HTML: a font like "Open Sans" must not arrive as &quot;Open Sans&quot;.
+    context.autoescape = False
+    css = Template(template.css).render(context)
+    return build_pdf_html(template, css=css, **body)
+
+
 def write_pdf(html: str, owner, **options) -> bytes:
     """Render HTML to PDF, loading only the owner's own images (see OwnerResourceFetcher)."""
     from weasyprint import HTML  # deferred: native libs load lazily on Windows
@@ -174,17 +200,7 @@ def render_invoice_html(
     if template is None:
         template = invoice_template(invoice)
 
-    context = Context(default_template_context(invoice, for_pdf))
-    context["page"] = template_page_context(template, "invoice")
-    context["text_blocks"] = text_block_context(invoice.owner, context)
-
-    return build_pdf_html(
-        template,
-        header=Template(template.header_html).render(context),
-        body=Template(template.body_html).render(context),
-        footer=Template(template.footer_html).render(context),
-        css=Template(template.css).render(context),
-    )
+    return render_document_html(template, default_template_context(invoice, for_pdf), invoice.owner)
 
 
 def render_invoice_pdf(invoice: Invoice) -> bytes:

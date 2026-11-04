@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Corvin\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-05 00:21+0100\n"
+"POT-Creation-Date: 2026-11-05 00:32+0100\n"
 "PO-Revision-Date: 2026-11-03 01:10+0100\n"
 "Last-Translator: Corvin\n"
 "Language-Team: German\n"
@@ -75,6 +75,12 @@ msgstr "Unbekannte Belegtypen: %(names)s."
 msgid "Invalid template."
 msgstr "Ungültige Vorlage."
 
+msgid "Enter a CSS color, e.g. #1f2937."
+msgstr "Bitte eine CSS-Farbe angeben, z. B. #1f2937."
+
+msgid "Font names must not contain ; { } < > or backslashes."
+msgstr "Schriftnamen dürfen weder ; { } < > noch Backslashes enthalten."
+
 msgid "All contacts must belong to the invoice customer."
 msgstr "Alle Kontakte müssen zum Kunden der Rechnung gehören."
 
@@ -108,6 +114,12 @@ msgstr ""
 "\n"
 "anbei erhalten Sie unsere Rechnung."
 
+msgid "Consulting"
+msgstr "Beratung"
+
+msgid "On-site support"
+msgstr "Vor-Ort-Einsatz"
+
 msgid "Invalid credentials."
 msgstr "Benutzername oder Passwort ist falsch."
 
@@ -131,12 +143,6 @@ msgid ""
 msgstr ""
 "Zu diesem Kunden gibt es noch Rechnungen oder Zeiteinträge, daher kann er "
 "nicht gelöscht werden. Bitte den Kunden stattdessen deaktivieren."
-
-msgid "Consulting"
-msgstr "Beratung"
-
-msgid "On-site support"
-msgstr "Vor-Ort-Einsatz"
 
 msgid "Invalid template file."
 msgstr "Die Vorlagendatei ist ungültig."

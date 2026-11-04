@@ -1,12 +1,14 @@
 from io import BytesIO
 
 import pytest
+from django.utils import timezone
 from pypdf import PdfReader
 from rest_framework.test import APIClient
 
-from core.models import CompanyImage, DocumentTemplate
-from core.services.pdf import build_pdf_html, write_pdf
+from core.models import Address, CompanyImage, Customer, DocumentTemplate
+from core.services.pdf import build_pdf_html, render_document_html, write_pdf
 from core.services.pdf_fetcher import OwnerResourceFetcher
+from core.services.templates import DEFAULT_BODY
 
 from .test_company_images import image_file
 
@@ -128,3 +130,114 @@ def test_text_block_with_syntax_error_is_rejected(user):
 
     assert r.status_code == 400
     assert "content" in r.json()
+
+
+@pytest.mark.django_db
+def test_preview_offers_the_same_variables_as_an_invoice(user, invoice_template):
+    client = APIClient()
+    client.force_authenticate(user)
+    body = (
+        "<p>{{ project.name }}|{{ contract.number }}|{{ customer.vat_id }}|{{ remaining }}"
+        "|{% display_time now %}|{% for c in invoice_contacts %}{{ c.role }};{% endfor %}</p>"
+    )
+
+    r = client.post(
+        f"/api/v1/document-templates/{invoice_template.id}/preview/",
+        {"body_html": body},
+        format="json",
+    )
+
+    assert r.status_code == 200
+    html = r.content.decode()
+    assert "Netzwerk-Erneuerung|V-2026-003|DE999999999|" in html
+    assert "Einkauf;IT-Leitung;" in html
+    assert "|—|" not in html  # `now` is set
+
+
+@pytest.mark.django_db
+def test_customer_address_variables_use_the_invoice_address(user, customer):
+    Address.objects.create(
+        owner=user,
+        customer=customer,
+        label="Buchhaltung",
+        street="Postfach 12",
+        postal_code="20001",
+        city="Hamburg",
+        is_invoice_address=True,
+    )
+    customer = Customer.objects.get(pk=customer.pk)
+
+    assert (customer.street, customer.postal_code) == ("Postfach 12", "20001")
+
+
+@pytest.mark.django_db
+def test_customer_without_invoice_address_uses_the_primary_one(customer):
+    assert Customer.objects.get(pk=customer.pk).street == "Industrieweg 5"
+
+
+@pytest.mark.django_db
+def test_css_variables_are_not_html_escaped(user):
+    template = DocumentTemplate(
+        primary_font='"Open Sans", sans-serif',
+        css="body { font-family: {{ page.primary_font }}; }",
+    )
+
+    html = render_document_html(template, {}, user)
+
+    assert 'font-family: "Open Sans", sans-serif;' in html
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("field", "value", "ok"),
+    [
+        ("primary_color", "#1f2937", True),
+        ("primary_color", "rgb(10, 20, 30)", True),
+        ("primary_color", "teal", True),
+        ("primary_color", "red;}*{color:red", False),
+        ("primary_font", '"Open Sans", Arial', True),
+        ("primary_font", "Arial; } * { color: red", False),
+    ],
+)
+def test_style_values_are_validated(user, invoice_template, field, value, ok):
+    client = APIClient()
+    client.force_authenticate(user)
+
+    r = client.patch(
+        f"/api/v1/document-templates/{invoice_template.id}/", {field: value}, format="json"
+    )
+
+    assert (r.status_code == 200) is ok
+
+
+@pytest.mark.django_db
+def test_deleting_a_template_drops_its_assignments(user, invoice_template):
+    other = DocumentTemplate.objects.create(owner=user, name="Andere")
+    user.company_settings.template_assignments = {
+        "invoice": str(invoice_template.pk),
+        "quote": str(other.pk),
+    }
+    user.company_settings.save()
+    client = APIClient()
+    client.force_authenticate(user)
+
+    assert client.delete(f"/api/v1/document-templates/{invoice_template.id}/").status_code == 204
+
+    user.company_settings.refresh_from_db()
+    assert user.company_settings.template_assignments == {"quote": str(other.pk)}
+
+
+@pytest.mark.django_db
+def test_default_template_uses_the_company_date_format(user, invoice_template):
+    user.company_settings.date_format = "YYYY-MM-DD"
+    user.company_settings.save()
+    client = APIClient()
+    client.force_authenticate(user)
+
+    r = client.post(
+        f"/api/v1/document-templates/{invoice_template.id}/preview/",
+        {"body_html": DEFAULT_BODY},
+        format="json",
+    )
+
+    assert timezone.localdate().isoformat() in r.content.decode()

@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.functional import cached_property
 
 from .base import OwnedModel
 
@@ -41,23 +42,31 @@ class Customer(OwnedModel):
     def primary_address(self):
         return self.addresses.filter(is_primary=True).first() or self.addresses.first()
 
+    @cached_property
+    def invoice_address(self):
+        """Where invoices go: the address marked for invoices, else the primary one."""
+        addresses = list(self.addresses.all())  # primary first (Address.Meta.ordering)
+        return next((a for a in addresses if a.is_invoice_address), None) or next(
+            iter(addresses), None
+        )
+
     # Convenience proxies for invoice templates / e-invoicing —
-    # resolve to the primary address.
+    # resolve to the invoice address.
     @property
     def street(self):
-        return self.primary_address.street if self.primary_address else ""
+        return self.invoice_address.street if self.invoice_address else ""
 
     @property
     def postal_code(self):
-        return self.primary_address.postal_code if self.primary_address else ""
+        return self.invoice_address.postal_code if self.invoice_address else ""
 
     @property
     def city(self):
-        return self.primary_address.city if self.primary_address else ""
+        return self.invoice_address.city if self.invoice_address else ""
 
     @property
     def country(self):
-        return self.primary_address.country if self.primary_address else ""
+        return self.invoice_address.country if self.invoice_address else ""
 
     def __str__(self):
         return self.name

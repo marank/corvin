@@ -343,7 +343,11 @@
     "newTemplate": "Neue Vorlage",
     "newTextBlock": "Neuer Textbaustein",
     "css": "CSS",
-    "contactLoop": "Alle Kontakte (Schleife)"
+    "contactLoop": "Alle Kontakte (Schleife)",
+    "mail": "E-Mail",
+    "mailHint": "Betreff und Text der Rechnungs-E-Mail. Leer lassen für den Standardtext. Verfügbar sind {'{{'} invoice {'}}'}, {'{{'} customer {'}}'} und {'{{'} company {'}}'}.",
+    "previewStale": "Vorschau nicht aktualisiert: {error}",
+    "exportSaveFirst": "Erst speichern – exportiert wird der gespeicherte Stand."
   },
   "settings": {
     "title": "Einstellungen",

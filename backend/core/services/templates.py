@@ -1,4 +1,7 @@
-from core.models import DocumentTemplate
+from django.contrib.auth import get_user_model
+from django.db import transaction
+
+from core.models import CompanySettings, DocumentTemplate
 
 # Covers the §14 Abs. 4 UStG basics: both addresses, VAT ID, number, dates,
 # items, net/VAT/gross. Users adapt it in the designer.
@@ -11,8 +14,8 @@ DEFAULT_BODY = """<div class="sender">{{ company.company_name }} · {{ company.s
 </div>
 <table class="meta">
 <tr><td>Rechnungsnummer</td><td>{{ invoice.number }}</td></tr>
-<tr><td>Rechnungsdatum</td><td>{{ invoice.issue_date|date:"d.m.Y" }}</td></tr>
-{% if invoice.due_date %}<tr><td>Fällig am</td><td>{{ invoice.due_date|date:"d.m.Y" }}</td></tr>{% endif %}
+<tr><td>Rechnungsdatum</td><td>{% display_date invoice.issue_date %}</td></tr>
+{% if invoice.due_date %}<tr><td>Fällig am</td><td>{% display_date invoice.due_date %}</td></tr>{% endif %}
 {% if customer.vat_id %}<tr><td>USt-IdNr. Kunde</td><td>{{ customer.vat_id }}</td></tr>{% endif %}
 </table>
 <h1>Rechnung {{ invoice.number }}</h1>
@@ -58,13 +61,28 @@ DEFAULT_FOOTER = (
 
 def ensure_default_template(owner) -> DocumentTemplate:
     """Return the owner's first template, creating the default one if none exists."""
-    template = DocumentTemplate.objects.filter(owner=owner).order_by("created_at").first()
-    if template is None:
-        template = DocumentTemplate.objects.create(
-            owner=owner,
-            name="Standard (DIN A4)",
-            body_html=DEFAULT_BODY,
-            css=DEFAULT_CSS,
-            footer_html=DEFAULT_FOOTER,
-        )
+    with transaction.atomic():
+        # Locking the owner serialises concurrent first requests: only one creates the default.
+        get_user_model().objects.select_for_update().filter(pk=owner.pk).first()
+        template = DocumentTemplate.objects.filter(owner=owner).order_by("created_at").first()
+        if template is None:
+            template = DocumentTemplate.objects.create(
+                owner=owner,
+                name="Standard (DIN A4)",
+                body_html=DEFAULT_BODY,
+                css=DEFAULT_CSS,
+                footer_html=DEFAULT_FOOTER,
+            )
     return template
+
+
+def forget_template_assignments(template: DocumentTemplate) -> None:
+    """Drop a deleted template from the owner's document-type assignments."""
+    company = CompanySettings.objects.filter(user=template.owner_id).first()
+    if company is None:
+        return
+    assignments = company.template_assignments or {}
+    kept = {kind: tid for kind, tid in assignments.items() if tid != str(template.pk)}
+    if kept != assignments:
+        company.template_assignments = kept
+        company.save(update_fields=["template_assignments"])
