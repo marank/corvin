@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import dayjs from 'dayjs'
 import { useI18n } from 'vue-i18n'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
@@ -11,22 +12,35 @@ import AppIconButton from '../components/ui/AppIconButton.vue'
 import AppDurationDisplay from '../components/ui/AppDurationDisplay.vue'
 import AppDateTimeDisplay from '../components/ui/AppDateTimeDisplay.vue'
 import AppDateInput from '../components/ui/AppDateInput.vue'
+import AppFormField from '../components/ui/AppFormField.vue'
+import AppFilterBar, { type ActiveFilter } from '../components/ui/AppFilterBar.vue'
 import AppModal from '../components/ui/AppModal.vue'
 import CustomerSelect from '../components/CustomerSelect.vue'
 import ProjectSelect from '../components/ProjectSelect.vue'
 import TimeEntryForm from '../components/TimeEntryForm.vue'
 import { timeTrackingApi, type TimeEntry } from '../api'
 import { useTimerStore } from '../stores/timer'
+import { useFormattingStore } from '../stores/formatting'
+import { useQueryFilters } from '../composables/useQueryFilters'
 import { useNotify } from '../composables/useNotify'
 import { useConfirmDelete } from '../composables/useConfirmDelete'
 import { usePagination } from '../composables/usePagination'
 import { tableStateKeys } from '../tableStateKeys'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const weekday = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(locale.value, { weekday: 'short' })
 const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const timer = useTimerStore()
-const rows = ref<TimeEntry[]>([])
+type DayRow = TimeEntry & { day: string }
+const rows = ref<DayRow[]>([])
+// Day groups with totals, only while the list is sorted by date (otherwise days are scattered).
+const groupByDay = computed(() => pagination.sortField.value === 'start_datetime')
+const dayTotals = computed(() => {
+  const totals: Record<string, number> = {}
+  for (const row of rows.value) totals[row.day] = (totals[row.day] ?? 0) + row.duration_minutes
+  return totals
+})
 const modal = ref<InstanceType<typeof AppModal>>()
 const editing = ref<TimeEntry | null>(null)
 const pagination = usePagination(load, '-start_datetime')
@@ -37,16 +51,41 @@ const sortOptions = [
   { label: t('time.duration'), value: 'duration_minutes' },
 ]
 
+const preset = useQueryFilters()
 const filters = ref({
-  customer: null as string | null,
-  project: null as string | null,
+  customer: preset.customer,
+  project: preset.project,
   from: null as string | null,
   to: null as string | null,
   status: null as string | null,
 })
 const statuses = ['open', 'invoiced']
-const hasFilters = computed(() => Object.values(filters.value).some((value) => value))
 const summary = ref({ count: 0, total_minutes: 0 })
+const formatting = useFormattingStore()
+// Names for the filter chips: from the URL preset, then from the selects' select events.
+const filterNames = preset.names
+
+const activeFilters = computed<ActiveFilter[]>(() => {
+  const f = filters.value
+  const date = (value: string) => dayjs(value).format(formatting.dateFormat)
+  const active: ActiveFilter[] = []
+  if (f.customer) active.push({ key: 'customer', label: t('projects.customer'), value: filterNames.value.customer })
+  if (f.project) active.push({ key: 'project', label: t('projects.project'), value: filterNames.value.project })
+  if (f.from || f.to) {
+    active.push({ key: 'period', label: t('time.period'), value: `${f.from ? date(f.from) : '…'} – ${f.to ? date(f.to) : '…'}` })
+  }
+  if (f.status) active.push({ key: 'status', label: t('common.status'), value: t(`time.statuses.${f.status}`) })
+  return active
+})
+
+function removeFilter(key: string) {
+  if (key === 'period') {
+    filters.value.from = null
+    filters.value.to = null
+  } else {
+    filters.value[key as 'customer' | 'project' | 'status'] = null
+  }
+}
 
 function filterParams() {
   const params = new URLSearchParams()
@@ -71,7 +110,7 @@ async function load() {
     pagination.fetchPage(timeTrackingApi.list, params),
     timeTrackingApi.summary(params.toString()),
   ])
-  if (results) rows.value = results
+  if (results) rows.value = results.map((entry) => ({ ...entry, day: dayjs(entry.start_datetime).format('YYYY-MM-DD') }))
   summary.value = totals
   timer.refresh()
 }
@@ -107,31 +146,48 @@ async function run(action: () => Promise<unknown>) {
       </template>
     </AppPageHeader>
 
-    <div class="flex flex-wrap items-center gap-2 mb-3">
-      <CustomerSelect v-model="filters.customer" :placeholder="t('time.allCustomers')" class="w-full! sm:w-52!" />
-      <ProjectSelect v-model="filters.project" :customer-id="filters.customer" :placeholder="t('time.allProjects')" class="w-full! sm:w-52!" />
-      <div class="flex gap-2 w-full sm:w-auto">
-        <AppDateInput v-model="filters.from" :placeholder="t('time.from')" class="flex-1 sm:w-40! sm:flex-none" />
-        <AppDateInput v-model="filters.to" :placeholder="t('time.to')" class="flex-1 sm:w-40! sm:flex-none" />
-      </div>
-      <Select v-model="filters.status" :options="statuses" :placeholder="t('time.allStatuses')" show-clear class="w-full sm:w-56">
-        <template #option="{ option }">{{ t(`time.statuses.${option}`) }}</template>
-        <template #value="{ value, placeholder }">
-          <span v-if="value">{{ t(`time.statuses.${value}`) }}</span>
-          <span v-else class="text-surface-500">{{ placeholder }}</span>
-        </template>
-      </Select>
-      <AppIconButton v-if="hasFilters" icon="pi pi-filter-slash" :aria-label="t('time.resetFilters')" :title="t('time.resetFilters')" @click="resetFilters" />
-      <span class="ml-auto text-sm text-surface-500 whitespace-nowrap">{{ t('time.entries', summary.count) }} · <AppDurationDisplay :minutes="summary.total_minutes" class="font-semibold text-surface-900 dark:text-surface-0" /></span>
-    </div>
-
     <AppDataTable
-      :rows="rows" :loading="pagination.loading.value" lazy selectable
+      :rows="rows" :loading="pagination.loading.value" lazy selectable :delete-row="(row) => timeTrackingApi.remove(row.id)" @bulk-deleted="load"
       :total-records="pagination.totalRecords.value" :first="pagination.first.value"
       :page-size="pagination.pageSize.value" :sort-field="pagination.sortField.value"
       :sort-order="pagination.sortOrder.value" :sort-options="sortOptions"
       :state-key="tableStateKeys.timeTracking" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort" @row-click="openEdit"
+      :group-field="groupByDay ? 'day' : undefined"
     >
+      <template #groupheader="{ data }">
+        <div class="flex items-center gap-3 text-sm font-medium">
+          <span>{{ weekday(data.day) }}, {{ dayjs(data.day).format(formatting.dateFormat) }}</span>
+          <span class="text-surface-500 font-normal tabular-nums"><AppDurationDisplay :minutes="dayTotals[data.day]" /></span>
+        </div>
+      </template>
+      <template #toolbar>
+        <AppFilterBar :active="activeFilters" @remove="removeFilter" @clear="resetFilters">
+          <AppFormField :label="t('projects.customer')">
+            <CustomerSelect v-model="filters.customer" :placeholder="t('common.allCustomers')" @select="(c) => filterNames.customer = c?.name ?? ''" />
+          </AppFormField>
+          <AppFormField :label="t('projects.project')">
+            <ProjectSelect v-model="filters.project" :customer-id="filters.customer" :placeholder="t('common.allProjects')" @select="(p) => filterNames.project = p?.name ?? ''" />
+          </AppFormField>
+          <AppFormField :label="t('time.period')">
+            <div class="grid grid-cols-2 gap-2">
+              <AppDateInput v-model="filters.from" :placeholder="t('time.from')" />
+              <AppDateInput v-model="filters.to" :placeholder="t('time.to')" />
+            </div>
+          </AppFormField>
+          <AppFormField :label="t('common.status')">
+            <Select v-model="filters.status" :options="statuses" :placeholder="t('common.all')" show-clear class="w-full">
+              <template #option="{ option }">{{ t(`time.statuses.${option}`) }}</template>
+              <template #value="{ value, placeholder }">
+                <span v-if="value">{{ t(`time.statuses.${value}`) }}</span>
+                <span v-else class="text-surface-500">{{ placeholder }}</span>
+              </template>
+            </Select>
+          </AppFormField>
+          <template #end>
+            <span class="text-sm text-surface-500 whitespace-nowrap">{{ t('time.entries', summary.count) }} · <AppDurationDisplay :minutes="summary.total_minutes" class="font-semibold text-surface-900 dark:text-surface-0" /></span>
+          </template>
+        </AppFilterBar>
+      </template>
       <Column field="start_datetime" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" /></template></Column>
       <Column :header="t('time.time')">
         <template #body="{ data }">

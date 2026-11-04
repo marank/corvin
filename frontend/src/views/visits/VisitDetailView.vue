@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
+import dayjs from 'dayjs'
+import { useFormattingStore } from '../../stores/formatting'
+import { useLoadFailed } from '../../composables/useLoadFailed'
+import { useUnsavedChanges } from '../../composables/useUnsavedChanges'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
@@ -11,6 +15,7 @@ import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import Column from 'primevue/column'
+import AppLoadState from '../../components/ui/AppLoadState.vue'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
@@ -26,6 +31,7 @@ import { useConfirmDelete } from '../../composables/useConfirmDelete'
 import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
+const formatting = useFormattingStore()
 const route = useRoute()
 const router = useRouter()
 const notify = useNotify()
@@ -33,20 +39,23 @@ const confirmDelete = useConfirmDelete()
 const id = route.params.id as string
 const visit = ref<Visit | null>(null)
 const form = ref<Partial<Visit>>({})
+const { markSaved } = useUnsavedChanges(form)
 const entries = ref<TimeEntry[]>([])
 const saving = ref(false)
 
 async function load() {
   visit.value = await visitsApi.get(id)
   form.value = { ...visit.value }
+  markSaved()
   entries.value = (await timeTrackingApi.list(`visit=${id}&page_size=500`)).results
 }
-onMounted(load)
+const loadFailed = useLoadFailed(load)
 
 async function save() {
   saving.value = true
   try {
     visit.value = await visitsApi.update(id, form.value)
+    markSaved()
     notify.ok(t('common.saved'))
   } catch (e) {
     notify.error(e)
@@ -58,7 +67,7 @@ async function save() {
 
 <template>
   <div v-if="visit">
-    <AppPageHeader :title="`${visit.customer_name} — ${visit.date}`" :subtitle="visit.location">
+    <AppPageHeader back-to="/visits" :back-label="t('nav.visits')" :title="`${visit.customer_name} — ${dayjs(visit.date).format(formatting.dateFormat)}`" :subtitle="visit.location">
       <template #actions>
         <Button :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await visitsApi.remove(id); router.push('/visits') })" />
         <Button :label="t('common.save')" :loading="saving" @click="save" />
@@ -69,7 +78,7 @@ async function save() {
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl flex-[1_1_48rem]">
         <AppFormField field="number" :label="t('common.number')"><InputText v-model="form.number" class="w-full" readonly /></AppFormField>
         <AppFormField field="customer" :label="t('projects.customer')"><CustomerSelect v-model="form.customer" /></AppFormField>
-        <AppFormField field="project" :label="t('nav.projects')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
+        <AppFormField field="project" :label="t('projects.project')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
         <AppFormField field="date" :label="t('common.date')"><AppDateInput v-model="(form.date as any)" /></AppFormField>
         <AppFormField field="location" :label="t('visits.location')"><InputText v-model="form.location" class="w-full" /></AppFormField>
         <AppFormField field="arrival" :label="t('visits.arrival')"><InputText v-model="form.arrival" type="time" class="w-full" /></AppFormField>
@@ -97,4 +106,5 @@ async function save() {
       </Tabs>
     </div>
   </div>
+  <AppLoadState v-else :failed="loadFailed" back-to="/visits" :back-label="t('nav.visits')" />
 </template>

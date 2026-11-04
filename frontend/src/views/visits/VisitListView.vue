@@ -34,7 +34,7 @@ const sortOptions = [
   { label: '#', value: 'number' },
   { label: t('common.date'), value: 'date' },
   { label: t('projects.customer'), value: 'customer__name' },
-  { label: t('nav.projects'), value: 'project__name' },
+  { label: t('projects.project'), value: 'project__name' },
   { label: t('visits.location'), value: 'location' },
 ]
 
@@ -50,6 +50,7 @@ async function save() {
   try {
     await visitsApi.create(form.value)
     modal.value?.close()
+    notify.ok(t('common.created'))
     form.value = { date: new Date().toISOString().slice(0, 10) }
     load()
   } catch (e) {
@@ -69,17 +70,17 @@ async function save() {
     </AppPageHeader>
 
     <AppDataTable
-      :rows="rows" :loading="pagination.loading.value" lazy selectable
+      :rows="rows" :loading="pagination.loading.value" lazy selectable :delete-row="(row) => visitsApi.remove(row.id)" @bulk-deleted="load"
       :total-records="pagination.totalRecords.value" :first="pagination.first.value"
       :page-size="pagination.pageSize.value" :sort-field="pagination.sortField.value"
       :sort-order="pagination.sortOrder.value" :sort-options="sortOptions"
       :state-key="tableStateKeys.visits" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort"
       @row-click="(r: Visit) => router.push(`/visits/${r.id}`)"
     >
-      <Column field="number" header="#" sortable />
+      <Column field="number" :header="t('common.numberShort')" sortable />
       <Column field="date" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
       <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
-      <Column class="app-text" field="project_name" sort-field="project__name" :header="t('nav.projects')" sortable />
+      <Column class="app-text" field="project_name" sort-field="project__name" :header="t('projects.project')" sortable />
       <Column class="app-text" field="location" :header="t('visits.location')" sortable />
       <Column :header="t('common.actions')" :reorderable-column="false">
         <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await visitsApi.remove(data.id); load() })" /></template>
@@ -90,10 +91,10 @@ async function save() {
       </template>
     </AppDataTable>
 
-    <AppModal ref="modal" :title="t('visits.new')" :loading="saving" @confirm="save">
+    <AppModal ref="modal" :form="form" :title="t('visits.new')" :loading="saving" @confirm="save">
       <div class="flex flex-col gap-4">
         <AppFormField field="customer" :label="t('projects.customer')" required><CustomerSelect v-model="form.customer" /></AppFormField>
-        <AppFormField field="project" :label="t('nav.projects')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
+        <AppFormField field="project" :label="t('projects.project')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
         <div class="grid grid-cols-3 gap-3">
           <AppFormField field="date" :label="t('common.date')" required><AppDateInput v-model="(form.date as any)" /></AppFormField>
           <AppFormField field="arrival" :label="t('visits.arrival')"><InputText v-model="form.arrival" type="time" class="w-full" /></AppFormField>

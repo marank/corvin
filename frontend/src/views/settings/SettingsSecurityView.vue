@@ -12,9 +12,11 @@ import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import { securityApi } from '../../api'
 import { useAuthStore } from '../../stores/auth'
 import { useNotify } from '../../composables/useNotify'
+import { useConfirm } from 'primevue/useconfirm'
 
 const { t } = useI18n()
 const notify = useNotify()
+const confirm = useConfirm()
 const auth = useAuthStore()
 
 const oldPw = ref('')
@@ -42,11 +44,15 @@ async function changePassword() {
 }
 
 async function startTotp() {
-  const { config_url } = await securityApi.totpSetup()
-  qrDataUrl.value = await QRCode.toDataURL(config_url, { width: 220, margin: 0 })
-  totpCode.value = ''
-  backupCodes.value = []
-  totpModal.value?.open()
+  try {
+    const { config_url } = await securityApi.totpSetup()
+    qrDataUrl.value = await QRCode.toDataURL(config_url, { width: 220, margin: 0 })
+    totpCode.value = ''
+    backupCodes.value = []
+    totpModal.value?.open()
+  } catch (e) {
+    notify.error(e)
+  }
 }
 
 async function confirmTotp() {
@@ -70,15 +76,30 @@ async function disableTotp() {
   }
 }
 
-async function revokeOthers() {
-  await securityApi.revokeAllSessions()
-  sessions.value = await securityApi.sessions()
+function revokeOthers() {
+  confirm.require({
+    header: t('settings.revokeOthers'),
+    message: t('settings.revokeOthersConfirm'),
+    icon: 'pi pi-sign-out',
+    rejectLabel: t('common.cancel'),
+    rejectProps: { text: true },
+    acceptLabel: t('settings.revokeOthers'),
+    accept: async () => {
+      try {
+        await securityApi.revokeAllSessions()
+        sessions.value = await securityApi.sessions()
+        notify.ok(t('settings.revokedOthers'))
+      } catch (e) {
+        notify.error(e)
+      }
+    },
+  })
 }
 </script>
 
 <template>
   <div>
-    <AppPageHeader :title="t('settings.security')" />
+    <AppPageHeader back-to="/settings" :back-label="t('nav.settings')" :title="t('settings.security')" />
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
       <section class="border border-surface-200 dark:border-surface-800 p-4">
@@ -96,7 +117,7 @@ async function revokeOthers() {
           {{ auth.user?.totp_enabled ? t('settings.totpEnabled') : t('settings.totpDisabled') }}
         </p>
         <Button v-if="!auth.user?.totp_enabled" :label="t('settings.totpSetup')" @click="startTotp" />
-        <Button v-else :label="t('common.delete')" severity="danger" text @click="disableModal?.open()" />
+        <Button v-else :label="t('settings.totpDisable')" severity="danger" text @click="disableModal?.open()" />
       </section>
 
       <section class="border border-surface-200 dark:border-surface-800 p-4 md:col-span-2">
@@ -125,11 +146,11 @@ async function revokeOthers() {
         <div class="grid grid-cols-2 gap-1 font-mono text-sm mb-4">
           <code v-for="c in backupCodes" :key="c">{{ c }}</code>
         </div>
-        <Button :label="t('common.confirm')" @click="totpModal?.close()" />
+        <Button :label="t('common.done')" @click="totpModal?.close()" />
       </div>
     </AppModal>
 
-    <AppModal ref="disableModal" :title="t('settings.totp')" @confirm="disableTotp">
+    <AppModal ref="disableModal" :title="t('settings.totpDisableTitle')" :confirm-label="t('settings.totpDisable')" @confirm="disableTotp">
       <AppFormField :label="t('auth.password')"><Password v-model="disablePassword" :feedback="false" class="w-full" input-class="w-full" /></AppFormField>
     </AppModal>
   </div>

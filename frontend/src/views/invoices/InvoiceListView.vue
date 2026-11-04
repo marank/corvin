@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
@@ -11,6 +11,11 @@ import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
 import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
+import AppFormField from '../../components/ui/AppFormField.vue'
+import AppFilterBar, { type ActiveFilter } from '../../components/ui/AppFilterBar.vue'
+import CustomerSelect from '../../components/CustomerSelect.vue'
+import ProjectSelect from '../../components/ProjectSelect.vue'
+import { useQueryFilters } from '../../composables/useQueryFilters'
 import { invoicesApi, type Invoice } from '../../api'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
 import { usePagination } from '../../composables/usePagination'
@@ -20,7 +25,17 @@ const { t } = useI18n()
 const router = useRouter()
 const confirmDelete = useConfirmDelete()
 const rows = ref<Invoice[]>([])
-const statusFilter = ref<string | null>(null)
+const preset = useQueryFilters()
+const filters = ref({ customer: preset.customer, project: preset.project, status: null as string | null })
+const names = preset.names
+const activeFilters = computed<ActiveFilter[]>(() => {
+  const f = filters.value
+  const active: ActiveFilter[] = []
+  if (f.customer) active.push({ key: 'customer', label: t('projects.customer'), value: names.value.customer })
+  if (f.project) active.push({ key: 'project', label: t('projects.project'), value: names.value.project })
+  if (f.status) active.push({ key: 'status', label: t('common.status'), value: t(`invoices.status.${f.status}`) })
+  return active
+})
 const statuses = ['draft', 'issued', 'sent', 'paid', 'cancelled']
 const statusKey = (invoice: Invoice) => invoice.partially_paid ? 'partially_paid' : invoice.status
 const pagination = usePagination(load, '-issue_date')
@@ -34,10 +49,11 @@ const sortOptions = [
 ]
 
 onMounted(pagination.start)
+watch(filters, () => pagination.refresh(), { deep: true })
 
 async function load() {
   const params = new URLSearchParams()
-  if (statusFilter.value) params.set('status', statusFilter.value)
+  for (const [key, value] of Object.entries(filters.value)) if (value) params.set(key, value)
   const results = await pagination.fetchPage(invoicesApi.list, params)
   if (results) rows.value = results
 }
@@ -47,26 +63,38 @@ async function load() {
   <div>
     <AppPageHeader :title="t('invoices.title')">
       <template #actions>
-        <Select v-model="statusFilter" :options="statuses" :placeholder="t('common.status')" show-clear class="w-40" @update:model-value="pagination.refresh">
-          <template #option="{ option }">{{ t(`invoices.status.${option}`) }}</template>
-          <template #value="{ value, placeholder }">
-            <span v-if="value">{{ t(`invoices.status.${value}`) }}</span>
-            <span v-else class="text-surface-500">{{ placeholder }}</span>
-          </template>
-        </Select>
         <Button :label="t('invoices.new')" icon="pi pi-plus" @click="router.push('/invoices/new')" />
       </template>
     </AppPageHeader>
 
     <AppDataTable
-      :rows="rows" :loading="pagination.loading.value" lazy selectable
+      :rows="rows" :loading="pagination.loading.value" lazy selectable :delete-row="(row) => invoicesApi.remove(row.id)" @bulk-deleted="load"
       :total-records="pagination.totalRecords.value" :first="pagination.first.value"
       :page-size="pagination.pageSize.value" :sort-field="pagination.sortField.value"
       :sort-order="pagination.sortOrder.value" :sort-options="sortOptions"
       :state-key="tableStateKeys.invoices" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort"
       @row-click="(r: Invoice) => router.push(`/invoices/${r.id}`)"
     >
-      <Column field="number" :header="t('invoices.number')" sortable />
+      <template #toolbar>
+        <AppFilterBar :active="activeFilters" @remove="(key) => filters[key as 'customer' | 'project' | 'status'] = null" @clear="filters = { customer: null, project: null, status: null }">
+          <AppFormField :label="t('projects.customer')">
+            <CustomerSelect v-model="filters.customer" :placeholder="t('common.allCustomers')" @select="(c) => names.customer = c?.name ?? ''" />
+          </AppFormField>
+          <AppFormField :label="t('projects.project')">
+            <ProjectSelect v-model="filters.project" :customer-id="filters.customer" :placeholder="t('common.allProjects')" @select="(p) => names.project = p?.name ?? ''" />
+          </AppFormField>
+          <AppFormField :label="t('common.status')">
+            <Select v-model="filters.status" :options="statuses" :placeholder="t('common.all')" show-clear class="w-full">
+              <template #option="{ option }">{{ t(`invoices.status.${option}`) }}</template>
+              <template #value="{ value, placeholder }">
+                <span v-if="value">{{ t(`invoices.status.${value}`) }}</span>
+                <span v-else class="text-surface-500">{{ placeholder }}</span>
+              </template>
+            </Select>
+          </AppFormField>
+        </AppFilterBar>
+      </template>
+      <Column field="number" :header="t('common.numberShort')" sortable />
       <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
       <Column field="issue_date" :header="t('invoices.issueDate')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.issue_date" /></template></Column>
       <Column field="due_date" :header="t('invoices.dueDate')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.due_date" /></template></Column>

@@ -4,12 +4,17 @@ import { onMounted, ref } from 'vue'
 import { customersApi, type Customer } from '../api'
 
 defineProps<{ placeholder?: string }>()
+const emit = defineEmits<{ select: [customer: Customer | null] }>()
 const model = defineModel<string | null>()
 const customers = ref<Customer[]>([])
 
 onMounted(async () => {
   customers.value = (await customersApi.list('page_size=500')).results
 })
+
+function onChange(id: string | null) {
+  emit('select', customers.value.find((customer) => customer.id === id) ?? null)
+}
 </script>
 
 <template>
@@ -22,5 +27,6 @@ onMounted(async () => {
     filter
     show-clear
     class="w-full"
+    @update:model-value="onChange"
   />
 </template>

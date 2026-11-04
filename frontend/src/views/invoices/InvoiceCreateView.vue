@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import Checkbox from 'primevue/checkbox'
@@ -29,15 +29,18 @@ import {
 import { ApiError } from '../../api/client'
 import { errorText } from '../../composables/formErrors'
 import { useNotify } from '../../composables/useNotify'
+import { useUnsavedChanges } from '../../composables/useUnsavedChanges'
 import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
 const router = useRouter()
 const notify = useNotify()
 
+const query = useRoute().query
 const step = ref(0)
-const customerId = ref<string | null>(null)
-const projectId = ref<string | null>(null)
+// Prefilled from customer/project overviews ("Rechnung erstellen").
+const customerId = ref<string | null>(typeof query.customer === 'string' ? query.customer : null)
+const projectId = ref<string | null>(typeof query.project === 'string' ? query.project : null)
 const dateFrom = ref<string | null>(null)
 const dateTo = ref<string | null>(null)
 const groupBy = ref('entry')
@@ -48,6 +51,7 @@ const contactIds = ref<string[]>([])
 const bankAccounts = ref<BankAccount[]>([])
 const bankAccountId = ref<string | null>(null)
 const creating = ref(false)
+const created = ref(false)
 
 interface ManualLine {
   id: string
@@ -88,7 +92,7 @@ watch(customerId, async (value) => {
   contactIds.value = availableContacts.value
     .filter((contact) => contact.is_invoice_contact)
     .map((contact) => contact.id)
-})
+}, { immediate: true })
 
 // Entries the user unticked in step 2; everything else gets billed.
 const excluded = ref(new Set<string>())
@@ -128,7 +132,7 @@ watch([customerId, projectId, dateFrom, dateTo], async () => {
   const page = await timeTrackingApi.list(`${params.toString()}&page_size=500`)
   if (request !== entriesRequest) return
   entries.value = page.results
-})
+}, { immediate: true })
 
 const payload = computed<ConsolidateRequest | null>(() => customerId.value
   ? {
@@ -172,6 +176,11 @@ watch(payload, (value) => {
     }
   }, 300)
 }, { deep: true })
+// Leaving after step 1 or with own lines would lose the selection.
+useUnsavedChanges(
+  computed(() => ({ started: step.value > 0, lines: manualLines.value.length })),
+  () => !created.value,
+)
 const canCreate = computed(() => !!payload.value && !previewError.value
   && (selectedEntries.value.length > 0 || manualLines.value.length > 0))
 
@@ -181,6 +190,7 @@ async function create() {
   creating.value = true
   try {
     const inv = await invoicesApi.consolidate(payload.value)
+    created.value = true
     router.push(`/invoices/${inv.id}`)
   } catch (e) {
     notify.error(e)
@@ -192,7 +202,7 @@ async function create() {
 
 <template>
   <div>
-    <AppPageHeader :title="t('invoices.new')" />
+    <AppPageHeader back-to="/invoices" :back-label="t('nav.invoices')" :title="t('invoices.new')" />
     <Steps :model="steps" :active-step="step" class="mb-6" :readonly="!customerId" @update:active-step="(s: number) => step = s" />
 
     <div v-if="step === 0" class="flex flex-col gap-4 max-w-lg">
@@ -273,6 +283,10 @@ async function create() {
             <template #value="{ value }">{{ t(`invoices.groupBys.${value}`) }}</template>
           </Select>
         </AppFormField>
+        <Message v-if="!bankAccounts.some((account) => account.iban)" severity="warn">
+          {{ t('invoices.noIbanHint') }}
+          <router-link to="/settings?tab=bankAccounts" class="underline font-medium">{{ t('invoices.noIbanLink') }}</router-link>
+        </Message>
         <AppFormField :label="t('settings.bankAccount')">
           <Select v-model="bankAccountId" :options="bankAccounts" option-label="name" option-value="id" show-clear :placeholder="t('invoices.inheritedBankAccount')" class="w-full" />
         </AppFormField>

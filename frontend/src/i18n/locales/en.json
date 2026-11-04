@@ -1,5 +1,17 @@
 {
   "app": { "title": "Corvin" },
+  "overview": {
+    "title": "Overview",
+    "masterData": "Master data",
+    "uninvoiced": "Not invoiced",
+    "openInvoices": "Open invoices",
+    "openTasks": "Open tasks",
+    "activeProjects": "Active projects",
+    "totalHours": "Total tracked",
+    "recentTime": "Recent time entries",
+    "showAll": "Show all",
+    "createInvoice": "Create invoice"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "customers": "Customers",
@@ -26,6 +38,19 @@
     "loading": "Loading…",
     "confirm": "Confirm",
     "back": "Back",
+    "all": "All",
+    "allCustomers": "All customers",
+    "allProjects": "All projects",
+    "unsavedTitle": "Unsaved changes",
+    "unsavedMessage": "Your changes have not been saved. Leave anyway and discard them?",
+    "keepEditing": "Keep editing",
+    "discard": "Discard",
+    "loadFailed": "This entry could not be loaded. It may have been deleted, or the link is outdated.",
+    "upload": "Upload",
+    "uploaded": "Uploaded",
+    "language": "Language",
+    "filter": "Filter",
+    "clearFilters": "Clear filters",
     "next": "Next",
     "download": "Download",
     "send": "Send",
@@ -51,7 +76,9 @@
     "error": "Error",
     "checkInput": "Please check your input",
     "saved": "Saved",
-    "created": "Created"
+    "created": "Created",
+    "numberShort": "No.",
+    "amount": "Amount"
   },
   "auth": {
     "login": "Sign in",
@@ -67,6 +94,10 @@
     "selected": "{count} selected",
     "selectPage": "Select page",
     "clearSelection": "Clear",
+    "deleteSelected": "Delete ({count})",
+    "bulkDeleteConfirm": "Really delete {count} selected entries? This cannot be undone.",
+    "bulkDeleted": "{count} deleted",
+    "bulkDeleteFailed": "{count} could not be deleted (e.g. still in use or already invoiced).",
     "sortBy": "Sort by",
     "ascending": "Ascending",
     "descending": "Descending",
@@ -109,8 +140,9 @@
     "primary": "Primary address",
     "paymentTerms": "Payment terms (days)",
     "paymentTermsDefault": "Use default",
-    "invoiceContact": "Default invoice contact",
-    "groups": { "masterData": "Master data", "contact": "Contact details", "billing": "Billing", "timeTracking": "Time tracking" }
+    "invoiceContact": "Default for invoices",
+    "groups": { "masterData": "Master data", "contact": "Contact details", "billing": "Billing", "timeTracking": "Time tracking" },
+    "place": "City"
   },
   "projects": {
     "project": "Project",
@@ -129,7 +161,11 @@
     "dueDate": "Due date",
     "priority": "Priority",
     "priorities": { "low": "Low", "medium": "Medium", "high": "High" },
-    "status": { "open": "Open", "in_progress": "In progress", "done": "Done" }
+    "status": { "open": "Open", "in_progress": "In progress", "done": "Done" },
+    "task": "Task",
+    "markDone": "Mark as done",
+    "reopen": "Reopen",
+    "edit": "Edit task"
   },
   "time": {
     "title": "Time tracking",
@@ -158,25 +194,22 @@
     "time": "Time",
     "startNow": "Start",
     "startHint": "All optional – customer, project and description can still be added after stopping.",
-    "allCustomers": "All customers",
-    "allProjects": "All projects",
     "from": "From",
     "to": "To",
-    "allStatuses": "All",
+    "period": "Period",
     "statuses": { "open": "Not invoiced", "invoiced": "Invoiced" },
-    "resetFilters": "Reset filters",
     "entries": "{n} entry | {n} entries"
   },
   "visits": {
     "title": "On-site visits",
-    "new": "New visit",
+    "new": "New on-site visit",
     "location": "Location",
     "arrival": "Arrival",
     "departure": "Departure",
     "report": "Report"
   },
   "contracts": {
-    "title": "Support contracts",
+    "title": "Contracts",
     "new": "New contract",
     "includedHours": "Included hours",
     "period": "Period",
@@ -189,6 +222,9 @@
     "used": "Used",
     "included": "Included",
     "overage": "Overage",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "runNowConfirm": "Create the invoice for the current billing period now? The next billing date moves forward afterwards.",
     "runNow": "Bill now",
     "generatedInvoice": "Invoice created"
   },
@@ -239,7 +275,9 @@
     "summary": "Summary",
     "editInvoice": "Edit invoice",
     "editLine": "Edit line",
-    "lineDeleteHint": "Deleting a line makes the time entries billed on it billable again."
+    "lineDeleteHint": "Deleting a line makes the time entries billed on it billable again.",
+    "noIbanHint": "To finalize, the invoice needs a bank account with an IBAN (on the customer, the invoice or as the default).",
+    "noIbanLink": "Add a bank account"
   },
   "designer": {
     "title": "Invoice designer",
@@ -277,9 +315,9 @@
     "mailSubject": "Email subject",
     "mailBody": "Email body",
     "placeholders": "Variables and snippets",
-    "variableGroups": { "invoice": "Invoice", "page": "Page and design", "customer": "Customer", "company": "Company", "bankAccount": "Bank account", "invoiceContacts": "Invoice contacts", "companyContacts": "Company contacts", "relations": "Project and contract", "formatting": "Formatting", "lines": "Invoice lines", "textBlocks": "Text blocks", "images": "Images" },
+    "variableGroups": { "invoice": "Invoice", "page": "Page and design", "customer": "Customer", "company": "Company", "bankAccount": "Bank account", "invoiceContacts": "Invoice contacts", "companyContacts": "Contacts (company)", "relations": "Project and contract", "formatting": "Formatting", "lines": "Invoice lines", "textBlocks": "Text blocks", "images": "Images" },
     "assignments": "Assignments",
-    "assignmentsHint": "Select a template for each document type.",
+    "assignmentsHint": "Choose a template for each document type. Without a choice, the default template is used.",
     "reportTypes": {
       "invoice": "Invoice",
       "credit_note": "Credit note",
@@ -288,7 +326,10 @@
       "delivery_note": "Delivery note",
       "timesheet": "Timesheet"
     },
-    "noTemplate": "No template"
+    "defaultTemplate": "Default: {name}",
+    "defaultTemplateAuto": "Default (created automatically)",
+    "newTemplate": "New template",
+    "newTextBlock": "New text block"
   },
   "settings": {
     "title": "Settings",
@@ -344,7 +385,7 @@
     "timerCountsDuringBreak": "Keep timer running during breaks",
     "alwaysShowTimerWidget": "Always show timer widget",
     "openStoppedTimeEntry": "Open time entry after stopping",
-    "roundingDirections": { "nearest": "Nearest", "backwards": "Back", "forwards": "Forward" },
+    "roundingDirections": { "nearest": "Round half up", "backwards": "Round down", "forwards": "Round up" },
     "numbering": "Number generation",
     "numberingHelp": "Available placeholders: {'{'}counter{'}'}, {'{'}counter:3{'}'}, {'{'}year:4{'}'}, {'{'}year:2{'}'}, {'{'}month:2{'}'}, {'{'}day:2{'}'}, and any model field such as {'{'}customer.number{'}'}, {'{'}customer.vat_id{'}'}, or {'{'}project.customer.number{'}'}.",
     "numberFormat": "Format",
@@ -358,14 +399,22 @@
     "newPassword": "New password",
     "passwordChanged": "Password changed",
     "totp": "Two-factor authentication",
-    "totpSetup": "Set up 2FA",
+    "totpSetup": "Set up two-factor authentication",
     "totpScan": "Scan QR code with your authenticator app",
     "totpConfirm": "Enter code",
     "totpEnabled": "2FA enabled",
     "totpDisabled": "2FA disabled",
     "backupCodes": "Backup codes (one-time, store safely)",
     "sessions": "Active sessions",
-    "revokeOthers": "Sign out others"
+    "revokeOthers": "Sign out others",
+    "revokeOthersConfirm": "All other devices and browsers will be signed out. Continue?",
+    "revokedOthers": "Other sessions signed out",
+    "totpDisable": "Disable",
+    "totpDisableTitle": "Disable two-factor authentication",
+    "newBankAccount": "New bank account",
+    "editBankAccount": "Edit bank account",
+    "newCompanyContact": "New contact",
+    "editCompanyContact": "Edit contact"
   },
   "dashboard": {
     "title": "Dashboard",

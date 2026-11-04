@@ -44,7 +44,7 @@ defineExpose({ open })
 </script>
 
 <template>
-  <AppModal ref="modal" :title="t('time.startTimer')" :confirm-label="t('time.startNow')" :loading="starting" @confirm="start">
+  <AppModal ref="modal" :form="form" :title="t('time.startTimer')" :confirm-label="t('time.startNow')" :loading="starting" @confirm="start">
     <form class="flex flex-col gap-4" @submit.prevent="start">
       <AppFormField field="description" :label="t('time.description')">
         <InputText v-model="form.description" class="w-full" autofocus />

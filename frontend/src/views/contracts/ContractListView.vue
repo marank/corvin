@@ -4,22 +4,15 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
 import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
-import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import AppModal from '../../components/ui/AppModal.vue'
-import AppFormField from '../../components/ui/AppFormField.vue'
-import AppCheckboxField from '../../components/ui/AppCheckboxField.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
-import AppDateInput from '../../components/ui/AppDateInput.vue'
-import CustomerSelect from '../../components/CustomerSelect.vue'
-import ProjectSelect from '../../components/ProjectSelect.vue'
+import ContractFormFields from '../../components/ContractFormFields.vue'
+import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import { contractsApi, type SupportContract } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
@@ -33,12 +26,12 @@ const confirmDelete = useConfirmDelete()
 const rows = ref<SupportContract[]>([])
 const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
-const periods = ['monthly', 'quarterly', 'yearly']
-const form = ref<Partial<SupportContract>>({
+const emptyForm = (): Partial<SupportContract> => ({
   period: 'monthly', included_hours: 10, fixed_price: 0,
   bill_overage: false, active: true, start_date: new Date().toISOString().slice(0, 10),
   next_billing_date: new Date().toISOString().slice(0, 10),
 })
+const form = ref(emptyForm())
 const pagination = usePagination(load, 'number')
 const sortOptions = [
   { label: '#', value: 'number' },
@@ -60,11 +53,7 @@ async function save() {
   try {
     await contractsApi.create(form.value)
     modal.value?.close()
-    form.value = {
-      period: 'monthly', included_hours: 10, fixed_price: 0,
-      bill_overage: false, active: true, start_date: new Date().toISOString().slice(0, 10),
-      next_billing_date: new Date().toISOString().slice(0, 10),
-    }
+    notify.ok(t('common.created'))
     load()
   } catch (e) {
     notify.error(e)
@@ -78,26 +67,26 @@ async function save() {
   <div>
     <AppPageHeader :title="t('contracts.title')">
       <template #actions>
-        <Button :label="t('contracts.new')" icon="pi pi-plus" @click="modal?.open()" />
+        <Button :label="t('contracts.new')" icon="pi pi-plus" @click="form = emptyForm(); modal?.open()" />
       </template>
     </AppPageHeader>
 
     <AppDataTable
-      :rows="rows" :loading="pagination.loading.value" lazy selectable
+      :rows="rows" :loading="pagination.loading.value" lazy selectable :delete-row="(row) => contractsApi.remove(row.id)" @bulk-deleted="load"
       :total-records="pagination.totalRecords.value" :first="pagination.first.value"
       :page-size="pagination.pageSize.value" :sort-field="pagination.sortField.value"
       :sort-order="pagination.sortOrder.value" :sort-options="sortOptions"
       :state-key="tableStateKeys.contracts" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort"
       @row-click="(r: SupportContract) => router.push(`/contracts/${r.id}`)"
     >
-      <Column field="number" header="#" sortable />
+      <Column field="number" :header="t('common.numberShort')" sortable />
       <Column class="app-text" field="name" :header="t('common.name')" sortable />
       <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
       <Column field="period" :header="t('contracts.period')" sortable>
         <template #body="{ data }">{{ t(`contracts.periods.${data.period}`) }}</template>
       </Column>
       <Column class="app-num" :header="t('contracts.includedHours')">
-        <template #body="{ data }"><AppNumberDisplay :value="data.included_hours" />h</template>
+        <template #body="{ data }"><AppDurationDisplay :minutes="data.included_hours * 60" /></template>
       </Column>
       <Column class="app-num" field="fixed_price" :header="t('contracts.fixedPrice')" sortable>
         <template #body="{ data }"><AppMoneyDisplay :amount="data.fixed_price" /></template>
@@ -111,30 +100,12 @@ async function save() {
       </Column>
       <template #card="{ row }">
         <div class="font-medium">{{ row.name }}</div>
-        <div class="text-sm text-surface-500">{{ row.customer_name }} · <AppNumberDisplay :value="row.included_hours" />h / <AppMoneyDisplay :amount="row.fixed_price" /></div>
+        <div class="text-sm text-surface-500">{{ row.customer_name }} · <AppDurationDisplay :minutes="row.included_hours * 60" /> / <AppMoneyDisplay :amount="row.fixed_price" /></div>
       </template>
     </AppDataTable>
 
-    <AppModal ref="modal" :title="t('contracts.new')" size="lg" :loading="saving" @confirm="save">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <AppFormField field="name" :label="t('common.name')" required><InputText v-model="form.name" class="w-full" /></AppFormField>
-        <AppFormField field="customer" :label="t('projects.customer')" required><CustomerSelect v-model="form.customer" /></AppFormField>
-        <AppFormField field="project" :label="t('projects.project')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
-        <AppFormField :label="t('contracts.period')">
-          <Select v-model="form.period" :options="periods" class="w-full">
-            <template #option="{ option }">{{ t(`contracts.periods.${option}`) }}</template>
-            <template #value="{ value }">{{ value ? t(`contracts.periods.${value}`) : '' }}</template>
-          </Select>
-        </AppFormField>
-        <AppFormField field="included_hours" :label="t('contracts.includedHours')"><InputNumber v-model="form.included_hours" :min-fraction-digits="2" class="w-full" /></AppFormField>
-        <AppFormField field="fixed_price" :label="t('contracts.fixedPrice')"><InputNumber v-model="form.fixed_price" mode="currency" currency="EUR" class="w-full" /></AppFormField>
-        <AppFormField field="start_date" :label="t('common.date')"><AppDateInput v-model="(form.start_date as any)" /></AppFormField>
-        <AppFormField field="next_billing_date" :label="t('contracts.nextBilling')"><AppDateInput v-model="(form.next_billing_date as any)" /></AppFormField>
-        <AppFormField field="end_date" :label="t('time.end')"><AppDateInput v-model="(form.end_date as any)" /></AppFormField>
-        <AppCheckboxField v-model="form.bill_overage" :label="t('contracts.billOverage')" />
-        <AppFormField field="overage_rate" v-if="form.bill_overage" :label="t('contracts.overageRate')"><InputNumber v-model="form.overage_rate" mode="currency" currency="EUR" class="w-full" /></AppFormField>
-        <AppCheckboxField v-model="form.active" :label="t('customers.active')" />
-      </div>
+    <AppModal ref="modal" :form="form" :title="t('contracts.new')" size="lg" :loading="saving" @confirm="save">
+      <ContractFormFields v-model="form" />
     </AppModal>
   </div>
 </template>

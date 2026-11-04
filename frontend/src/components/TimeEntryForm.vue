@@ -171,6 +171,7 @@ async function save() {
     const saved = props.entry
       ? await timeTrackingApi.update(props.entry.id, payload)
       : await timeTrackingApi.create(payload)
+    notify.ok(t('common.saved'))
     emit('saved', saved)
   } catch (e) {
     notify.error(e)

@@ -7,6 +7,8 @@ import DataTable, { type DataTablePageEvent, type DataTableSortEvent, type DataT
 import Paginator, { type PageState } from 'primevue/paginator'
 import Select from 'primevue/select'
 import AppEmptyState from './AppEmptyState.vue'
+import { useConfirm } from 'primevue/useconfirm'
+import { useNotify } from '../../composables/useNotify'
 import { useI18n } from 'vue-i18n'
 
 export interface AppTableSortOption {
@@ -29,6 +31,10 @@ const props = withDefaults(
     sortOptions?: AppTableSortOption[]
     stateKey?: string
     selectable?: boolean
+    // Enables "delete selected" in selection mode; called once per selected row.
+    deleteRow?: (row: T) => Promise<unknown>
+    // Rows sharing this field's value get a #groupheader row (rows must be sorted by it).
+    groupField?: string
   }>(),
   {
     loading: false,
@@ -49,8 +55,12 @@ const emit = defineEmits<{
   sort: [value: { field: string; order: 1 | -1 }]
   stateRestore: [value: { page: number; pageSize: number; field: string; order: 1 | -1 }]
   selectionChange: [rows: T[]]
+  bulkDeleted: []
 }>()
 const { t } = useI18n()
+const confirm = useConfirm()
+const notify = useNotify()
+const deleting = ref(false)
 
 // Table on md+, card list below. Rendered with v-if rather than hidden with CSS:
 // a hidden DataTable measures zero-width columns and saves them to its state.
@@ -183,6 +193,38 @@ function handleRowClick(row: T) {
   else emit('rowClick', row)
 }
 
+// Deletes one by one so a row the backend refuses (protected, invoiced) doesn't stop the rest.
+function deleteSelected() {
+  const rows = selectedRows.value
+  if (!props.deleteRow || !rows.length) return
+  confirm.require({
+    header: t('common.delete'),
+    message: t('table.bulkDeleteConfirm', { count: rows.length }),
+    icon: 'pi pi-trash',
+    rejectLabel: t('common.cancel'),
+    rejectProps: { text: true },
+    acceptLabel: t('common.delete'),
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      deleting.value = true
+      let failed = 0
+      for (const row of rows) {
+        try {
+          await props.deleteRow!(row)
+        } catch {
+          failed++
+        }
+      }
+      deleting.value = false
+      if (rows.length > failed) notify.ok(t('table.bulkDeleted', { count: rows.length - failed }))
+      if (failed) notify.error(null, t('table.bulkDeleteFailed', { count: failed }))
+      updateSelection([])
+      selectionMode.value = false
+      emit('bulkDeleted')
+    },
+  })
+}
+
 function startSelection() {
   selectionMode.value = true
 }
@@ -245,14 +287,16 @@ function toggleSortOrder() {
 
 <template>
   <div>
-    <div v-if="selectable" class="flex min-h-9 items-center justify-end gap-2 mb-2">
-      <template v-if="selectionMode">
+    <div v-if="selectable || $slots.toolbar" class="flex flex-wrap min-h-9 items-center gap-2 mb-2">
+      <div class="flex-1 min-w-0"><slot name="toolbar" /></div>
+      <template v-if="selectable && selectionMode">
         <span class="text-sm text-surface-500">{{ t('table.selected', { count: selectedRows.length }) }}</span>
         <Button :label="t('table.selectPage')" size="small" text @click="selectCurrentPage" />
         <Button :label="t('table.clearSelection')" size="small" text :disabled="selectedRows.length === 0" @click="clearSelection" />
+        <Button v-if="deleteRow" :label="t('table.deleteSelected', { count: selectedRows.length })" icon="pi pi-trash" size="small" severity="danger" outlined :loading="deleting" :disabled="selectedRows.length === 0" @click="deleteSelected" />
         <Button :label="t('common.done')" size="small" @click="finishSelection" />
       </template>
-      <Button v-else :label="t('table.select')" icon="pi pi-check-square" size="small" text @click="startSelection" />
+      <Button v-else-if="selectable" :label="t('table.select')" icon="pi pi-check-square" size="small" text @click="startSelection" />
     </div>
 
     <DataTable
@@ -278,6 +322,8 @@ function toggleSortOrder() {
       :current-page-report-template="t('table.pageReport')"
       class="border border-surface-200 dark:border-surface-800"
       :row-class="() => (hasRowClickListener || selectionMode ? 'cursor-pointer' : '')"
+      :row-group-mode="groupField ? 'subheader' : undefined"
+      :group-rows-by="groupField"
       :selection="selectionMode ? selectedRows : undefined"
       data-key="id"
       @update:selection="(rows: T[]) => updateSelection(rows ?? [])"
@@ -288,6 +334,7 @@ function toggleSortOrder() {
     >
       <Column v-if="selectionMode" selection-mode="multiple" header-style="width: 3rem" :reorderable-column="false" />
       <template #empty><AppEmptyState :message="t('common.empty')" /></template>
+      <template v-if="groupField" #groupheader="{ data }"><slot name="groupheader" :data="data" /></template>
       <slot />
     </DataTable>
 

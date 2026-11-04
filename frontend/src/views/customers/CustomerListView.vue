@@ -82,7 +82,7 @@ async function save() {
       :rows="rows"
       :loading="pagination.loading.value"
       lazy
-      selectable
+      selectable :delete-row="(row) => customersApi.remove(row.id)" @bulk-deleted="load"
       :total-records="pagination.totalRecords.value"
       :first="pagination.first.value"
       :page-size="pagination.pageSize.value"
@@ -95,9 +95,9 @@ async function save() {
       @sort="pagination.onSort"
       @row-click="(r: Customer) => router.push(`/customers/${r.id}`)"
     >
-      <Column field="number" header="#" sortable />
+      <Column field="number" :header="t('common.numberShort')" sortable />
       <Column class="app-text" field="name" :header="t('common.name')" sortable />
-      <Column :header="t('common.address')">
+      <Column :header="t('customers.place')">
         <template #body="{ data }">{{ data.primary_address ? `${data.primary_address.postal_code} ${data.primary_address.city}` : '—' }}</template>
       </Column>
       <Column field="email" :header="t('common.email')" sortable />
@@ -117,7 +117,7 @@ async function save() {
       </template>
     </AppDataTable>
 
-    <AppModal ref="modal" :title="t('customers.new')" :loading="saving" @confirm="save">
+    <AppModal ref="modal" :form="form" :title="t('customers.new')" :loading="saving" @confirm="save">
       <div class="flex flex-col gap-4">
         <AppFormField field="name" :label="t('common.name')" required><InputText v-model="form.name" class="w-full" /></AppFormField>
         <div class="grid grid-cols-2 gap-3">

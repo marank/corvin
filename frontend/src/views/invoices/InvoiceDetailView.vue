@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useLoadFailed } from '../../composables/useLoadFailed'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
@@ -7,6 +8,7 @@ import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
+import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
 import Textarea from 'primevue/textarea'
 import Tabs from 'primevue/tabs'
@@ -14,6 +16,7 @@ import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
+import AppLoadState from '../../components/ui/AppLoadState.vue'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
@@ -130,7 +133,7 @@ async function updateBankAccount(value: string | null) {
   if (!invoice.value) return
   await act(() => invoicesApi.update(id, { ...invoice.value!, bank_account_override: value }))
 }
-onMounted(load)
+const loadFailed = useLoadFailed(load)
 
 async function act(fn: () => Promise<unknown>) {
   busy.value = true
@@ -151,6 +154,7 @@ function confirmFinalize() {
     message: t('invoices.finalizeConfirm'),
     icon: 'pi pi-lock',
     rejectLabel: t('common.cancel'),
+    rejectProps: { text: true },
     acceptLabel: t('invoices.finalize'),
     accept: () => act(() => invoicesApi.finalize(id)),
   })
@@ -162,6 +166,7 @@ function confirmCancel() {
     message: t('invoices.cancelConfirm'),
     icon: 'pi pi-ban',
     rejectLabel: t('common.cancel'),
+    rejectProps: { text: true },
     acceptLabel: t('invoices.cancelInvoice'),
     acceptClass: 'p-button-danger',
     accept: () => act(() => invoicesApi.cancel(id)),
@@ -188,7 +193,7 @@ async function addPayment() {
 
 <template>
   <div v-if="invoice">
-    <AppPageHeader :title="invoice.number || '—'" :subtitle="invoice.customer_name">
+    <AppPageHeader back-to="/invoices" :back-label="t('nav.invoices')" :title="invoice.number || '—'" :subtitle="invoice.customer_name">
       <template #actions>
         <AppStatusTag :status="statusKey" :label="t(`invoices.status.${statusKey}`)" />
         <Button v-if="isDraft" :label="t('invoices.finalize')" icon="pi pi-lock" :loading="busy" @click="confirmFinalize" />
@@ -199,6 +204,11 @@ async function addPayment() {
         <Button v-if="isDraft" :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await invoicesApi.remove(id); router.push('/invoices') })" />
       </template>
     </AppPageHeader>
+
+    <Message v-if="isDraft && !invoice.bank_account?.iban" severity="warn" class="mb-4">
+      {{ t('invoices.noIbanHint') }}
+      <router-link to="/settings?tab=bankAccounts" class="underline font-medium">{{ t('invoices.noIbanLink') }}</router-link>
+    </Message>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
       <div>
@@ -268,7 +278,7 @@ async function addPayment() {
             <TabPanel value="payments">
               <AppDataTable :rows="invoice.payments" :state-key="tableStateKeys.invoicePayments">
                 <Column field="date" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
-                <Column class="app-num" field="amount" :header="t('common.total')" sortable>
+                <Column class="app-num" field="amount" :header="t('common.amount')" sortable>
                   <template #body="{ data }"><AppMoneyDisplay :amount="data.amount" :currency="invoice.currency" /></template>
                 </Column>
                 <Column class="app-text" field="note" :header="t('common.notes')" sortable />
@@ -287,7 +297,7 @@ async function addPayment() {
       </div>
     </div>
 
-    <AppModal ref="emailModal" :title="t('invoices.sendEmail')" :confirm-label="t('common.send')" @confirm="sendEmail">
+    <AppModal ref="emailModal" :form="emailForm" :title="t('invoices.sendEmail')" :confirm-label="t('common.send')" @confirm="sendEmail">
       <div class="flex flex-col gap-4">
         <AppFormField field="to" :label="t('common.email')" required><InputText v-model="emailForm.to" class="w-full" /></AppFormField>
         <AppFormField field="subject" :label="t('designer.mailSubject')"><InputText v-model="emailForm.subject" class="w-full" /></AppFormField>
@@ -295,7 +305,7 @@ async function addPayment() {
       </div>
     </AppModal>
 
-    <AppModal ref="headerModal" :title="t('invoices.editInvoice')" :loading="busy" @confirm="saveHeader">
+    <AppModal ref="headerModal" :form="headerForm" :title="t('invoices.editInvoice')" :loading="busy" @confirm="saveHeader">
       <div class="flex flex-col gap-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <AppFormField field="issue_date" :label="t('invoices.issueDate')" required><AppDateInput v-model="(headerForm.issue_date as any)" /></AppFormField>
@@ -315,7 +325,7 @@ async function addPayment() {
       </div>
     </AppModal>
 
-    <AppModal ref="itemModal" :title="editingItem ? t('invoices.editLine') : t('invoices.addLine')" :loading="busy" @confirm="saveItem">
+    <AppModal ref="itemModal" :form="itemForm" :title="editingItem ? t('invoices.editLine') : t('invoices.addLine')" :loading="busy" @confirm="saveItem">
       <div class="flex flex-col gap-4">
         <AppFormField field="description" :label="t('time.description')" required><Textarea v-model="itemForm.description" rows="2" auto-resize class="w-full" /></AppFormField>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -332,12 +342,13 @@ async function addPayment() {
       </div>
     </AppModal>
 
-    <AppModal ref="paymentModal" :title="t('invoices.addPayment')" @confirm="addPayment">
+    <AppModal ref="paymentModal" :form="paymentForm" :title="t('invoices.addPayment')" @confirm="addPayment">
       <div class="flex flex-col gap-4">
-        <AppFormField field="date" :label="t('common.date')"><AppDateInput v-model="paymentForm.date" /></AppFormField>
-        <AppFormField field="amount" :label="t('common.total')"><InputNumber v-model="paymentForm.amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
+        <AppFormField field="date" :label="t('common.date')" required><AppDateInput v-model="paymentForm.date" /></AppFormField>
+        <AppFormField field="amount" :label="t('common.amount')" required><InputNumber v-model="paymentForm.amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
         <AppFormField field="note" :label="t('common.notes')"><InputText v-model="paymentForm.note" class="w-full" /></AppFormField>
       </div>
     </AppModal>
   </div>
+  <AppLoadState v-else :failed="loadFailed" back-to="/invoices" :back-label="t('nav.invoices')" />
 </template>

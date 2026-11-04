@@ -13,6 +13,7 @@ export function useConfirmDelete() {
       message: t('common.deleteConfirm'),
       icon: 'pi pi-trash',
       rejectLabel: t('common.cancel'),
+      rejectProps: { text: true },
       acceptLabel: t('common.delete'),
       acceptClass: 'p-button-danger',
       // The backend refuses some deletes (e.g. protected relations); say so instead of failing silently.

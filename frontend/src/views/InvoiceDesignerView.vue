@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useLoadFailed } from '../composables/useLoadFailed'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
@@ -12,6 +13,7 @@ import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
+import AppLoadState from '../components/ui/AppLoadState.vue'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
 import AppCodeEditor from '../components/ui/AppCodeEditor.vue'
 import InvoicePreviewFrame from '../components/InvoicePreviewFrame.vue'
@@ -22,6 +24,7 @@ import {
 } from '../api'
 import { useNotify } from '../composables/useNotify'
 import { useConfirmDelete } from '../composables/useConfirmDelete'
+import { useUnsavedChanges } from '../composables/useUnsavedChanges'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -31,6 +34,7 @@ const confirmDelete = useConfirmDelete()
 const id = route.params.id as string
 
 const template = ref<DocumentTemplate | null>(null)
+const { markSaved } = useUnsavedChanges(template)
 const saving = ref(false)
 const previewKey = ref(0)
 const previewMode = ref<'html' | 'pdf'>('html')
@@ -190,11 +194,12 @@ const variableGroups = computed<VariableGroup[]>(() => [
   },
 ])
 
-onMounted(async () => {
+const loadFailed = useLoadFailed(async () => {
   const [invoiceTemplate, imagePage, textBlockPage] = await Promise.all([
     templatesApi.get(id), companyImagesApi.list(), textBlocksApi.list(),
   ])
   template.value = invoiceTemplate
+  markSaved()
   images.value = imagePage.results
   textBlocks.value = textBlockPage.results
 })
@@ -215,6 +220,7 @@ async function save() {
   saving.value = true
   try {
     template.value = await templatesApi.update(id, template.value)
+    markSaved()
     previewKey.value++
     if (previewMode.value === 'pdf') loadPdfPreview()
     notify.ok(t('common.saved'))
@@ -232,7 +238,7 @@ watch(() => template.value && [template.value.page_size, template.value.margin_t
 
 <template>
   <div v-if="template" class="h-full flex flex-col">
-    <AppPageHeader :title="template.name" :subtitle="t('designer.title')">
+    <AppPageHeader back-to="/templates" :back-label="t('nav.templates')" :title="template.name" :subtitle="t('designer.title')">
       <template #actions>
         <Button :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await templatesApi.remove(id); router.push('/templates') })" />
         <a :href="templatesApi.exportUrl(id)" download><Button :label="t('designer.exportTemplate')" icon="pi pi-download" severity="secondary" /></a>
@@ -359,4 +365,5 @@ watch(() => template.value && [template.value.page_size, template.value.margin_t
       </div>
     </div>
   </div>
+  <AppLoadState v-else :failed="loadFailed" back-to="/templates" :back-label="t('nav.templates')" />
 </template>

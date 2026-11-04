@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useUnsavedChanges } from '../../composables/useUnsavedChanges'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
@@ -38,6 +39,10 @@ interface NumberScheme {
 
 const { t } = useI18n()
 const router = useRouter()
+// ?tab=bankAccounts etc. opens a tab directly (e.g. from the invoice IBAN hint).
+const tab = ref(typeof useRoute().query.tab === 'string' ? useRoute().query.tab as string : 'company')
+// Bank accounts, contacts and images save in their own dialogs; Save is for the form tabs.
+const formTabs = ['company', 'numbering', 'timeTracking']
 const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const formatting = useFormattingStore()
@@ -69,6 +74,7 @@ const defaultSchemes: Record<string, NumberScheme> = {
 const schemes = ref<Record<string, NumberScheme>>(
   Object.fromEntries(Object.entries(defaultSchemes).map(([key, value]) => [key, { ...value }])),
 )
+const { markSaved } = useUnsavedChanges(computed(() => [form.value, schemes.value]))
 const previews = ref<Record<string, string>>({})
 const bankAccounts = ref<BankAccount[]>([])
 const bankAccountModal = ref<InstanceType<typeof AppModal>>()
@@ -109,6 +115,7 @@ onMounted(async () => {
   contacts.value = contactPage.results
   images.value = imagePage.results
   schemes.value = normalizeSchemes(form.value.numbering_schemes)
+  markSaved()
   await loadPreviews()
 })
 
@@ -144,6 +151,7 @@ async function saveBankAccount() {
     }
     bankAccounts.value = (await bankAccountsApi.list()).results
     bankAccountModal.value?.close()
+    notify.ok(t('common.saved'))
     bankAccountForm.value = { is_active: true }
   } catch (e) {
     notify.error(e)
@@ -153,6 +161,7 @@ async function saveBankAccount() {
 async function setDefaultBankAccount(account: BankAccount) {
   try {
     form.value = await settingsApi.update({ default_bank_account: account.id })
+    markSaved()
     notify.ok(t('common.saved'))
   } catch (e) {
     notify.error(e)
@@ -182,6 +191,7 @@ async function saveContact() {
     }
     contacts.value = (await companyContactsApi.list()).results
     contactModal.value?.close()
+    notify.ok(t('common.saved'))
     contactForm.value = {}
   } catch (e) {
     notify.error(e)
@@ -227,6 +237,7 @@ async function uploadAdditionalImage() {
     images.value = (await companyImagesApi.list()).results
     additionalImage.value = { key: '', name: '', file: null }
     imageModal.value?.close()
+    notify.ok(t('common.saved'))
   } catch (e) {
     notify.error(e)
   }
@@ -247,6 +258,7 @@ async function save() {
     formatting.apply(form.value)
     settingsStore.apply(form.value)
     schemes.value = normalizeSchemes(form.value.numbering_schemes)
+    markSaved()
     notify.ok(t('common.saved'))
   } catch (e) {
     notify.error(e)
@@ -261,11 +273,11 @@ async function save() {
     <AppPageHeader :title="t('settings.title')">
       <template #actions>
         <Button :label="t('settings.security')" text icon="pi pi-shield" @click="router.push('/settings/security')" />
-        <Button :label="t('common.save')" :loading="saving" @click="save" />
+        <Button v-if="formTabs.includes(tab)" :label="t('common.save')" :loading="saving" @click="save" />
       </template>
     </AppPageHeader>
 
-    <Tabs value="company">
+    <Tabs v-model:value="tab">
       <TabList>
         <Tab value="company">{{ t('settings.company') }}</Tab>
         <Tab value="bankAccounts">{{ t('settings.bankAccounts') }}</Tab>
@@ -290,7 +302,7 @@ async function save() {
             <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
               <legend class="ml-4 px-2 font-medium">{{ t('settings.groups.address') }}</legend>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AppFormField field="street" :label="t('common.address')" class="md:col-span-2"><InputText v-model="(form.street as string)" class="w-full" /></AppFormField>
+                <AppFormField field="street" :label="t('customers.street')" class="md:col-span-2"><InputText v-model="(form.street as string)" class="w-full" /></AppFormField>
                 <AppFormField field="postal_code" label="PLZ"><InputText v-model="(form.postal_code as string)" class="w-full" /></AppFormField>
                 <AppFormField field="city" :label="t('settings.city')"><InputText v-model="(form.city as string)" class="w-full" /></AppFormField>
                 <AppFormField field="country" :label="t('settings.country')"><InputText v-model="(form.country as string)" class="w-full" /></AppFormField>
@@ -345,7 +357,7 @@ async function save() {
         <TabPanel value="bankAccounts">
           <div class="pt-4">
             <div class="flex justify-end mb-3">
-              <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openBankAccount()" />
+              <Button :label="t('settings.newBankAccount')" icon="pi pi-plus" size="small" @click="openBankAccount()" />
             </div>
             <AppDataTable :rows="bankAccounts" :state-key="tableStateKeys.settingsBankAccounts" @row-click="openBankAccount">
               <Column class="app-text" field="name" :header="t('common.name')" sortable />
@@ -368,7 +380,7 @@ async function save() {
         <TabPanel value="contacts">
           <div class="pt-4">
             <div class="flex justify-end mb-3">
-              <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openContact()" />
+              <Button :label="t('settings.newCompanyContact')" icon="pi pi-plus" size="small" @click="openContact()" />
             </div>
             <AppDataTable :rows="contacts" :state-key="tableStateKeys.settingsCompanyContacts" @row-click="openContact">
               <Column field="first_name" :header="t('customers.firstName')" sortable />
@@ -492,7 +504,7 @@ async function save() {
       </TabPanels>
     </Tabs>
 
-    <AppModal ref="bankAccountModal" :title="t('settings.bankAccount')" @confirm="saveBankAccount">
+    <AppModal ref="bankAccountModal" :form="bankAccountForm" :title="editingBankAccount ? t('settings.editBankAccount') : t('settings.newBankAccount')" @confirm="saveBankAccount">
       <div class="flex flex-col gap-4">
         <AppFormField field="name" :label="t('common.name')" required><InputText v-model="bankAccountForm.name" class="w-full" /></AppFormField>
         <AppFormField field="bank_name" :label="t('settings.bankName')"><InputText v-model="bankAccountForm.bank_name" class="w-full" /></AppFormField>
@@ -503,7 +515,7 @@ async function save() {
       </div>
     </AppModal>
 
-    <AppModal ref="contactModal" :title="t('settings.companyContacts')" @confirm="saveContact">
+    <AppModal ref="contactModal" :form="contactForm" :title="editingContact ? t('settings.editCompanyContact') : t('settings.newCompanyContact')" @confirm="saveContact">
       <div class="flex flex-col gap-4">
         <div class="grid grid-cols-2 gap-3">
           <AppFormField field="first_name" :label="t('customers.firstName')" required><InputText v-model="contactForm.first_name" class="w-full" /></AppFormField>

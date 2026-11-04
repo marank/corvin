@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
@@ -33,6 +33,14 @@ const importInput = ref<HTMLInputElement>()
 const textBlockModal = ref<InstanceType<typeof AppModal>>()
 const activeTab = ref('assignments')
 const rows = ref<DocumentTemplate[]>([])
+// Without an assignment the backend renders with the oldest template (or creates one).
+const fallbackTemplate = computed(() => [...rows.value].sort((a, b) => a.created_at.localeCompare(b.created_at))[0])
+const fallbackLabel = computed(() => fallbackTemplate.value
+  ? t('designer.defaultTemplate', { name: fallbackTemplate.value.name })
+  : t('designer.defaultTemplateAuto'))
+const newTemplateModal = ref<InstanceType<typeof AppModal>>()
+const newTemplateForm = ref({ name: '' })
+const creatingTemplate = ref(false)
 const textBlocks = ref<TextBlock[]>([])
 const editingTextBlock = ref<TextBlock | null>(null)
 const textBlockForm = ref<Partial<TextBlock>>({})
@@ -64,6 +72,8 @@ async function load() {
       loadTemplates(), textBlockPagination.start(), settingsApi.get(),
     ])
     assignments.value = { ...settings.template_assignments as Record<string, string | null> }
+  } catch (e) {
+    notify.error(e)
   } finally {
     loading.value = false
   }
@@ -96,6 +106,7 @@ async function saveTextBlock() {
     }
     await loadTextBlocks()
     textBlockModal.value?.close()
+    notify.ok(t('common.saved'))
     textBlockForm.value = {}
   } catch (error) {
     notify.error(error)
@@ -116,12 +127,22 @@ function removeTemplate(template: DocumentTemplate) {
   })
 }
 
+function openNewTemplate() {
+  newTemplateForm.value = { name: '' }
+  newTemplateModal.value?.open()
+}
+
+// Created only on confirm, so backing out leaves nothing behind.
 async function createTemplate() {
+  creatingTemplate.value = true
   try {
-    const created = await templatesApi.create({ name: t('common.new'), body_html: '' })
+    const created = await templatesApi.create({ name: newTemplateForm.value.name.trim(), body_html: '' })
+    newTemplateModal.value?.close()
     router.push(`/templates/${created.id}`)
   } catch (e) {
     notify.error(e)
+  } finally {
+    creatingTemplate.value = false
   }
 }
 
@@ -152,9 +173,9 @@ async function importTemplate(event: Event) {
         <template v-else-if="activeTab === 'templates'">
           <Button :label="t('designer.importTemplate')" icon="pi pi-upload" @click="importInput?.click()" />
           <input ref="importInput" type="file" accept="application/json,.json" class="hidden" @change="importTemplate" />
-          <Button :label="t('common.new')" icon="pi pi-plus" @click="createTemplate" />
+          <Button :label="t('designer.newTemplate')" icon="pi pi-plus" @click="openNewTemplate" />
         </template>
-        <Button v-else-if="activeTab === 'textBlocks'" :label="t('common.new')" icon="pi pi-plus" @click="openTextBlock()" />
+        <Button v-else-if="activeTab === 'textBlocks'" :label="t('designer.newTextBlock')" icon="pi pi-plus" @click="openTextBlock()" />
       </template>
     </AppPageHeader>
 
@@ -174,7 +195,7 @@ async function importTemplate(event: Event) {
                 :options="rows"
                 option-label="name"
                 option-value="id"
-                :placeholder="t('designer.noTemplate')"
+                :placeholder="fallbackLabel"
                 show-clear
                 class="w-full"
               />
@@ -217,7 +238,13 @@ async function importTemplate(event: Event) {
       </TabPanels>
     </Tabs>
 
-    <AppModal ref="textBlockModal" :title="t('designer.textBlock')" @confirm="saveTextBlock">
+    <AppModal ref="newTemplateModal" :form="newTemplateForm" :title="t('designer.newTemplate')" :confirm-label="t('common.create')" :loading="creatingTemplate" @confirm="createTemplate">
+      <form @submit.prevent="createTemplate">
+        <AppFormField field="name" :label="t('common.name')" required><InputText v-model="newTemplateForm.name" class="w-full" autofocus /></AppFormField>
+      </form>
+    </AppModal>
+
+    <AppModal ref="textBlockModal" :form="textBlockForm" :title="t('designer.textBlock')" @confirm="saveTextBlock">
       <div class="flex flex-col gap-4">
         <AppFormField field="name" :label="t('common.name')" required><InputText v-model="textBlockForm.name" class="w-full" /></AppFormField>
         <AppFormField :label="t('designer.textBlockKey')" required>

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { clearFormErrors } from '../../composables/formErrors'
+import { useConfirmDiscard } from '../../composables/useUnsavedChanges'
 
 const props = withDefaults(
   defineProps<{
@@ -12,6 +13,8 @@ const props = withDefaults(
     confirmLabel?: string
     showFooter?: boolean
     loading?: boolean
+    // The edited object; closing via X, Esc or Cancel after changing it asks first.
+    form?: unknown
   }>(),
   { size: 'md', showFooter: true, loading: false },
 )
@@ -29,13 +32,23 @@ const widthClass = computed(
     })[props.size],
 )
 
+const confirmDiscard = useConfirmDiscard()
+let snapshot = ''
+
 function open() {
   clearFormErrors()
   visible.value = true
+  // Callers usually fill the form right before open(); take the snapshot once props caught up.
+  nextTick(() => { snapshot = JSON.stringify(props.form) })
 }
-// The Dialog's @hide emits `closed`, for this path as well as Esc and the X button.
+// Programmatic close (after saving). The Dialog's @hide emits `closed` for every path.
 function close() {
   visible.value = false
+}
+// User-initiated close: X, Esc, Cancel.
+async function requestClose() {
+  if (props.form !== undefined && JSON.stringify(props.form) !== snapshot && !(await confirmDiscard())) return
+  close()
 }
 
 defineExpose({ open, close })
@@ -43,7 +56,8 @@ defineExpose({ open, close })
 
 <template>
   <Dialog
-    v-model:visible="visible"
+    :visible="visible"
+    @update:visible="(value: boolean) => value ? (visible = true) : requestClose()"
     :header="title"
     modal
     :class="widthClass"
@@ -53,7 +67,7 @@ defineExpose({ open, close })
     <slot />
     <template v-if="showFooter" #footer>
       <slot name="footer">
-        <Button :label="t('common.cancel')" text @click="close" />
+        <Button :label="t('common.cancel')" text @click="requestClose" />
         <Button
           :label="confirmLabel ?? t('common.save')"
           :loading="loading"

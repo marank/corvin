@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
@@ -17,6 +17,8 @@ import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
+import AppFilterBar, { type ActiveFilter } from '../../components/ui/AppFilterBar.vue'
+import { useQueryFilters } from '../../composables/useQueryFilters'
 import { projectsApi, type Project } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
@@ -41,10 +43,24 @@ const sortOptions = [
   { label: t('common.status'), value: 'status' },
 ]
 
+const preset = useQueryFilters()
+const filters = ref({ customer: preset.customer, status: null as string | null })
+const names = preset.names
+const activeFilters = computed<ActiveFilter[]>(() => {
+  const f = filters.value
+  const active: ActiveFilter[] = []
+  if (f.customer) active.push({ key: 'customer', label: t('projects.customer'), value: names.value.customer })
+  if (f.status) active.push({ key: 'status', label: t('common.status'), value: t(`projects.status.${f.status}`) })
+  return active
+})
+
 onMounted(pagination.start)
+watch(filters, () => pagination.refresh(), { deep: true })
 
 async function load() {
-  const results = await pagination.fetchPage(projectsApi.list)
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(filters.value)) if (value) params.set(key, value)
+  const results = await pagination.fetchPage(projectsApi.list, params)
   if (results) rows.value = results
 }
 
@@ -73,14 +89,30 @@ async function save() {
     </AppPageHeader>
 
     <AppDataTable
-      :rows="rows" :loading="pagination.loading.value" lazy selectable
+      :rows="rows" :loading="pagination.loading.value" lazy selectable :delete-row="(row) => projectsApi.remove(row.id)" @bulk-deleted="load"
       :total-records="pagination.totalRecords.value" :first="pagination.first.value"
       :page-size="pagination.pageSize.value" :sort-field="pagination.sortField.value"
       :sort-order="pagination.sortOrder.value" :sort-options="sortOptions"
       :state-key="tableStateKeys.projects" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort"
       @row-click="(r: Project) => router.push(`/projects/${r.id}`)"
     >
-      <Column field="number" header="#" sortable />
+      <template #toolbar>
+        <AppFilterBar :active="activeFilters" @remove="(key) => filters[key as 'customer' | 'status'] = null" @clear="filters = { customer: null, status: null }">
+          <AppFormField :label="t('projects.customer')">
+            <CustomerSelect v-model="filters.customer" :placeholder="t('common.allCustomers')" @select="(c) => names.customer = c?.name ?? ''" />
+          </AppFormField>
+          <AppFormField :label="t('common.status')">
+            <Select v-model="filters.status" :options="statuses" :placeholder="t('common.all')" show-clear class="w-full">
+              <template #option="{ option }">{{ t(`projects.status.${option}`) }}</template>
+              <template #value="{ value, placeholder }">
+                <span v-if="value">{{ t(`projects.status.${value}`) }}</span>
+                <span v-else class="text-surface-500">{{ placeholder }}</span>
+              </template>
+            </Select>
+          </AppFormField>
+        </AppFilterBar>
+      </template>
+      <Column field="number" :header="t('common.numberShort')" sortable />
       <Column class="app-text" field="name" :header="t('common.name')" sortable />
       <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
       <Column field="status" :header="t('common.status')" sortable>
@@ -104,7 +136,7 @@ async function save() {
       </template>
     </AppDataTable>
 
-    <AppModal ref="modal" :title="t('projects.new')" :loading="saving" @confirm="save">
+    <AppModal ref="modal" :form="form" :title="t('projects.new')" :loading="saving" @confirm="save">
       <div class="flex flex-col gap-4">
         <AppFormField field="customer" :label="t('projects.customer')" required><CustomerSelect v-model="form.customer" /></AppFormField>
         <AppFormField field="name" :label="t('common.name')" required><InputText v-model="form.name" class="w-full" /></AppFormField>

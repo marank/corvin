@@ -106,7 +106,7 @@ async function logout() {
           :to="item.to"
           class="relative flex items-center gap-3 px-4 py-2.5 text-sm"
           :class="isActive(item.to, item.exact)
-            ? 'sidebar-active-item text-primary font-medium bg-blue-50 dark:bg-surface-800'
+            ? 'sidebar-active-item text-primary font-medium bg-primary/10'
             : 'text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800'"
         >
           <i :class="item.icon" />
@@ -115,7 +115,7 @@ async function logout() {
       </nav>
     </aside>
 
-    <!-- Full-screen tile menu (all viewports) -->
+    <!-- Full-screen tile menu (below lg, where the sidebar is hidden) -->
     <Teleport to="body">
       <div
         v-if="menuOpen"
@@ -145,7 +145,7 @@ async function logout() {
     <div class="flex-1 flex flex-col min-w-0">
       <!-- Topbar -->
       <header class="h-14 shrink-0 flex items-center gap-2 px-3 lg:px-5 border-b border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900">
-        <AppIconButton icon="pi pi-bars" :aria-label="t('common.menu')" @click="menuOpen = true" />
+        <AppIconButton icon="pi pi-bars" class="lg:hidden" :aria-label="t('common.menu')" @click="menuOpen = true" />
         <div class="flex-1" />
         <TimerWidget />
         <Select
@@ -153,11 +153,15 @@ async function logout() {
           :options="locales"
           option-label="label"
           option-value="value"
-          class="w-28"
+          :aria-label="t('common.language')"
           size="small"
-        />
+        >
+          <template #value="{ value }">
+            <span class="inline-flex items-center gap-1.5"><i class="pi pi-globe text-xs" />{{ String(value).toUpperCase() }}</span>
+          </template>
+        </Select>
         <AppIconButton :icon="dark ? 'pi pi-sun' : 'pi pi-moon'" :aria-label="t('common.toggleTheme')" @click="toggleDark" />
-        <Button icon="pi pi-sign-out" text :label="t('auth.logout')" class="hidden sm:inline-flex" @click="logout" />
+        <Button icon="pi pi-sign-out" text severity="secondary" :label="t('auth.logout')" class="hidden sm:inline-flex" @click="logout" />
         <AppIconButton icon="pi pi-sign-out" class="sm:hidden" :aria-label="t('auth.logout')" @click="logout" />
       </header>
       <main class="flex-1 overflow-y-auto p-4 lg:p-6">

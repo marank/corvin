@@ -9,6 +9,8 @@ import AppNumberDisplay from '../components/ui/AppNumberDisplay.vue'
 import AppDurationDisplay from '../components/ui/AppDurationDisplay.vue'
 import ContractUsageBar from '../components/ContractUsageBar.vue'
 import { statsApi } from '../api'
+import { useNotify } from '../composables/useNotify'
+import { brandColors, chartPalette } from '../theme/brand'
 
 interface DashboardStats {
   revenue_by_month: { month: string; total: number }[]
@@ -23,6 +25,7 @@ interface DashboardStats {
 }
 
 const { t, locale } = useI18n()
+const notify = useNotify()
 const stats = ref<DashboardStats | null>(null)
 // Chart.js can't read CSS variables, so re-read the theme colors when dark mode toggles.
 const isDark = ref(document.documentElement.classList.contains('dark'))
@@ -31,18 +34,22 @@ const themeObserver = new MutationObserver(() => {
 })
 onMounted(async () => {
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-  stats.value = (await statsApi.dashboard()) as unknown as DashboardStats
+  try {
+    stats.value = (await statsApi.dashboard()) as unknown as DashboardStats
+  } catch (e) {
+    notify.error(e)
+  }
 })
 onUnmounted(() => themeObserver.disconnect())
 
 const revenueChart = computed(() => stats.value && {
   labels: stats.value.revenue_by_month.map((r) =>
     new Date(r.month).toLocaleDateString(locale.value, { month: 'short', year: 'numeric' })),
-  datasets: [{ label: t('dashboard.revenue'), data: stats.value.revenue_by_month.map((r) => r.total), backgroundColor: '#2563eb' }],
+  datasets: [{ label: t('dashboard.revenue'), data: stats.value.revenue_by_month.map((r) => r.total), backgroundColor: brandColors.blue }],
 })
 const hoursChart = computed(() => stats.value && {
   labels: stats.value.hours_by_customer.map((r) => r.customer__name ?? t('dashboard.noCustomer')),
-  datasets: [{ data: stats.value.hours_by_customer.map((r) => r.hours), backgroundColor: ['#2563eb', '#16a34a', '#ea580c', '#9333ea', '#0d9488', '#dc2626', '#ca8a04', '#4f46e5'] }],
+  datasets: [{ data: stats.value.hours_by_customer.map((r) => r.hours), backgroundColor: chartPalette }],
 })
 
 const textColor = computed(() => (isDark.value ? '#a1a1aa' : '#52525b'))

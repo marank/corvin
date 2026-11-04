@@ -229,6 +229,7 @@ export interface TextBlock {
 export interface DocumentTemplate {
   id: string
   name: string
+  created_at: string
   page_size: string
   margin_top: number
   margin_right: number

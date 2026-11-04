@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useLoadFailed } from '../../composables/useLoadFailed'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import Tabs from 'primevue/tabs'
@@ -14,6 +15,7 @@ import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
+import AppLoadState from '../../components/ui/AppLoadState.vue'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppCheckboxField from '../../components/ui/AppCheckboxField.vue'
@@ -23,6 +25,7 @@ import AppDateInput from '../../components/ui/AppDateInput.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
 import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
+import RelatedOverview from '../../components/RelatedOverview.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
 import {
   addressesApi, bankAccountsApi, contactsApi, customersApi, ratesApi,
@@ -30,6 +33,7 @@ import {
 } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
+import { useUnsavedChanges } from '../../composables/useUnsavedChanges'
 import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
@@ -45,8 +49,10 @@ const addresses = ref<Address[]>([])
 const rates = ref<HourlyRate[]>([])
 const bankAccounts = ref<BankAccount[]>([])
 const saving = ref(false)
+const tab = ref('overview')
 
 const form = ref<Partial<Customer>>({})
+const { markSaved } = useUnsavedChanges(form)
 const contactModal = ref<InstanceType<typeof AppModal>>()
 const rateModal = ref<InstanceType<typeof AppModal>>()
 const addressModal = ref<InstanceType<typeof AppModal>>()
@@ -65,17 +71,19 @@ const subtitle = computed(() => {
 async function load() {
   customer.value = await customersApi.get(id)
   form.value = { ...customer.value }
+  markSaved()
   contacts.value = (await contactsApi.list(id)).results
   addresses.value = (await addressesApi.list(id)).results
   rates.value = (await ratesApi.list(`customer=${id}&page_size=500`)).results
   bankAccounts.value = (await bankAccountsApi.list()).results.filter((account) => account.is_active)
 }
-onMounted(load)
+const loadFailed = useLoadFailed(load)
 
 async function saveCustomer() {
   saving.value = true
   try {
     customer.value = await customersApi.update(id, form.value)
+    markSaved()
     notify.ok(t('common.saved'))
   } catch (e) {
     notify.error(e)
@@ -100,6 +108,7 @@ async function saveContact() {
       await contactsApi.create({ ...contactForm.value, customer: id })
     }
     contactModal.value?.close()
+    notify.ok(t('common.saved'))
     contactForm.value = { is_invoice_contact: false }
     contacts.value = (await contactsApi.list(id)).results
   } catch (e) {
@@ -130,6 +139,7 @@ async function saveAddress() {
       await addressesApi.create({ ...addressForm.value, customer: id })
     }
     addressModal.value?.close()
+    notify.ok(t('common.saved'))
     addressForm.value = { country: 'Deutschland', is_primary: false, is_invoice_address: false, is_delivery_address: false }
     editingAddress.value = null
     load()
@@ -168,6 +178,7 @@ async function saveRate() {
       await ratesApi.create({ ...rateForm.value, customer: id })
     }
     rateModal.value?.close()
+    notify.ok(t('common.saved'))
     rateForm.value = { amount: 0, valid_from: '', valid_to: null }
     editingRate.value = null
     rates.value = (await ratesApi.list(`customer=${id}&page_size=500`)).results
@@ -179,22 +190,27 @@ async function saveRate() {
 
 <template>
   <div v-if="customer">
-    <AppPageHeader :title="customer.name" :subtitle="subtitle">
+    <AppPageHeader back-to="/customers" :back-label="t('nav.customers')" :title="customer.name" :subtitle="subtitle">
       <template #actions>
         <Button :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await customersApi.remove(id); router.push('/customers') })" />
-        <Button :label="t('common.save')" :loading="saving" @click="saveCustomer" />
+        <Button v-if="tab === 'overview'" :label="t('overview.createInvoice')" icon="pi pi-file" @click="router.push(`/invoices/new?customer=${id}`)" />
+        <Button v-if="tab === 'details'" :label="t('common.save')" :loading="saving" @click="saveCustomer" />
       </template>
     </AppPageHeader>
 
-    <Tabs value="details">
+    <Tabs v-model:value="tab">
       <TabList>
-        <Tab value="details">{{ t('settings.profile') }}</Tab>
+        <Tab value="overview">{{ t('overview.title') }}</Tab>
+        <Tab value="details">{{ t('overview.masterData') }}</Tab>
         <Tab value="contacts">{{ t('customers.contacts') }}</Tab>
         <Tab value="addresses">{{ t('customers.addresses') }}</Tab>
         <Tab value="rates">{{ t('customers.rates') }}</Tab>
         <Tab value="attachments">{{ t('customers.attachments') }}</Tab>
       </TabList>
       <TabPanels>
+        <TabPanel value="overview">
+          <RelatedOverview scope="customer" :id="id" class="pt-4" />
+        </TabPanel>
         <TabPanel value="details">
           <div class="flex flex-col gap-6 max-w-3xl pt-4">
             <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
@@ -236,7 +252,7 @@ async function saveRate() {
         </TabPanel>
         <TabPanel value="contacts">
           <div class="flex justify-end pt-4 mb-2">
-            <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openContact()" />
+            <Button :label="t('customers.newContact')" icon="pi pi-plus" size="small" @click="openContact()" />
           </div>
           <AppDataTable :rows="contacts" :state-key="tableStateKeys.customerContacts" @row-click="openContact">
             <Column field="first_name" :header="t('customers.firstName')" sortable />
@@ -257,7 +273,7 @@ async function saveRate() {
         </TabPanel>
         <TabPanel value="addresses">
           <div class="flex justify-end pt-4 mb-2">
-            <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openAddress()" />
+            <Button :label="t('customers.newAddress')" icon="pi pi-plus" size="small" @click="openAddress()" />
           </div>
           <AppDataTable :rows="addresses" :state-key="tableStateKeys.customerAddresses">
             <Column field="label" :header="t('customers.addressLabel')" sortable />
@@ -285,7 +301,7 @@ async function saveRate() {
         </TabPanel>
         <TabPanel value="rates">
           <div class="flex justify-end pt-4 mb-2">
-            <Button :label="t('common.new')" icon="pi pi-plus" size="small" @click="openRate()" />
+            <Button :label="t('customers.newRate')" icon="pi pi-plus" size="small" @click="openRate()" />
           </div>
           <AppDataTable :rows="rates" :state-key="tableStateKeys.customerRates">
             <Column field="valid_from" :header="t('customers.validFrom')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.valid_from" /></template></Column>
@@ -309,7 +325,7 @@ async function saveRate() {
       </TabPanels>
     </Tabs>
 
-    <AppModal ref="contactModal" :title="editingContact ? t('customers.editContact') : t('customers.newContact')" @confirm="saveContact">
+    <AppModal ref="contactModal" :form="contactForm" :title="editingContact ? t('customers.editContact') : t('customers.newContact')" @confirm="saveContact">
       <div class="flex flex-col gap-4">
         <div class="grid grid-cols-2 gap-3">
           <AppFormField field="first_name" :label="t('customers.firstName')" required><InputText v-model="contactForm.first_name" class="w-full" /></AppFormField>
@@ -322,7 +338,7 @@ async function saveRate() {
       </div>
     </AppModal>
 
-    <AppModal ref="addressModal" :title="editingAddress ? t('customers.editAddress') : t('customers.newAddress')" @confirm="saveAddress">
+    <AppModal ref="addressModal" :form="addressForm" :title="editingAddress ? t('customers.editAddress') : t('customers.newAddress')" @confirm="saveAddress">
       <div class="flex flex-col gap-4">
         <AppFormField field="label" :label="t('customers.addressLabel')"><InputText v-model="addressForm.label" class="w-full" /></AppFormField>
         <AppFormField field="street" :label="t('customers.street')"><InputText v-model="addressForm.street" class="w-full" /></AppFormField>
@@ -339,7 +355,7 @@ async function saveRate() {
       </div>
     </AppModal>
 
-    <AppModal ref="rateModal" :title="editingRate ? t('customers.editRate') : t('customers.newRate')" @confirm="saveRate">
+    <AppModal ref="rateModal" :form="rateForm" :title="editingRate ? t('customers.editRate') : t('customers.newRate')" @confirm="saveRate">
       <div class="flex flex-col gap-4">
         <AppFormField field="amount" :label="t('customers.hourlyRate')" required><InputNumber v-model="rateForm.amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
         <AppFormField field="valid_from" :label="t('customers.validFrom')" required><AppDateInput v-model="(rateForm.valid_from as any)" /></AppFormField>
@@ -347,4 +363,5 @@ async function saveRate() {
       </div>
     </AppModal>
   </div>
+  <AppLoadState v-else :failed="loadFailed" back-to="/customers" :back-label="t('nav.customers')" />
 </template>
