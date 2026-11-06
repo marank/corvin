@@ -215,7 +215,8 @@ async function importTemplate(event: Event) {
                 <a :href="templatesApi.exportUrl(data.id)" download @click.stop>
                   <AppIconButton icon="pi pi-download" :aria-label="t('designer.exportTemplate')" />
                 </a>
-                <AppIconButton icon="pi pi-trash" severity="danger" @click.stop="removeTemplate(data)" />
+                <!-- At least one template has to stay; the backend refuses deleting the last one. -->
+                <AppIconButton v-if="rows.length > 1" icon="pi pi-trash" severity="danger" @click.stop="removeTemplate(data)" />
               </template>
             </Column>
           </AppDataTable>

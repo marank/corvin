@@ -8,6 +8,7 @@ from django.utils.translation import override
 from django.views.decorators.clickjacking import xframe_options_exempt
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from core.models import DocumentTemplate
@@ -30,6 +31,13 @@ class DocumentTemplateViewSet(OwnedViewSet):
         return super().list(request, *args, **kwargs)
 
     def perform_destroy(self, instance):
+        # The list would recreate the default right away, so the delete would seem to fail.
+        if (
+            not DocumentTemplate.objects.filter(owner=instance.owner)
+            .exclude(pk=instance.pk)
+            .exists()
+        ):
+            raise ValidationError(_("The last template cannot be deleted."))
         forget_template_assignments(instance)
         super().perform_destroy(instance)
 

@@ -1,6 +1,7 @@
 from io import BytesIO
 
 import pytest
+from django.contrib.auth.models import User
 from django.utils import timezone
 from pypdf import PdfReader
 from rest_framework.test import APIClient
@@ -225,6 +226,19 @@ def test_deleting_a_template_drops_its_assignments(user, invoice_template):
 
     user.company_settings.refresh_from_db()
     assert user.company_settings.template_assignments == {"quote": str(other.pk)}
+
+
+@pytest.mark.django_db
+def test_the_last_template_cannot_be_deleted(user, invoice_template):
+    # Otherwise the next list call recreates the default and the delete seems to fail.
+    DocumentTemplate.objects.create(owner=User.objects.create_user("bob"), name="Bobs")
+    client = APIClient()
+    client.force_authenticate(user)
+
+    r = client.delete(f"/api/v1/document-templates/{invoice_template.id}/")
+
+    assert r.status_code == 400
+    assert DocumentTemplate.objects.filter(pk=invoice_template.pk).exists()
 
 
 @pytest.mark.django_db
