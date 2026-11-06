@@ -210,7 +210,7 @@ async function create() {
       <AppFormField :label="t('projects.customer')" required><CustomerSelect v-model="customerId" /></AppFormField>
       <AppFormField :label="t('projects.project')"><ProjectSelect v-model="projectId" :customer-id="customerId" /></AppFormField>
       <AppFormField :label="t('invoices.contacts')">
-        <MultiSelect v-model="contactIds" :options="availableContacts" option-label="name" option-value="id" display="chip" class="w-full" />
+        <MultiSelect v-model="contactIds" :show-toggle-all="false" :options="availableContacts" option-label="name" option-value="id" display="chip" class="w-full" />
       </AppFormField>
       <div class="grid grid-cols-2 gap-3">
         <AppFormField :label="t('invoices.dateFrom')"><AppDateInput v-model="dateFrom" /></AppFormField>

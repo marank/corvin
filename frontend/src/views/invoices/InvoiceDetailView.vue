@@ -323,7 +323,7 @@ async function addPayment() {
           </AppFormField>
         </div>
         <AppFormField field="contact_ids" :label="t('invoices.contacts')">
-          <MultiSelect v-model="headerForm.contact_ids" :options="customerContacts" option-label="name" option-value="id" display="chip" class="w-full" />
+          <MultiSelect v-model="headerForm.contact_ids" :show-toggle-all="false" :options="customerContacts" option-label="name" option-value="id" display="chip" class="w-full" />
         </AppFormField>
         <AppFormField field="notes" :label="t('common.notes')"><Textarea v-model="headerForm.notes" rows="3" class="w-full" /></AppFormField>
       </div>

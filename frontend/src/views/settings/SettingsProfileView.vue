@@ -439,7 +439,7 @@ async function save() {
                 <div class="font-medium lg:self-center">{{ t(`settings.entities.${entity}`) }}</div>
                 <AppFormField :label="t('settings.numberFormat')" class="lg:[&>label]:hidden"><InputText v-model="schemes[entity].format" class="w-full font-mono" /></AppFormField>
                 <AppFormField :label="t('settings.numberScope')" class="lg:[&>label]:hidden">
-                  <MultiSelect v-model="schemes[entity].scope" :options="scopes" option-label="label" option-value="value" class="w-full" display="chip" :placeholder="t('settings.scopes.global')" />
+                  <MultiSelect v-model="schemes[entity].scope" :show-toggle-all="false" :options="scopes" option-label="label" option-value="value" class="w-full" display="chip" :placeholder="t('settings.scopes.global')" />
                 </AppFormField>
                 <AppFormField :label="t('settings.numberStart')" class="lg:[&>label]:hidden"><InputNumber v-model="schemes[entity].start" :min="1" fluid /></AppFormField>
                 <div class="font-mono text-sm bg-surface-100 dark:bg-surface-800 px-3 py-2 min-h-10 break-all">{{ previews[entity] || '—' }}</div>
