@@ -19,6 +19,7 @@ import {
   type TimeEntry,
 } from '../api'
 import { useNotify } from '../composables/useNotify'
+import { formatDuration, parseDuration } from '../dateTimeInput'
 
 const props = defineProps<{ entry?: TimeEntry | null }>()
 const emit = defineEmits<{ saved: [entry: TimeEntry] }>()
@@ -47,19 +48,7 @@ const saving = ref(false)
 const contracts = ref<SupportContract[]>([])
 const updating = ref(false)
 const durationText = ref('00:00')
-
-function formatDuration(minutes: number): string {
-  const m = Math.max(0, minutes)
-  const h = Math.floor(m / 60)
-  const min = m % 60
-  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`
-}
-
-function parseDuration(value: string): number {
-  const parts = value.split(':').map((p) => parseInt(p, 10))
-  if (parts.length !== 2 || parts.some(isNaN)) return 0
-  return Math.max(0, parts[0] * 60 + parts[1])
-}
+const durationInvalid = ref(false)
 
 function breakMinutes(): number {
   let total = 0
@@ -91,9 +80,13 @@ function recalcDurationFromTimes() {
   nextTick(() => { updating.value = false })
 }
 
-function onDurationInput(value: string) {
-  durationText.value = value
-  form.value.duration_minutes = parseDuration(value)
+// Read on Enter or when leaving the field: "3" is 3 h, "3,5" 3:30, also "3:30", "90m", "1h30".
+function commitDuration() {
+  const minutes = parseDuration(durationText.value)
+  durationInvalid.value = minutes === null
+  if (minutes === null) return
+  durationText.value = formatDuration(minutes)
+  form.value.duration_minutes = minutes
 }
 
 watch(() => form.value.start_datetime, recalcDurationFromTimes)
@@ -198,7 +191,10 @@ defineExpose({ save, saving, state })
       <AppFormField field="start_datetime" class="sm:col-span-2" :label="t('time.start')" required><AppDateTimeInput v-model="form.start_datetime" /></AppFormField>
       <AppFormField field="end_datetime" class="sm:col-span-2" :label="t('time.end')"><AppDateTimeInput v-model="form.end_datetime" /></AppFormField>
       <AppFormField :label="t('time.duration')">
-        <InputText :value="durationText" class="w-full" @input="onDurationInput(($event.target as HTMLInputElement).value)" />
+        <InputText
+          v-model="durationText" class="w-full" :invalid="durationInvalid" :placeholder="t('time.durationPlaceholder')"
+          @blur="commitDuration" @keydown.enter.prevent="commitDuration"
+        />
       </AppFormField>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
