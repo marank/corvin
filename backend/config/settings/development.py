@@ -18,11 +18,16 @@ if sys.platform == "win32":
             os.add_dll_directory(_dll_dir)
             break
 
-# Dev frontend runs on vite :5173 and proxies /api — same origin,
-# so CSRF/CORS stay simple. Trusted origins anyway for flexibility.
-# Vite proxy rewrites Origin to the backend host (see vite.config.ts);
-# Django compares the port too, so list it explicitly.
-CSRF_TRUSTED_ORIGINS = env(
-    "CSRF_TRUSTED_ORIGINS",
-    default=["http://localhost:8000", "http://127.0.0.1:8000"],
-)
+# Fixed key while .env still has the placeholder; production refuses to start with it.
+if SECRET_KEY == "change-me":  # noqa: F405
+    SECRET_KEY = "django-insecure-dev-key-only-for-runserver"
+
+# runserver and Vite on localhost besides whatever APP_URLS lists (e.g. the Docker
+# stack). The Vite proxy rewrites Origin to the backend host (see vite.config.ts);
+# Django compares the port too, so :8000 is listed explicitly.
+ALLOWED_HOSTS = [*ALLOWED_HOSTS, "localhost", "127.0.0.1"]  # noqa: F405
+CSRF_TRUSTED_ORIGINS = [  # noqa: F405
+    *CSRF_TRUSTED_ORIGINS,  # noqa: F405
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]

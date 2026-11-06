@@ -17,13 +17,13 @@ Name **Corvin**, from Latin *corvus*, the raven: Odin's ravens Hugin and Munin s
 
 Prerequisites: [uv](https://docs.astral.sh/uv/), Node 26 LTS with corepack (`npm install -g corepack`; the pnpm version comes from `package.json`), Docker for production.
 
-1. `scripts/setup-windows-dev.ps1` — one-time: installs MSYS2 + Pango (WeasyPrint native deps). Custom path? Set `MSYS2_BIN_DIR` in `backend/.env`.
+1. `scripts/setup-windows-dev.ps1` — one-time: installs MSYS2 + Pango (WeasyPrint native deps). Custom path? Set `MSYS2_BIN_DIR` in `.env`.
 2. Backend:
    ```powershell
    cd backend
    uv sync
    uv run python manage.py migrate
-   uv run python manage.py createsuperuser   # or use /api/v1/auth/register
+   uv run python manage.py createsuperuser   # or ensure_admin with ADMIN_* from .env
    uv run python manage.py runserver
    ```
 3. Frontend:
@@ -38,23 +38,22 @@ Dev uses SQLite + console email backend. PDFs work once Pango is installed (`uv 
 ## Production (Linux, Docker Compose)
 
 ```bash
-cp .env.example .env   # every variable is explained there; set at least SECRET_KEY,
-                       # ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS, POSTGRES_PASSWORD, TRUSTED_PROXIES, SMTP
-docker compose up -d --build
-docker compose exec backend python manage.py createsuperuser
+cp .env.example .env   # every variable is explained there; set at least APP_URLS,
+                       # SECRET_KEY, DB_PASSWORD, ADMIN_PASSWORD, TRUSTED_PROXIES, SMTP
+docker compose up -d --build   # creates the ADMIN_USERNAME account on first start
 ```
 
 | Service | Purpose |
 |---|---|
 | `db` | PostgreSQL 18 |
 | `backend` | gunicorn/Django, healthcheck on `/api/v1/health` |
-| `frontend` | nginx on `HTTP_PORT` (default 80): SPA + `/api` proxy, login rate limit |
+| `frontend` | nginx on `APP_PORT` (default 80): SPA + `/api` proxy, login rate limit |
 
 Backend, scheduler and frontend run as unprivileged users without capabilities on a read-only root filesystem; writable are only their volumes and `/tmp`.
 | `scheduler` | runs `process_recurring` daily at `RECURRING_TIME` (draft invoices for due support contracts; safe to run twice) |
 | `backup` | nightly database dump + uploads tarball at `BACKUP_TIME` |
 
-**TLS.** Put a TLS proxy (Caddy, Traefik, …) in front of `frontend` and list its address in `TRUSTED_PROXIES`. Only then does nginx take over the proxy's `X-Forwarded-For`/`-Proto`. Without it, Django sees every request as plain http and redirects it to https in a loop, and all users share one login rate limit. Uploaded files are only served to their owner through the API (`/api/v1/attachments/<id>/file/`, `/api/v1/company-images/<id>/file/`); there is no public `/media/`.
+**TLS.** Put a TLS proxy (Caddy, Traefik, …) in front of `frontend` and list its address in `TRUSTED_PROXIES`. Only then does nginx take over the proxy's `X-Forwarded-For`/`-Proto`. With https `APP_URLS` but without it, Django sees every request as plain http and redirects it to https in a loop, and all users share one login rate limit. Uploaded files are only served to their owner through the API (`/api/v1/attachments/<id>/file/`, `/api/v1/company-images/<id>/file/`); there is no public `/media/`.
 
 ### Backups
 

@@ -34,4 +34,5 @@ USER app
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD ["python", "scripts/healthcheck.py"]
-CMD ["sh", "-c", "python manage.py migrate --settings=config.settings.production && exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"]
+# Migrations, first administrator, gunicorn; or the command given (scheduler).
+ENTRYPOINT ["sh", "scripts/entrypoint.sh"]

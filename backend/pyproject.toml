@@ -48,7 +48,7 @@ ignore = ["E501"]
 extend_exclude = [".*/tests/.*"]
 
 [tool.deptry.per_rule_ignores]
-# Used at runtime but never imported: DB driver (DATABASE_URL), WSGI server and
+# Used at runtime but never imported: DB driver (DB_TYPE=postgres), WSGI server and
 # Pillow (needed by ImageField).
 DEP002 = ["psycopg", "gunicorn", "pillow"]
 
@@ -60,4 +60,4 @@ omit = ["*/migrations/*", "config/asgi.py", "config/wsgi.py", "manage.py"]
 skip_covered = true
 show_missing = true
 # Current level; raise it as tests are added, never lower it.
-fail_under = 91
+fail_under = 92

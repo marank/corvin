@@ -1,4 +1,5 @@
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import environ
 from django.utils.csp import CSP
@@ -6,19 +7,27 @@ from django.utils.csp import CSP
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 env = environ.Env(
-    DEBUG=(bool, False),
-    SECRET_KEY=(str, "django-insecure-dev-key-change-me"),
-    ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
-    DATABASE_URL=(str, f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
-    REGISTRATION_OPEN=(bool, True),
+    SECRET_KEY=(str, "change-me"),
+    APP_URLS=(list, []),
+    REGISTRATION_ENABLED=(bool, False),
     TIME_ZONE=(str, "Europe/Berlin"),
+    LANGUAGE_CODE=(str, "de"),
+    LOG_LEVEL=(str, "INFO"),
 )
-environ.Env.read_env(BASE_DIR / ".env")
+# One .env in the repository root, for native development and docker compose alike.
+# Values already in the environment (docker compose, CI) win.
+environ.Env.read_env(BASE_DIR.parent / ".env")
 
 SECRET_KEY = env("SECRET_KEY")
-DEBUG = env("DEBUG")
-ALLOWED_HOSTS = env("ALLOWED_HOSTS")
-REGISTRATION_OPEN = env("REGISTRATION_OPEN")
+DEBUG = False  # development.py turns it on
+REGISTRATION_ENABLED = env("REGISTRATION_ENABLED")
+
+# Every URL users open the app under. Hosts, CSRF origins and (production) the
+# https-only cookies, redirect and HSTS are derived from it.
+APP_URLS = [url.rstrip("/") for url in env("APP_URLS")]
+ALLOWED_HOSTS = [urlsplit(url).hostname for url in APP_URLS if urlsplit(url).hostname]
+CSRF_TRUSTED_ORIGINS = [f"{urlsplit(url).scheme}://{urlsplit(url).netloc}" for url in APP_URLS]
+APP_HTTPS_ONLY = bool(APP_URLS) and all(urlsplit(url).scheme == "https" for url in APP_URLS)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -68,7 +77,22 @@ TEMPLATES = [
     },
 ]
 
-DATABASES = {"default": env.db_url("DATABASE_URL")}
+# sqlite (backend/db.sqlite3) or postgres. docker compose sets DB_TYPE=postgres and DB_HOST=db.
+if env("DB_TYPE", default="sqlite") == "postgres":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": env("DB_NAME", default="corvin"),
+            "USER": env("DB_USER", default="corvin"),
+            "PASSWORD": env("DB_PASSWORD", default=""),
+            "HOST": env("DB_HOST", default="localhost"),
+            "PORT": env.int("DB_PORT", default=5432),
+        }
+    }
+else:
+    DATABASES = {
+        "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}
+    }
 
 # Argon2 first (Django's recommendation); the others stay so existing hashes keep
 # working and get upgraded on the next login.
@@ -93,7 +117,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Name authenticator apps show next to the TOTP code.
 OTP_TOTP_ISSUER = "Corvin"
 
-LANGUAGE_CODE = "de"
+LANGUAGE_CODE = env("LANGUAGE_CODE")
 # API messages follow the UI language (Accept-Language); documents stay in LANGUAGE_CODE.
 LANGUAGES = [("de", "Deutsch"), ("en", "English")]
 TIME_ZONE = env("TIME_ZONE")
@@ -153,11 +177,18 @@ MAILERS = {
         ),
         "OPTIONS": {
             "host": env("EMAIL_HOST", default="localhost"),
-            "port": env.int("EMAIL_PORT", default=25),
-            "username": env("EMAIL_HOST_USER", default=""),
-            "password": env("EMAIL_HOST_PASSWORD", default=""),
-            "use_tls": env.bool("EMAIL_USE_TLS", default=False),
+            "port": env.int("EMAIL_PORT", default=587),
+            "username": env("EMAIL_USER", default=""),
+            "password": env("EMAIL_PASSWORD", default=""),
+            "use_tls": env.bool("EMAIL_USE_TLS", default=True),
         },
     }
 }
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@example.com")
+DEFAULT_FROM_EMAIL = env("EMAIL_FROM", default="noreply@example.com")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": env("LOG_LEVEL").upper()},
+}

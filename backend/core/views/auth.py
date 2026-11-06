@@ -105,7 +105,7 @@ class RegisterView(APIView):
     throttle_classes = [LoginThrottle]
 
     def post(self, request):
-        if not django_settings.REGISTRATION_OPEN:
+        if not django_settings.REGISTRATION_ENABLED:
             return Response(
                 {"detail": _("Registration is disabled.")},
                 status=status.HTTP_403_FORBIDDEN,

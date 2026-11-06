@@ -56,8 +56,7 @@
         "env": {
           "DJANGO_SETTINGS_MODULE": "config.settings.production",
           "SECRET_KEY": "local-deploy-check-not-secret-but-long-and-random-enough-0123456789abcdef",
-          "ALLOWED_HOSTS": "app.example.com",
-          "CSRF_TRUSTED_ORIGINS": "https://app.example.com"
+          "APP_URLS": "https://app.example.com"
         }
       },
       "hide": true,
