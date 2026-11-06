@@ -296,11 +296,11 @@ async function save() {
               <div class="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-4 max-w-2xl">
                 <AppFormField field="name" :label="t('designer.templateName')" class="col-span-full"><InputText v-model="template.name" class="w-full" /></AppFormField>
                 <AppFormField field="page_size" :label="t('designer.pageSize')" class="col-span-full"><Select v-model="template.page_size" :options="pageSizes" option-label="label" option-value="value" class="w-full" /></AppFormField>
-                <AppFormField field="margin_top" :label="t('designer.marginTop')"><InputNumber v-model="template.margin_top" :min="0" class="w-full" /></AppFormField>
-                <AppFormField field="margin_right" :label="t('designer.marginRight')"><InputNumber v-model="template.margin_right" :min="0" class="w-full" /></AppFormField>
-                <AppFormField field="margin_bottom" :label="t('designer.marginBottom')"><InputNumber v-model="template.margin_bottom" :min="0" class="w-full" /></AppFormField>
-                <AppFormField field="margin_left" :label="t('designer.marginLeft')"><InputNumber v-model="template.margin_left" :min="0" class="w-full" /></AppFormField>
-                <AppFormField field="font_size" :label="t('designer.fontSize')"><InputNumber v-model="template.font_size" :min="1" :max-fraction-digits="2" class="w-full" /></AppFormField>
+                <AppFormField field="margin_top" :label="t('designer.marginTop')"><InputNumber v-model="template.margin_top" :min="0" fluid /></AppFormField>
+                <AppFormField field="margin_right" :label="t('designer.marginRight')"><InputNumber v-model="template.margin_right" :min="0" fluid /></AppFormField>
+                <AppFormField field="margin_bottom" :label="t('designer.marginBottom')"><InputNumber v-model="template.margin_bottom" :min="0" fluid /></AppFormField>
+                <AppFormField field="margin_left" :label="t('designer.marginLeft')"><InputNumber v-model="template.margin_left" :min="0" fluid /></AppFormField>
+                <AppFormField field="font_size" :label="t('designer.fontSize')"><InputNumber v-model="template.font_size" :min="1" :max-fraction-digits="2" fluid /></AppFormField>
                 <AppFormField field="primary_font" :label="t('designer.primaryFont')"><InputText v-model="template.primary_font" class="w-full" /></AppFormField>
                 <AppFormField field="secondary_font" :label="t('designer.secondaryFont')"><InputText v-model="template.secondary_font" class="w-full" /></AppFormField>
                 <AppFormField v-for="field in colorFields" :key="field" :field="field" :label="t(`designer.${field}`)">
