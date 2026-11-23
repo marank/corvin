@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import override
 
+from core.jobs import defer
 from core.models import Invoice
 
 from .archiving import archive_invoice
@@ -27,12 +28,31 @@ def render_invoice_email(invoice: Invoice, subject: str = "", body: str = "") ->
     return Template(subject).render(context), Template(body).render(context)
 
 
-def send_invoice_email(invoice: Invoice, to: str, subject: str, body: str) -> None:
-    """Send the invoice PDF (or archived copy) by email."""
-    subject, body = render_invoice_email(invoice, subject, body)
+def queue_invoice_email(invoice: Invoice, to: str, subject: str, body: str) -> None:
+    """Send the invoice by email in the background (job ``send_invoice_email``).
 
-    doc = invoice.documents.filter(kind="pdf").first()
-    pdf_bytes = doc.file.read() if doc else archive_invoice(invoice)[0].file.read()
+    Subject and body are rendered now, so the job sends exactly what the user confirmed;
+    the PDF is archived now if it isn't yet, so errors show up in the request. The invoice
+    becomes "sent" once the mail is out.
+    """
+    subject, body = render_invoice_email(invoice, subject, body)
+    if not invoice.documents.filter(kind="pdf").exists():
+        archive_invoice(invoice)
+    defer(
+        "core.tasks.send_invoice_email",
+        invoice_id=str(invoice.id),
+        to=to,
+        subject=subject,
+        body=body,
+    )
+
+
+def send_invoice_email(invoice_id: str, to: str, subject: str, body: str) -> None:
+    """Send the archived invoice PDF by email and mark the invoice as sent."""
+    invoice = Invoice.objects.get(pk=invoice_id)
+    doc = invoice.documents.get(kind="pdf")
+    with doc.file.open("rb") as file:
+        pdf_bytes = file.read()
 
     mail = EmailMessage(
         subject=subject,
