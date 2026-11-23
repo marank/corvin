@@ -19,10 +19,18 @@ const over = computed(() => props.usage.used_hours > props.usage.included_hours)
 <template>
   <div>
     <div class="flex justify-between text-sm mb-1">
-      <span>{{ t('contracts.used') }}: <AppDurationDisplay :minutes="usage.used_hours * 60" /></span>
-      <span>{{ t('contracts.included') }}: <AppDurationDisplay :minutes="usage.included_hours * 60" /></span>
+      <span
+        >{{ t('contracts.used') }}: <AppDurationDisplay :minutes="usage.used_hours * 60"
+      /></span>
+      <span
+        >{{ t('contracts.included') }}: <AppDurationDisplay :minutes="usage.included_hours * 60"
+      /></span>
     </div>
-    <ProgressBar :value="pct" :show-value="false" :pt="{ value: { class: over ? 'bg-danger' : '' } }" />
+    <ProgressBar
+      :value="pct"
+      :show-value="false"
+      :pt="{ value: { class: over ? 'bg-danger' : '' } }"
+    />
     <p v-if="over" class="text-sm text-danger mt-1">
       {{ t('contracts.overage') }}: <AppDurationDisplay :minutes="usage.overage_hours * 60" />
     </p>

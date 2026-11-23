@@ -14,7 +14,11 @@ const { t } = useI18n()
 const timer = useTimerStore()
 const notify = useNotify()
 const modal = ref<InstanceType<typeof AppModal>>()
-const form = ref({ customer: null as string | null, project: null as string | null, description: '' })
+const form = ref({
+  customer: null as string | null,
+  project: null as string | null,
+  description: '',
+})
 const starting = ref(false)
 
 function open() {
@@ -44,16 +48,28 @@ defineExpose({ open })
 </script>
 
 <template>
-  <AppModal ref="modal" :form="form" :title="t('time.startTimer')" :confirm-label="t('time.startNow')" :loading="starting" @confirm="start">
+  <AppModal
+    ref="modal"
+    :form="form"
+    :title="t('time.startTimer')"
+    :confirm-label="t('time.startNow')"
+    :loading="starting"
+    @confirm="start"
+  >
     <form class="flex flex-col gap-4" @submit.prevent="start">
       <AppFormField field="description" :label="t('time.description')">
+        <!-- eslint-disable-next-line vuejs-accessibility/no-autofocus -- the dialog opens to start a timer; its first field gets the focus. -->
         <InputText v-model="form.description" class="w-full" autofocus />
       </AppFormField>
       <AppFormField field="customer" :label="t('projects.customer')">
         <CustomerSelect v-model="form.customer" />
       </AppFormField>
       <AppFormField field="project" :label="t('projects.project')">
-        <ProjectSelect v-model="form.project" :customer-id="form.customer" @select="onProjectSelect" />
+        <ProjectSelect
+          v-model="form.project"
+          :customer-id="form.customer"
+          @select="onProjectSelect"
+        />
       </AppFormField>
       <p class="text-xs text-surface-500">{{ t('time.startHint') }}</p>
     </form>

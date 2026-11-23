@@ -5,5 +5,11 @@ defineProps<{ amount: number | string | null; currency?: string }>()
 </script>
 
 <template>
-  <AppNumberDisplay :value="amount" mode="currency" :currency="currency" :minimum-fraction-digits="2" :maximum-fraction-digits="2" />
+  <AppNumberDisplay
+    :value="amount"
+    mode="currency"
+    :currency="currency"
+    :minimum-fraction-digits="2"
+    :maximum-fraction-digits="2"
+  />
 </template>

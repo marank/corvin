@@ -2,19 +2,31 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+// `label` is the accessible name (rendered as aria-label), `title` the hover tooltip.
+// With `href` it renders as a link (e.g. a download) styled the same way.
 const props = defineProps<{
   icon: string
-  ariaLabel?: string
+  label?: string
+  title?: string
+  href?: string
+  download?: boolean
   severity?: 'primary' | 'danger' | 'secondary'
 }>()
 
 defineEmits<{ click: [e: MouseEvent] }>()
 
-const el = ref<HTMLButtonElement>()
+const el = ref<HTMLElement>()
 const { t } = useI18n()
 // Most table buttons are bare icons; give the common ones a name for screen readers.
-const label = computed(() => props.ariaLabel
-  ?? (props.icon.includes('pi-trash') ? t('common.delete') : props.icon.includes('pi-pencil') ? t('common.edit') : undefined))
+const accessibleName = computed(
+  () =>
+    props.label ??
+    (props.icon.includes('pi-trash')
+      ? t('common.delete')
+      : props.icon.includes('pi-pencil')
+        ? t('common.edit')
+        : undefined),
+)
 
 function ripple(e: MouseEvent) {
   const btn = el.value
@@ -32,16 +44,25 @@ function ripple(e: MouseEvent) {
 </script>
 
 <template>
-  <button
+  <component
+    :is="href ? 'a' : 'button'"
     ref="el"
-    type="button"
+    :type="href ? undefined : 'button'"
+    :href="href"
+    :download="href && download ? '' : undefined"
     class="icon-btn app-icon-btn"
     :class="severity === 'danger' ? 'icon-btn--danger' : ''"
-    :aria-label="label"
-    @click="(e: MouseEvent) => { ripple(e); $emit('click', e) }"
+    :aria-label="accessibleName"
+    :title="title"
+    @click="
+      (e: MouseEvent) => {
+        ripple(e)
+        $emit('click', e)
+      }
+    "
   >
     <i :class="icon" />
-  </button>
+  </component>
 </template>
 
 <style scoped>
@@ -56,6 +77,7 @@ function ripple(e: MouseEvent) {
     width: 2rem;
     height: 2rem;
     border: none;
+    text-decoration: none;
     border-radius: 4px;
     background: transparent;
     color: var(--p-text-color);

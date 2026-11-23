@@ -8,8 +8,19 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
+    "build-only": "vite build",
     "preview": "vite preview",
-    "check:licenses": "node scripts/check-licenses.mjs"
+    "type-check": "vue-tsc -b",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "check": "pnpm format:check && pnpm lint && pnpm type-check && pnpm test:coverage && pnpm check:duplication",
+    "api:types": "openapi-typescript openapi.json -o src/api/schema.d.ts",
+    "check:licenses": "node scripts/check-licenses.mjs",
+    "check:duplication": "jscpd --config .jscpd.json",
+    "size": "size-limit"
   },
   "dependencies": {
     "@codemirror/lang-css": "6.3.1",
@@ -31,14 +42,44 @@
     "vue-router": "^5.4.0"
   },
   "devDependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
+    "@size-limit/file": "^14.3.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.6",
     "@types/qrcode": "^1.5.6",
     "@vitejs/plugin-vue": "^6.0.10",
+    "@vitest/coverage-v8": "^5.1.1",
+    "@vitest/eslint-plugin": "^1.6.28",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.9.0",
+    "@vue/test-utils": "^2.6.0",
     "@vue/tsconfig": "^0.9.1",
+    "eslint": "^10.15.0",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "eslint-plugin-vue": "^10.12.1",
+    "eslint-plugin-vuejs-accessibility": "^2.6.3",
+    "jiti": "^2.7.0",
+    "jscpd": "^5.4.3",
+    "jsdom": "^31.0.1",
+    "openapi-typescript": "^7.13.0",
+    "prettier": "^3.10.1",
+    "size-limit": "^14.3.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
     "vite": "^8.3.5",
+    "vitest": "^5.1.1",
     "vue-tsc": "^3.3.14"
-  }
+  },
+  "size-limit": [
+    {
+      "name": "JS",
+      "path": "dist/assets/*.js",
+      "limit": "730 kB"
+    },
+    {
+      "name": "CSS",
+      "path": "dist/assets/*.css",
+      "limit": "11 kB"
+    }
+  ]
 }

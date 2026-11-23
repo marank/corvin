@@ -25,8 +25,11 @@ export function clearFormErrors() {
 
 export function errorText(value: unknown): string {
   if (Array.isArray(value)) return value.map(errorText).filter(Boolean).join(', ')
-  if (value && typeof value === 'object') return Object.values(value).map(errorText).filter(Boolean).join(', ')
-  return value == null ? '' : String(value)
+  if (value && typeof value === 'object')
+    return Object.values(value).map(errorText).filter(Boolean).join(', ')
+  if (typeof value === 'string') return value
+  // The rest of a JSON error body: numbers and booleans; null gives no text.
+  return typeof value === 'number' || typeof value === 'boolean' ? String(value) : ''
 }
 
 export function setFormErrors(data: Record<string, unknown>) {

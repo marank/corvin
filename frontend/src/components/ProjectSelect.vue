@@ -12,7 +12,8 @@ async function load() {
   const params = props.customerId ? `customer=${props.customerId}&` : ''
   projects.value = (await projectsApi.list(`${params}page_size=500`)).results
   // A project of another customer can't stay selected once the customer changes.
-  if (model.value && !projects.value.some((project) => project.id === model.value)) model.value = null
+  if (model.value && !projects.value.some((project) => project.id === model.value))
+    model.value = null
 }
 
 function onChange(id: string | null) {
@@ -23,6 +24,7 @@ watch(() => props.customerId, load, { immediate: true })
 </script>
 
 <template>
+  <!-- eslint-disable-next-line vuejs-accessibility/form-control-has-label -- a wrapper: the caller labels it (AppFormField or an aria-label that falls through to the Select). -->
   <Select
     v-model="model"
     :options="projects"

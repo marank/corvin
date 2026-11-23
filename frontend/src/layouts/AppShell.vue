@@ -28,7 +28,9 @@ const navigating = ref(false)
 let navigationTimer: ReturnType<typeof setTimeout> | undefined
 const stopBefore = router.beforeEach(() => {
   clearTimeout(navigationTimer)
-  navigationTimer = setTimeout(() => { navigating.value = true }, 120)
+  navigationTimer = setTimeout(() => {
+    navigating.value = true
+  }, 120)
 })
 const stopAfter = router.afterEach(() => {
   clearTimeout(navigationTimer)
@@ -38,9 +40,17 @@ const stopError = router.onError(() => {
   clearTimeout(navigationTimer)
   navigating.value = false
 })
-onBeforeUnmount(() => { stopBefore(); stopAfter(); stopError() })
+onBeforeUnmount(() => {
+  stopBefore()
+  stopAfter()
+  stopError()
+})
 const accountItems = computed(() => [
-  { label: t('settings.security'), icon: 'pi pi-shield', command: () => router.push('/settings/security') },
+  {
+    label: t('settings.security'),
+    icon: 'pi pi-shield',
+    command: () => router.push('/settings/security'),
+  },
   { separator: true },
   { label: t('auth.logout'), icon: 'pi pi-sign-out', command: logout },
 ])
@@ -63,15 +73,13 @@ const locales = [
   { label: 'English', value: 'en' },
 ]
 
-const activeIndex = computed(() =>
-  items.value.findIndex((item) => isActive(item.to, item.exact))
-)
+const activeIndex = computed(() => items.value.findIndex((item) => isActive(item.to, item.exact)))
 
 async function updateIndicator() {
   await nextTick()
   const nav = sidebarNav.value
   if (!nav) return
-  const activeLink = nav.querySelector('.sidebar-active-item') as HTMLElement | null
+  const activeLink = nav.querySelector<HTMLElement>('.sidebar-active-item')
   if (activeLink) {
     indicatorStyle.value = {
       top: `${activeLink.offsetTop}px`,
@@ -80,10 +88,11 @@ async function updateIndicator() {
   }
 }
 
+const onResize = () => void updateIndicator()
 watch(activeIndex, updateIndicator, { immediate: true })
 onMounted(() => {
-  formatting.load()
-  window.addEventListener('resize', updateIndicator)
+  void formatting.load()
+  window.addEventListener('resize', onResize)
 })
 
 const locale = computed({
@@ -103,19 +112,21 @@ function isActive(to: string, exact?: boolean) {
 
 function navigate(to: string) {
   menuOpen.value = false
-  router.push(to)
+  void router.push(to)
 }
 
 async function logout() {
   await auth.logout()
-  router.push('/login')
+  await router.push('/login')
 }
 </script>
 
 <template>
   <div class="flex h-full">
     <!-- Desktop sidebar (unchanged) -->
-    <aside class="hidden lg:flex w-56 shrink-0 flex-col border-r border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900">
+    <aside
+      class="hidden lg:flex w-56 shrink-0 flex-col border-r border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900"
+    >
       <div class="h-14 flex items-center px-4 border-b border-surface-200 dark:border-surface-800">
         <AppLogo />
       </div>
@@ -129,9 +140,11 @@ async function logout() {
           :key="item.to"
           :to="item.to"
           class="relative flex items-center gap-3 px-4 py-2.5 text-sm"
-          :class="isActive(item.to, item.exact)
-            ? 'sidebar-active-item text-primary font-medium bg-primary/10'
-            : 'text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800'"
+          :class="
+            isActive(item.to, item.exact)
+              ? 'sidebar-active-item text-primary font-medium bg-primary/10'
+              : 'text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800'
+          "
         >
           <i :class="item.icon" />
           <span>{{ item.label }}</span>
@@ -141,13 +154,17 @@ async function logout() {
 
     <!-- Full-screen tile menu (below lg, where the sidebar is hidden) -->
     <Teleport to="body">
-      <div
-        v-if="menuOpen"
-        class="fixed inset-0 z-50 bg-white dark:bg-surface-950 flex flex-col"
-      >
-        <div class="h-14 flex items-center px-4 border-b border-surface-200 dark:border-surface-800">
+      <div v-if="menuOpen" class="fixed inset-0 z-50 bg-white dark:bg-surface-950 flex flex-col">
+        <div
+          class="h-14 flex items-center px-4 border-b border-surface-200 dark:border-surface-800"
+        >
           <AppLogo />
-          <AppIconButton icon="pi pi-times" class="ms-auto" :aria-label="t('common.close')" @click="menuOpen = false" />
+          <AppIconButton
+            icon="pi pi-times"
+            class="ms-auto"
+            :label="t('common.close')"
+            @click="menuOpen = false"
+          />
         </div>
         <div class="flex-1 overflow-y-auto p-4 sm:p-8">
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 max-w-4xl mx-auto">
@@ -155,7 +172,11 @@ async function logout() {
               v-for="item in items"
               :key="item.to"
               class="flex flex-col items-center justify-center gap-3 p-6 min-h-28 border border-surface-200 dark:border-surface-800 hover:border-primary hover:text-primary transition-colors"
-              :class="isActive(item.to, item.exact) ? 'text-primary border-primary' : 'text-surface-600 dark:text-surface-300'"
+              :class="
+                isActive(item.to, item.exact)
+                  ? 'text-primary border-primary'
+                  : 'text-surface-600 dark:text-surface-300'
+              "
               @click="navigate(item.to)"
             >
               <i :class="item.icon" style="font-size: 1.75rem" />
@@ -168,8 +189,15 @@ async function logout() {
 
     <div class="flex-1 flex flex-col min-w-0">
       <!-- Topbar -->
-      <header class="h-14 shrink-0 flex items-center gap-2 px-3 lg:px-5 border-b border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900">
-        <AppIconButton icon="pi pi-bars" class="lg:hidden" :aria-label="t('common.menu')" @click="menuOpen = true" />
+      <header
+        class="h-14 shrink-0 flex items-center gap-2 px-3 lg:px-5 border-b border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900"
+      >
+        <AppIconButton
+          icon="pi pi-bars"
+          class="lg:hidden"
+          :label="t('common.menu')"
+          @click="menuOpen = true"
+        />
         <div class="flex-1" />
         <TimerWidget />
         <Select
@@ -181,10 +209,16 @@ async function logout() {
           size="small"
         >
           <template #value="{ value }">
-            <span class="inline-flex items-center gap-1.5"><i class="pi pi-globe text-xs" />{{ String(value).toUpperCase() }}</span>
+            <span class="inline-flex items-center gap-1.5"
+              ><i class="pi pi-globe text-xs" />{{ String(value).toUpperCase() }}</span
+            >
           </template>
         </Select>
-        <AppIconButton :icon="dark ? 'pi pi-sun' : 'pi pi-moon'" :aria-label="t('common.toggleTheme')" @click="toggleDark" />
+        <AppIconButton
+          :icon="dark ? 'pi pi-sun' : 'pi pi-moon'"
+          :label="t('common.toggleTheme')"
+          @click="toggleDark"
+        />
         <Button
           icon="pi pi-user"
           text

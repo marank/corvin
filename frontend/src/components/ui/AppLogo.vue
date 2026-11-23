@@ -22,7 +22,10 @@ const { t } = useI18n()
         class="fill-purple-500 dark:fill-purple-400"
       />
     </svg>
-    <span class="font-brand font-semibold leading-none" :class="size === 'lg' ? 'text-3xl' : 'text-xl'">
+    <span
+      class="font-brand font-semibold leading-none"
+      :class="size === 'lg' ? 'text-3xl' : 'text-xl'"
+    >
       {{ t('app.title') }}
     </span>
   </span>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isoDate } from '../../dateTimeInput'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -31,7 +32,12 @@ const confirmDelete = useConfirmDelete()
 const rows = ref<Visit[]>([])
 const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
-const form = ref<Partial<Visit>>({ date: new Date().toISOString().slice(0, 10) })
+const form = ref<Partial<Visit>>({ date: isoDate() })
+
+function openNew() {
+  form.value = { date: isoDate() }
+  modal.value?.open()
+}
 const preset = useQueryFilters()
 const names = preset.names
 const search = ref('')
@@ -39,8 +45,10 @@ const filters = ref({ customer: preset.customer, project: preset.project })
 const activeFilters = computed<ActiveFilter[]>(() => {
   const f = filters.value
   const active: ActiveFilter[] = []
-  if (f.customer) active.push({ key: 'customer', label: t('projects.customer'), value: names.value.customer })
-  if (f.project) active.push({ key: 'project', label: t('projects.project'), value: names.value.project })
+  if (f.customer)
+    active.push({ key: 'customer', label: t('projects.customer'), value: names.value.customer })
+  if (f.project)
+    active.push({ key: 'project', label: t('projects.project'), value: names.value.project })
   return active
 })
 const pagination = usePagination(load, '-date')
@@ -69,8 +77,8 @@ async function save() {
     await visitsApi.create(form.value)
     modal.value?.close()
     notify.ok(t('common.created'))
-    form.value = { date: new Date().toISOString().slice(0, 10) }
-    load()
+    form.value = { date: isoDate() }
+    void load()
   } catch (e) {
     notify.error(e)
   } finally {
@@ -83,54 +91,118 @@ async function save() {
   <div>
     <AppPageHeader :title="t('visits.title')">
       <template #actions>
-        <Button :label="t('visits.new')" icon="pi pi-plus" @click="form = { date: new Date().toISOString().slice(0, 10) }; modal?.open()" />
+        <Button :label="t('visits.new')" icon="pi pi-plus" @click="openNew" />
       </template>
     </AppPageHeader>
 
     <AppDataTable
-      :rows="rows" :loading="pagination.loading.value" lazy selectable :delete-row="(row) => visitsApi.remove(row.id)" @bulk-deleted="load"
-      :total-records="pagination.totalRecords.value" :first="pagination.first.value"
-      :page-size="pagination.pageSize.value" :sort-field="pagination.sortField.value"
-      :sort-order="pagination.sortOrder.value" :sort-options="sortOptions"
-      :state-key="tableStateKeys.visits" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort"
+      :rows="rows"
+      :loading="pagination.loading.value"
+      lazy
+      selectable
+      :delete-row="(row) => visitsApi.remove(row.id)"
+      @bulk-deleted="load"
+      :total-records="pagination.totalRecords.value"
+      :first="pagination.first.value"
+      :page-size="pagination.pageSize.value"
+      :sort-field="pagination.sortField.value"
+      :sort-order="pagination.sortOrder.value"
+      :sort-options="sortOptions"
+      :state-key="tableStateKeys.visits"
+      @state-restore="pagination.onRestore"
+      @page="pagination.onPage"
+      @sort="pagination.onSort"
       @row-click="(r: Visit) => router.push(`/visits/${r.id}`)"
     >
       <template #toolbar>
-        <AppFilterBar :active="activeFilters" @remove="(key) => filters[key as 'customer' | 'project'] = null" @clear="filters = { customer: null, project: null }">
+        <AppFilterBar
+          :active="activeFilters"
+          @remove="(key) => (filters[key as 'customer' | 'project'] = null)"
+          @clear="filters = { customer: null, project: null }"
+        >
           <AppFormField :label="t('projects.customer')">
-            <CustomerSelect v-model="filters.customer" :placeholder="t('common.allCustomers')" @select="(c) => names.customer = c?.name ?? ''" />
+            <CustomerSelect
+              v-model="filters.customer"
+              :placeholder="t('common.allCustomers')"
+              @select="(c) => (names.customer = c?.name ?? '')"
+            />
           </AppFormField>
           <AppFormField :label="t('projects.project')">
-            <ProjectSelect v-model="filters.project" :customer-id="filters.customer" :placeholder="t('common.allProjects')" @select="(p) => names.project = p?.name ?? ''" />
+            <ProjectSelect
+              v-model="filters.project"
+              :customer-id="filters.customer"
+              :placeholder="t('common.allProjects')"
+              @select="(p) => (names.project = p?.name ?? '')"
+            />
           </AppFormField>
           <template #end><AppSearchInput v-model="search" /></template>
         </AppFilterBar>
       </template>
       <Column field="number" :header="t('common.numberShort')" sortable />
-      <Column field="date" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template></Column>
-      <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
-      <Column class="app-text" field="project_name" sort-field="project__name" :header="t('projects.project')" sortable />
+      <Column field="date" :header="t('common.date')" sortable
+        ><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template
+      ></Column>
+      <Column
+        class="app-text"
+        field="customer_name"
+        sort-field="customer__name"
+        :header="t('projects.customer')"
+        sortable
+      />
+      <Column
+        class="app-text"
+        field="project_name"
+        sort-field="project__name"
+        :header="t('projects.project')"
+        sortable
+      />
       <Column class="app-text" field="location" :header="t('visits.location')" sortable />
       <Column :header="t('common.actions')" :reorderable-column="false">
-        <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await visitsApi.remove(data.id); load() })" /></template>
+        <template #body="{ data }"
+          ><AppIconButton
+            icon="pi pi-trash"
+            severity="danger"
+            @click.stop="
+              confirmDelete(async () => {
+                await visitsApi.remove(data.id)
+                load()
+              })
+            "
+        /></template>
       </Column>
       <template #card="{ row }">
         <div class="font-medium">{{ row.customer_name }}</div>
-        <div class="text-sm text-surface-500"><AppDateTimeDisplay :value="row.date" /> · {{ row.location }}</div>
+        <div class="text-sm text-surface-500">
+          <AppDateTimeDisplay :value="row.date" /> · {{ row.location }}
+        </div>
       </template>
     </AppDataTable>
 
     <AppModal ref="modal" :form="form" :title="t('visits.new')" :loading="saving" @confirm="save">
       <div class="flex flex-col gap-4">
-        <AppFormField field="customer" :label="t('projects.customer')" required><CustomerSelect v-model="form.customer" /></AppFormField>
-        <AppFormField field="project" :label="t('projects.project')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
+        <AppFormField field="customer" :label="t('projects.customer')" required
+          ><CustomerSelect v-model="form.customer"
+        /></AppFormField>
+        <AppFormField field="project" :label="t('projects.project')"
+          ><ProjectSelect v-model="form.project" :customer-id="form.customer"
+        /></AppFormField>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <AppFormField field="date" :label="t('common.date')" required><AppDateInput v-model="(form.date as any)" /></AppFormField>
-          <AppFormField field="arrival" :label="t('visits.arrival')"><InputText v-model="form.arrival" type="time" class="w-full" /></AppFormField>
-          <AppFormField field="departure" :label="t('visits.departure')"><InputText v-model="form.departure" type="time" class="w-full" /></AppFormField>
+          <AppFormField field="date" :label="t('common.date')" required
+            ><AppDateInput v-model="form.date as any"
+          /></AppFormField>
+          <AppFormField field="arrival" :label="t('visits.arrival')"
+            ><InputText v-model="form.arrival" type="time" class="w-full"
+          /></AppFormField>
+          <AppFormField field="departure" :label="t('visits.departure')"
+            ><InputText v-model="form.departure" type="time" class="w-full"
+          /></AppFormField>
         </div>
-        <AppFormField field="location" :label="t('visits.location')"><InputText v-model="form.location" class="w-full" /></AppFormField>
-        <AppFormField field="notes" :label="t('common.notes')"><Textarea v-model="form.notes" rows="3" class="w-full" /></AppFormField>
+        <AppFormField field="location" :label="t('visits.location')"
+          ><InputText v-model="form.location" class="w-full"
+        /></AppFormField>
+        <AppFormField field="notes" :label="t('common.notes')"
+          ><Textarea v-model="form.notes" rows="3" class="w-full"
+        /></AppFormField>
       </div>
     </AppModal>
   </div>

@@ -21,7 +21,9 @@ function fit() {
 }
 
 const observer = new ResizeObserver(fit)
-onMounted(() => { if (frame.value) observer.observe(frame.value) })
+onMounted(() => {
+  if (frame.value) observer.observe(frame.value)
+})
 onBeforeUnmount(() => observer.disconnect())
 </script>
 
@@ -36,5 +38,10 @@ onBeforeUnmount(() => observer.disconnect())
     :title="t('designer.preview')"
     @load="fit"
   />
-  <iframe v-else :src="url" class="w-full h-full border-0 bg-surface-200 dark:bg-surface-800" :title="t('designer.preview')" />
+  <iframe
+    v-else
+    :src="url"
+    class="w-full h-full border-0 bg-surface-200 dark:bg-surface-800"
+    :title="t('designer.preview')"
+  />
 </template>

@@ -20,16 +20,23 @@ import AppLoadState from '../components/ui/AppLoadState.vue'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
 import AppCodeEditor from '../components/ui/AppCodeEditor.vue'
 import InvoicePreviewFrame from '../components/InvoicePreviewFrame.vue'
-import InvoiceVariableBrowser, { type VariableGroup } from '../components/InvoiceVariableBrowser.vue'
+import InvoiceVariableBrowser, {
+  type VariableGroup,
+} from '../components/InvoiceVariableBrowser.vue'
 import {
-  companyImagesApi, templatesApi, textBlocksApi,
-  type CompanyImage, type DocumentTemplate, type TextBlock,
+  companyImagesApi,
+  templatesApi,
+  textBlocksApi,
+  type CompanyImage,
+  type DocumentTemplate,
+  type TextBlock,
 } from '../api'
 import { ApiError } from '../api/client'
 import { errorText } from '../composables/formErrors'
 import { useNotify } from '../composables/useNotify'
 import { useConfirmDelete } from '../composables/useConfirmDelete'
 import { useUnsavedChanges } from '../composables/useUnsavedChanges'
+import { pageSizeValues } from '../utils/enums'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -48,15 +55,22 @@ const previewModes = [
 ]
 const pdfLoading = ref(false)
 const pdfBlobUrl = ref<string | null>(null)
-const pageSizes = [
-  { value: 'A3', label: 'DIN A3 — 297 × 420 mm' },
-  { value: 'A4', label: 'DIN A4 — 210 × 297 mm' },
-  { value: 'A5', label: 'DIN A5 — 148 × 210 mm' },
-  { value: 'LETTER', label: 'US Letter — 8.5 × 11 in' },
-  { value: 'LEGAL', label: 'US Legal — 8.5 × 14 in' },
-  { value: 'TABLOID', label: 'US Tabloid — 11 × 17 in' },
-]
-const colorFields = ['primary_color', 'secondary_color', 'tertiary_color', 'background_color', 'text_color'] as const
+const pageSizeLabels: Record<(typeof pageSizeValues)[number], string> = {
+  A3: 'DIN A3 — 297 × 420 mm',
+  A4: 'DIN A4 — 210 × 297 mm',
+  A5: 'DIN A5 — 148 × 210 mm',
+  LETTER: 'US Letter — 8.5 × 11 in',
+  LEGAL: 'US Legal — 8.5 × 14 in',
+  TABLOID: 'US Tabloid — 11 × 17 in',
+}
+const pageSizes = pageSizeValues.map((value) => ({ value, label: pageSizeLabels[value] }))
+const colorFields = [
+  'primary_color',
+  'secondary_color',
+  'tertiary_color',
+  'background_color',
+  'text_color',
+] as const
 // Below lg one column at a time (editor or preview); one set of editors serves both layouts.
 const mobileTab = ref('editor')
 const editorSection = ref('general')
@@ -73,22 +87,28 @@ const previewError = ref<string | null>(null)
 let previewTimer: ReturnType<typeof setTimeout> | undefined
 let previewRun = 0
 
+async function renderPdfPreview(draft: DocumentTemplate, run: number) {
+  pdfLoading.value = !pdfBlobUrl.value
+  const blob = await templatesApi.previewDraftPdf(id, draft)
+  if (run !== previewRun) return
+  if (pdfBlobUrl.value) URL.revokeObjectURL(pdfBlobUrl.value)
+  pdfBlobUrl.value = URL.createObjectURL(blob)
+}
+
+async function renderHtmlPreview(draft: DocumentTemplate, run: number) {
+  const html = await templatesApi.previewDraft(id, draft)
+  if (run !== previewRun) return
+  previewHtml.value = html
+}
+
 async function refreshPreview() {
   if (!template.value) return
   const run = ++previewRun
   const draft = { ...template.value }
   try {
-    if (previewMode.value === 'pdf') {
-      pdfLoading.value = !pdfBlobUrl.value
-      const blob = await templatesApi.previewDraftPdf(id, draft)
-      if (run !== previewRun) return
-      if (pdfBlobUrl.value) URL.revokeObjectURL(pdfBlobUrl.value)
-      pdfBlobUrl.value = URL.createObjectURL(blob)
-    } else {
-      const html = await templatesApi.previewDraft(id, draft)
-      if (run !== previewRun) return
-      previewHtml.value = html
-    }
+    if (previewMode.value === 'pdf') await renderPdfPreview(draft, run)
+    else await renderHtmlPreview(draft, run)
+    if (run !== previewRun) return
     previewError.value = null
   } catch (e) {
     if (run === previewRun) {
@@ -99,10 +119,14 @@ async function refreshPreview() {
   }
 }
 
-watch(template, () => {
-  clearTimeout(previewTimer)
-  previewTimer = setTimeout(refreshPreview, previewMode.value === 'pdf' ? 1200 : 400)
-}, { deep: true })
+watch(
+  template,
+  () => {
+    clearTimeout(previewTimer)
+    previewTimer = setTimeout(() => void refreshPreview(), previewMode.value === 'pdf' ? 1200 : 400)
+  },
+  { deep: true },
+)
 watch(previewMode, refreshPreview)
 onBeforeUnmount(() => {
   clearTimeout(previewTimer)
@@ -110,50 +134,100 @@ onBeforeUnmount(() => {
 })
 
 function escapeAttribute(value: string) {
-  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/{/g, '&#123;')
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/{/g, '&#123;')
 }
 
 const variableGroups = computed<VariableGroup[]>(() => [
   {
     label: t('designer.variableGroups.invoice'),
     entries: [
-      'number', 'issue_date', 'due_date', 'status', 'subtotal', 'vat_rate',
-      'vat_amount', 'total', 'currency', 'notes', 'amount_paid', 'remaining',
+      'number',
+      'issue_date',
+      'due_date',
+      'status',
+      'subtotal',
+      'vat_rate',
+      'vat_amount',
+      'total',
+      'currency',
+      'notes',
+      'amount_paid',
+      'remaining',
     ].map((field) => ({ label: field, code: `{{ invoice.${field} }}` })),
   },
   {
     label: t('designer.variableGroups.page'),
     entries: [
-      'document_type', 'size', 'width', 'height', 'margin_top', 'margin_right', 'margin_bottom',
-      'margin_left', 'font_size', 'primary_font', 'secondary_font',
-      'primary_color', 'secondary_color', 'tertiary_color',
-      'background_color', 'text_color',
+      'document_type',
+      'size',
+      'width',
+      'height',
+      'margin_top',
+      'margin_right',
+      'margin_bottom',
+      'margin_left',
+      'font_size',
+      'primary_font',
+      'secondary_font',
+      'primary_color',
+      'secondary_color',
+      'tertiary_color',
+      'background_color',
+      'text_color',
     ].map((field) => ({ label: field, code: `{{ page.${field} }}` })),
   },
   {
     label: t('designer.variableGroups.customer'),
     entries: [
-      'number', 'name', 'email', 'phone', 'website', 'vat_id',
-      'buyer_reference', 'street', 'postal_code', 'city', 'country',
+      'number',
+      'name',
+      'email',
+      'phone',
+      'website',
+      'vat_id',
+      'buyer_reference',
+      'street',
+      'postal_code',
+      'city',
+      'country',
     ].map((field) => ({ label: field, code: `{{ customer.${field} }}` })),
   },
   {
     label: t('designer.variableGroups.company'),
     entries: [
-      'company_name', 'street', 'postal_code', 'city', 'country', 'email',
-      'phone', 'website', 'tax_id', 'vat_id', 'iban', 'bic', 'currency',
+      'company_name',
+      'street',
+      'postal_code',
+      'city',
+      'country',
+      'email',
+      'phone',
+      'website',
+      'tax_id',
+      'vat_id',
+      'iban',
+      'bic',
+      'currency',
     ].map((field) => ({ label: field, code: `{{ company.${field} }}` })),
   },
   {
     label: t('designer.variableGroups.bankAccount'),
-    entries: [
-      'name', 'bank_name', 'account_holder', 'iban', 'bic',
-    ].map((field) => ({ label: field, code: `{{ invoice.bank_account.${field} }}` })),
+    entries: ['name', 'bank_name', 'account_holder', 'iban', 'bic'].map((field) => ({
+      label: field,
+      code: `{{ invoice.bank_account.${field} }}`,
+    })),
   },
   {
     label: t('designer.variableGroups.invoiceContacts'),
     entries: [
-      { label: t('designer.contactLoop'), code: '{% for contact in invoice_contacts %}\n{{ contact.name }}{% if not forloop.last %}, {% endif %}\n{% endfor %}' },
+      {
+        label: t('designer.contactLoop'),
+        code: '{% for contact in invoice_contacts %}\n{{ contact.name }}{% if not forloop.last %}, {% endif %}\n{% endfor %}',
+      },
       { label: 'name', code: '{{ contact.name }}' },
       { label: 'role', code: '{{ contact.role }}' },
       { label: 'email', code: '{{ contact.email }}' },
@@ -163,7 +237,10 @@ const variableGroups = computed<VariableGroup[]>(() => [
   {
     label: t('designer.variableGroups.companyContacts'),
     entries: [
-      { label: t('designer.contactLoop'), code: '{% for contact in company_contacts %}\n{{ contact.name }} {{ contact.role }} {{ contact.email }} {{ contact.phone }}\n{% endfor %}' },
+      {
+        label: t('designer.contactLoop'),
+        code: '{% for contact in company_contacts %}\n{{ contact.name }} {{ contact.role }} {{ contact.email }} {{ contact.phone }}\n{% endfor %}',
+      },
       { label: 'name', code: '{{ contact.name }}' },
       { label: 'role', code: '{{ contact.role }}' },
       { label: 'email', code: '{{ contact.email }}' },
@@ -191,7 +268,10 @@ const variableGroups = computed<VariableGroup[]>(() => [
   {
     label: t('designer.variableGroups.lines'),
     entries: [
-      { label: 'line loop', code: '{% for item in items %}\n{{ item.position }} {{ item.description }} {{ item.quantity }} {{ item.unit }} {% display_money item.total invoice.currency %}\n{% endfor %}' },
+      {
+        label: 'line loop',
+        code: '{% for item in items %}\n{{ item.position }} {{ item.description }} {{ item.quantity }} {{ item.unit }} {% display_money item.total invoice.currency %}\n{% endfor %}',
+      },
       { label: 'description', code: '{{ item.description }}' },
       { label: 'quantity', code: '{% display_number item.quantity %}' },
       { label: 'unit price', code: '{% display_money item.unit_price invoice.currency %}' },
@@ -216,7 +296,9 @@ const variableGroups = computed<VariableGroup[]>(() => [
 
 const loadFailed = useLoadFailed(async () => {
   const [invoiceTemplate, imagePage, textBlockPage] = await Promise.all([
-    templatesApi.get(id), companyImagesApi.list(), textBlocksApi.list(),
+    templatesApi.get(id),
+    companyImagesApi.list(),
+    textBlocksApi.list(),
   ])
   template.value = invoiceTemplate
   markSaved()
@@ -235,7 +317,7 @@ function remove() {
   confirmDelete(async () => {
     await templatesApi.remove(id)
     markSaved() // nothing left to lose: don't ask about unsaved changes on the way out
-    router.push('/templates')
+    void router.push('/templates')
   })
 }
 
@@ -256,19 +338,35 @@ async function save() {
     saving.value = false
   }
 }
-
 </script>
 
 <template>
   <div v-if="template" class="h-full flex flex-col">
-    <AppPageHeader back-to="/templates" :back-label="t('nav.templates')" :title="template.name" :subtitle="t('designer.title')">
+    <AppPageHeader
+      back-to="/templates"
+      :back-label="t('nav.templates')"
+      :title="template.name"
+      :subtitle="t('designer.title')"
+    >
       <template #actions>
         <Button :label="t('common.delete')" text severity="danger" @click="remove" />
         <!-- The export is the saved template; unsaved edits would be missing from the file. -->
         <span :title="isDirty ? t('designer.exportSaveFirst') : undefined">
-          <Button :label="t('designer.exportTemplate')" icon="pi pi-download" severity="secondary" :disabled="isDirty" @click="exportTemplate" />
+          <Button
+            :label="t('designer.exportTemplate')"
+            icon="pi pi-download"
+            severity="secondary"
+            :disabled="isDirty"
+            @click="exportTemplate"
+          />
         </span>
-        <SelectButton v-model="previewMode" :options="previewModes" option-label="label" option-value="value" :allow-empty="false" />
+        <SelectButton
+          v-model="previewMode"
+          :options="previewModes"
+          option-label="label"
+          option-value="value"
+          :allow-empty="false"
+        />
         <Button :label="t('common.save')" icon="pi pi-save" :loading="saving" @click="save" />
       </template>
     </AppPageHeader>
@@ -281,7 +379,10 @@ async function save() {
     </Tabs>
 
     <div class="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-2 gap-4">
-      <div class="flex-col flex-1 min-h-[70vh] lg:min-h-0 border border-surface-200 dark:border-surface-800" :class="mobileTab === 'editor' ? 'flex' : 'hidden lg:flex'">
+      <div
+        class="flex-col flex-1 min-h-[70vh] lg:min-h-0 border border-surface-200 dark:border-surface-800"
+        :class="mobileTab === 'editor' ? 'flex' : 'hidden lg:flex'"
+      >
         <Tabs v-model:value="editorSection" scrollable class="flex-1 min-h-0 flex flex-col">
           <TabList>
             <Tab value="general">{{ t('designer.general') }}</Tab>
@@ -294,17 +395,59 @@ async function save() {
           <TabPanels class="flex-1 min-h-0">
             <TabPanel value="general" class="h-full overflow-y-auto p-4">
               <div class="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-4 max-w-2xl">
-                <AppFormField field="name" :label="t('designer.templateName')" class="col-span-full"><InputText v-model="template.name" class="w-full" /></AppFormField>
-                <AppFormField field="page_size" :label="t('designer.pageSize')" class="col-span-full"><Select v-model="template.page_size" :options="pageSizes" option-label="label" option-value="value" class="w-full" /></AppFormField>
-                <AppFormField field="margin_top" :label="t('designer.marginTop')"><InputNumber v-model="template.margin_top" :min="0" fluid /></AppFormField>
-                <AppFormField field="margin_right" :label="t('designer.marginRight')"><InputNumber v-model="template.margin_right" :min="0" fluid /></AppFormField>
-                <AppFormField field="margin_bottom" :label="t('designer.marginBottom')"><InputNumber v-model="template.margin_bottom" :min="0" fluid /></AppFormField>
-                <AppFormField field="margin_left" :label="t('designer.marginLeft')"><InputNumber v-model="template.margin_left" :min="0" fluid /></AppFormField>
-                <AppFormField field="font_size" :label="t('designer.fontSize')"><InputNumber v-model="template.font_size" :min="1" :max-fraction-digits="2" fluid /></AppFormField>
-                <AppFormField field="primary_font" :label="t('designer.primaryFont')"><InputText v-model="template.primary_font" class="w-full" /></AppFormField>
-                <AppFormField field="secondary_font" :label="t('designer.secondaryFont')"><InputText v-model="template.secondary_font" class="w-full" /></AppFormField>
-                <AppFormField v-for="field in colorFields" :key="field" :field="field" :label="t(`designer.${field}`)">
-                  <div class="flex gap-2"><input v-model="template[field]" type="color" :aria-label="t(`designer.${field}`)" class="h-10 w-12 border border-surface-300 dark:border-surface-700" /><InputText v-model="template[field]" class="flex-1 min-w-0" /></div>
+                <AppFormField field="name" :label="t('designer.templateName')" class="col-span-full"
+                  ><InputText v-model="template.name" class="w-full"
+                /></AppFormField>
+                <AppFormField
+                  field="page_size"
+                  :label="t('designer.pageSize')"
+                  class="col-span-full"
+                  ><Select
+                    v-model="template.page_size"
+                    :options="pageSizes"
+                    option-label="label"
+                    option-value="value"
+                    class="w-full"
+                /></AppFormField>
+                <AppFormField field="margin_top" :label="t('designer.marginTop')"
+                  ><InputNumber v-model="template.margin_top" :min="0" fluid
+                /></AppFormField>
+                <AppFormField field="margin_right" :label="t('designer.marginRight')"
+                  ><InputNumber v-model="template.margin_right" :min="0" fluid
+                /></AppFormField>
+                <AppFormField field="margin_bottom" :label="t('designer.marginBottom')"
+                  ><InputNumber v-model="template.margin_bottom" :min="0" fluid
+                /></AppFormField>
+                <AppFormField field="margin_left" :label="t('designer.marginLeft')"
+                  ><InputNumber v-model="template.margin_left" :min="0" fluid
+                /></AppFormField>
+                <AppFormField field="font_size" :label="t('designer.fontSize')"
+                  ><InputNumber
+                    v-model="template.font_size"
+                    :min="1"
+                    :max-fraction-digits="2"
+                    fluid
+                /></AppFormField>
+                <AppFormField field="primary_font" :label="t('designer.primaryFont')"
+                  ><InputText v-model="template.primary_font" class="w-full"
+                /></AppFormField>
+                <AppFormField field="secondary_font" :label="t('designer.secondaryFont')"
+                  ><InputText v-model="template.secondary_font" class="w-full"
+                /></AppFormField>
+                <AppFormField
+                  v-for="field in colorFields"
+                  :key="field"
+                  :field="field"
+                  :label="t(`designer.${field}`)"
+                >
+                  <div class="flex gap-2">
+                    <input
+                      v-model="template[field]"
+                      type="color"
+                      :aria-label="t(`designer.${field}`)"
+                      class="h-10 w-12 border border-surface-300 dark:border-surface-700"
+                    /><InputText v-model="template[field]" class="flex-1 min-w-0" />
+                  </div>
                 </AppFormField>
               </div>
             </TabPanel>
@@ -323,8 +466,15 @@ async function save() {
             <TabPanel value="mail" class="h-full overflow-y-auto p-4">
               <div class="flex flex-col gap-4 max-w-2xl">
                 <p class="text-sm text-surface-500">{{ t('designer.mailHint') }}</p>
-                <AppFormField field="mail_subject" :label="t('designer.mailSubject')"><InputText v-model="template.mail_subject" class="w-full" /></AppFormField>
-                <AppFormField field="mail_body" :label="t('designer.mailBody')"><Textarea v-model="template.mail_body" rows="12" class="w-full font-mono text-sm" /></AppFormField>
+                <AppFormField field="mail_subject" :label="t('designer.mailSubject')"
+                  ><InputText v-model="template.mail_subject" class="w-full"
+                /></AppFormField>
+                <AppFormField field="mail_body" :label="t('designer.mailBody')"
+                  ><Textarea
+                    v-model="template.mail_body"
+                    rows="12"
+                    class="w-full font-mono text-sm"
+                /></AppFormField>
               </div>
             </TabPanel>
           </TabPanels>
@@ -333,12 +483,23 @@ async function save() {
           <template #title>{{ t('designer.placeholders') }}</template>
         </InvoiceVariableBrowser>
       </div>
-      <div class="flex-col flex-1 min-h-[70vh] lg:min-h-0 border border-surface-200 dark:border-surface-800" :class="mobileTab === 'preview' ? 'flex' : 'hidden lg:flex'">
-        <Message v-if="previewError" severity="warn" size="small" class="m-2">{{ t('designer.previewStale', { error: previewError }) }}</Message>
+      <div
+        class="flex-col flex-1 min-h-[70vh] lg:min-h-0 border border-surface-200 dark:border-surface-800"
+        :class="mobileTab === 'preview' ? 'flex' : 'hidden lg:flex'"
+      >
+        <Message v-if="previewError" severity="warn" size="small" class="m-2">{{
+          t('designer.previewStale', { error: previewError })
+        }}</Message>
         <div v-if="pdfLoading" class="flex flex-1 items-center justify-center text-surface-500">
           <i class="pi pi-spin pi-spinner mr-2" />{{ t('designer.generatingPdf') }}
         </div>
-        <InvoicePreviewFrame v-else class="flex-1 min-h-0" :url="pdfBlobUrl ?? undefined" :html="previewHtml" :mode="previewMode" />
+        <InvoicePreviewFrame
+          v-else
+          class="flex-1 min-h-0"
+          :url="pdfBlobUrl ?? undefined"
+          :html="previewHtml"
+          :mode="previewMode"
+        />
       </div>
     </div>
   </div>

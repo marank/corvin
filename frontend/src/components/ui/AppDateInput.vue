@@ -7,7 +7,7 @@ import InputText from 'primevue/inputtext'
 import Popover from 'primevue/popover'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { formatDate, parseDate } from '../../dateTimeInput'
+import { formatDate, isoDate, parseDate } from '../../dateTimeInput'
 
 const props = defineProps<{ modelValue: string | null; placeholder?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [string | null] }>()
@@ -22,9 +22,17 @@ function show(value: string | null) {
   text.value = value ? formatDate(value) : ''
   invalid.value = false
 }
-watch(() => props.modelValue, (value) => { if (!focused.value) show(value) }, { immediate: true })
+watch(
+  () => props.modelValue,
+  (value) => {
+    if (!focused.value) show(value)
+  },
+  { immediate: true },
+)
 
-const reference = computed(() => (props.modelValue ? new Date(props.modelValue + 'T00:00:00') : new Date()))
+const reference = computed(() =>
+  props.modelValue ? new Date(props.modelValue + 'T00:00:00') : new Date(),
+)
 // While typing: what the text would become, so surprises show before leaving the field.
 const preview = computed(() => {
   if (!focused.value || !text.value.trim()) return ''
@@ -58,8 +66,7 @@ const picked = computed({
   get: () => (props.modelValue ? new Date(props.modelValue + 'T00:00:00') : null),
   set: (d: Date | Date[] | (Date | null)[] | null | undefined) => {
     if (!(d instanceof Date)) return
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    const iso = isoDate(d)
     emit('update:modelValue', iso)
     show(iso)
     popover.value?.hide()
@@ -80,9 +87,19 @@ const picked = computed({
         @keydown.enter.prevent="commit"
         @keydown.esc="show(props.modelValue)"
       />
-      <Button icon="pi pi-calendar" severity="secondary" class="picker-button" :aria-label="t('time.pickDate')" @click="popover?.toggle($event)" />
+      <Button
+        icon="pi pi-calendar"
+        severity="secondary"
+        class="picker-button"
+        :aria-label="t('time.pickDate')"
+        @click="popover?.toggle($event)"
+      />
     </div>
-    <small v-if="preview" class="absolute left-0 top-full text-xs text-surface-500 whitespace-nowrap">{{ preview }}</small>
+    <small
+      v-if="preview"
+      class="absolute left-0 top-full text-xs text-surface-500 whitespace-nowrap"
+      >{{ preview }}</small
+    >
     <Popover ref="popover">
       <!-- The popover already draws the frame and padding. -->
       <DatePicker v-model="picked" inline :pt="{ panel: { style: 'border: 0; padding: 0' } }" />

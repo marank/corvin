@@ -12,7 +12,19 @@ export function useQueryFilters() {
   const customer = typeof query.customer === 'string' ? query.customer : null
   const project = typeof query.project === 'string' ? query.project : null
   const names = ref({ customer: '', project: '' })
-  if (customer) customersApi.get(customer).then((c) => { names.value.customer = c.name }).catch(() => {})
-  if (project) projectsApi.get(project).then((p) => { names.value.project = p.name }).catch(() => {})
+  if (customer)
+    customersApi
+      .get(customer)
+      .then((c) => {
+        names.value.customer = c.name
+      })
+      .catch(() => {})
+  if (project)
+    projectsApi
+      .get(project)
+      .then((p) => {
+        names.value.project = p.name
+      })
+      .catch(() => {})
   return { customer, project, names }
 }

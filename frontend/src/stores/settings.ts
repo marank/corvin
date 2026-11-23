@@ -12,7 +12,8 @@ export const useSettingsStore = defineStore('settings', () => {
     timerCountsDuringBreak.value = settings.timer_counts_during_break === true
     alwaysShowTimerWidget.value = settings.always_show_timer_widget === true
     const openBehavior = settings.open_stopped_time_entry
-    openStoppedTimeEntry.value = openBehavior === 'yes' || openBehavior === 'no' ? openBehavior : 'ask'
+    openStoppedTimeEntry.value =
+      openBehavior === 'yes' || openBehavior === 'no' ? openBehavior : 'ask'
     loaded.value = true
   }
 

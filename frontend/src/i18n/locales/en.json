@@ -148,7 +148,12 @@
     "paymentTerms": "Payment terms (days)",
     "paymentTermsDefault": "Use default",
     "invoiceContact": "Default for invoices",
-    "groups": { "masterData": "Master data", "contact": "Contact details", "billing": "Billing", "timeTracking": "Time tracking" },
+    "groups": {
+      "masterData": "Master data",
+      "contact": "Contact details",
+      "billing": "Billing",
+      "timeTracking": "Time tracking"
+    },
     "place": "City"
   },
   "projects": {
@@ -245,7 +250,7 @@
   "invoices": {
     "dateFrom": "Work from",
     "dateTo": "Work until",
-    "emailSent": "Email sent",
+    "emailQueued": "Sending the email. The invoice changes to “Sent” once it is out.",
     "paymentAdded": "Payment recorded",
     "title": "Invoices",
     "new": "New invoice",
@@ -258,7 +263,14 @@
     "vat": "VAT",
     "paid": "Paid",
     "remaining": "Remaining",
-    "status": { "draft": "Draft", "issued": "Issued", "sent": "Sent", "paid": "Paid", "partially_paid": "Partially paid", "cancelled": "Cancelled" },
+    "status": {
+      "draft": "Draft",
+      "issued": "Issued",
+      "sent": "Sent",
+      "paid": "Paid",
+      "partially_paid": "Partially paid",
+      "cancelled": "Cancelled"
+    },
     "eInvoice": "E-invoice",
     "eInvoiceFormats": { "none": "None", "zugferd": "ZUGFeRD", "xrechnung": "XRechnung" },
     "groupBy": "Group by",
@@ -334,7 +346,20 @@
     "mailSubject": "Email subject",
     "mailBody": "Email body",
     "placeholders": "Variables and snippets",
-    "variableGroups": { "invoice": "Invoice", "page": "Page and design", "customer": "Customer", "company": "Company", "bankAccount": "Bank account", "invoiceContacts": "Invoice contacts", "companyContacts": "Contacts (company)", "relations": "Project and contract", "formatting": "Formatting", "lines": "Invoice lines", "textBlocks": "Text blocks", "images": "Images" },
+    "variableGroups": {
+      "invoice": "Invoice",
+      "page": "Page and design",
+      "customer": "Customer",
+      "company": "Company",
+      "bankAccount": "Bank account",
+      "invoiceContacts": "Invoice contacts",
+      "companyContacts": "Contacts (company)",
+      "relations": "Project and contract",
+      "formatting": "Formatting",
+      "lines": "Invoice lines",
+      "textBlocks": "Text blocks",
+      "images": "Images"
+    },
     "assignments": "Assignments",
     "assignmentsHint": "Choose a template for each document type. Without a choice, the default template is used.",
     "reportTypes": {
@@ -364,7 +389,15 @@
     "companyName": "Company name",
     "city": "City",
     "country": "Country",
-    "groups": { "company": "Company and contact details", "address": "Address", "tax": "Tax details", "banking": "Bank details", "formatting": "Display formats", "invoicing": "Invoice defaults", "timeTracking": "Time tracking" },
+    "groups": {
+      "company": "Company and contact details",
+      "address": "Address",
+      "tax": "Tax details",
+      "banking": "Bank details",
+      "formatting": "Display formats",
+      "invoicing": "Invoice defaults",
+      "timeTracking": "Time tracking"
+    },
     "taxId": "Tax ID",
     "vatId": "VAT ID",
     "website": "Website",
@@ -396,7 +429,12 @@
     "logo": "Logo",
     "companyContacts": "Company contacts",
     "images": "Images",
-    "imageKinds": { "logo_light": "Full logo – light", "logo_dark": "Full logo – dark", "icon_light": "Icon – light", "icon_dark": "Icon – dark" },
+    "imageKinds": {
+      "logo_light": "Full logo – light",
+      "logo_dark": "Full logo – dark",
+      "icon_light": "Icon – light",
+      "icon_dark": "Icon – dark"
+    },
     "uploadImage": "Upload image",
     "additionalImages": "Additional images",
     "addImage": "Add image",
@@ -410,15 +448,33 @@
     "timerCountsDuringBreak": "Keep timer running during breaks",
     "alwaysShowTimerWidget": "Always show timer widget",
     "openStoppedTimeEntry": "Open time entry after stopping",
-    "roundingDirections": { "nearest": "Round half up", "backwards": "Round down", "forwards": "Round up" },
+    "roundingDirections": {
+      "nearest": "Round half up",
+      "backwards": "Round down",
+      "forwards": "Round up"
+    },
     "numbering": "Number generation",
     "numberingHelp": "Available placeholders: {'{'}counter{'}'}, {'{'}counter:3{'}'}, {'{'}year:4{'}'}, {'{'}year:2{'}'}, {'{'}month:2{'}'}, {'{'}day:2{'}'}, and any model field such as {'{'}customer.number{'}'}, {'{'}customer.vat_id{'}'}, or {'{'}project.customer.number{'}'}.",
     "numberFormat": "Format",
     "numberScope": "Counter scope",
     "numberStart": "Starting number",
     "numberPreview": "Preview",
-    "scopes": { "global": "Global", "year": "Per year", "customer": "Per customer", "customer_year": "Per customer and year", "project": "Per project", "project_year": "Per project and year" },
-    "entities": { "customer": "Customers", "project": "Projects", "invoice": "Invoices", "contract": "Contracts", "visit": "On-site visits", "task": "Tasks" },
+    "scopes": {
+      "global": "Global",
+      "year": "Per year",
+      "customer": "Per customer",
+      "customer_year": "Per customer and year",
+      "project": "Per project",
+      "project_year": "Per project and year"
+    },
+    "entities": {
+      "customer": "Customers",
+      "project": "Projects",
+      "invoice": "Invoices",
+      "contract": "Contracts",
+      "visit": "On-site visits",
+      "task": "Tasks"
+    },
     "changePassword": "Change password",
     "oldPassword": "Old password",
     "newPassword": "New password",

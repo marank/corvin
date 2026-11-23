@@ -9,7 +9,8 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDateTime, parseDateTime } from '../../dateTimeInput'
 
-const props = defineProps<{ modelValue: string | null }>()
+// `reference`: the day typed times fall on while the field is empty (e.g. the start for an end).
+const props = defineProps<{ modelValue: string | null; reference?: string | null }>()
 const emit = defineEmits<{ 'update:modelValue': [string | null] }>()
 const { t } = useI18n()
 
@@ -22,9 +23,18 @@ function show(value: string | null) {
   text.value = value ? formatDateTime(new Date(value)) : ''
   invalid.value = false
 }
-watch(() => props.modelValue, (value) => { if (!focused.value) show(value) }, { immediate: true })
+watch(
+  () => props.modelValue,
+  (value) => {
+    if (!focused.value) show(value)
+  },
+  { immediate: true },
+)
 
-const reference = computed(() => (props.modelValue ? new Date(props.modelValue) : new Date()))
+const reference = computed(() => {
+  const base = props.modelValue ?? props.reference
+  return base ? new Date(base) : new Date()
+})
 // While typing: what the text would become, so surprises show before leaving the field.
 const preview = computed(() => {
   if (!focused.value || !text.value.trim()) return ''
@@ -48,7 +58,8 @@ function commit() {
   invalid.value = false
   text.value = formatDateTime(parsed)
   const iso = parsed.toISOString()
-  if (!props.modelValue || new Date(props.modelValue).getTime() !== parsed.getTime()) emit('update:modelValue', iso)
+  if (!props.modelValue || new Date(props.modelValue).getTime() !== parsed.getTime())
+    emit('update:modelValue', iso)
 }
 
 function onBlur() {
@@ -58,13 +69,16 @@ function onBlur() {
 
 // Mouse wheel over the hour or minute of the picker steps it, like its arrow buttons.
 function onPickerWheel(event: WheelEvent) {
-  const section = (event.target as HTMLElement).closest('[data-pc-section="hourpicker"], [data-pc-section="minutepicker"]')
+  const section = (event.target as HTMLElement).closest(
+    '[data-pc-section="hourpicker"], [data-pc-section="minutepicker"]',
+  )
   if (!section || event.deltaY === 0) return
   event.preventDefault()
   const step = event.deltaY < 0 ? 1 : -1
   const date = props.modelValue ? new Date(props.modelValue) : new Date()
   date.setSeconds(0, 0)
-  if (section.getAttribute('data-pc-section') === 'hourpicker') date.setHours(date.getHours() + step)
+  if (section.getAttribute('data-pc-section') === 'hourpicker')
+    date.setHours(date.getHours() + step)
   else date.setMinutes(date.getMinutes() + step)
   emit('update:modelValue', date.toISOString())
   show(date.toISOString())
@@ -93,13 +107,29 @@ const picked = computed({
         @keydown.enter.prevent="commit"
         @keydown.esc="show(props.modelValue)"
       />
-      <Button icon="pi pi-calendar" severity="secondary" class="picker-button" :aria-label="t('time.pickDateTime')" @click="popover?.toggle($event)" />
+      <Button
+        icon="pi pi-calendar"
+        severity="secondary"
+        class="picker-button"
+        :aria-label="t('time.pickDateTime')"
+        @click="popover?.toggle($event)"
+      />
     </div>
-    <small v-if="preview" class="absolute left-0 top-full text-xs text-surface-500 whitespace-nowrap">{{ preview }}</small>
+    <small
+      v-if="preview"
+      class="absolute left-0 top-full text-xs text-surface-500 whitespace-nowrap"
+      >{{ preview }}</small
+    >
     <Popover ref="popover">
       <!-- The popover already draws the frame and padding. -->
       <div @wheel="onPickerWheel">
-        <DatePicker v-model="picked" inline show-time hour-format="24" :pt="{ panel: { style: 'border: 0; padding: 0' } }" />
+        <DatePicker
+          v-model="picked"
+          inline
+          show-time
+          hour-format="24"
+          :pt="{ panel: { style: 'border: 0; padding: 0' } }"
+        />
       </div>
     </Popover>
   </div>

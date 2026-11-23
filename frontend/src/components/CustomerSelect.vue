@@ -18,6 +18,7 @@ function onChange(id: string | null) {
 </script>
 
 <template>
+  <!-- eslint-disable-next-line vuejs-accessibility/form-control-has-label -- a wrapper: the caller labels it (AppFormField or an aria-label that falls through to the Select). -->
   <Select
     v-model="model"
     :options="customers"

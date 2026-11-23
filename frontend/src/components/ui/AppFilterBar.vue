@@ -34,7 +34,15 @@ const popover = ref<InstanceType<typeof Popover>>()
     <Popover ref="popover">
       <div class="flex flex-col gap-3 w-[min(20rem,calc(100vw-3rem))]">
         <slot />
-        <Button v-if="active.length" :label="t('common.clearFilters')" icon="pi pi-filter-slash" text size="small" class="self-start" @click="emit('clear')" />
+        <Button
+          v-if="active.length"
+          :label="t('common.clearFilters')"
+          icon="pi pi-filter-slash"
+          text
+          size="small"
+          class="self-start"
+          @click="emit('clear')"
+        />
       </div>
     </Popover>
     <Chip
@@ -44,7 +52,9 @@ const popover = ref<InstanceType<typeof Popover>>()
       class="app-filter-chip"
       @remove="emit('remove', filter.key)"
     >
-      <span class="text-surface-500">{{ filter.label }}:</span>&nbsp;<span class="font-medium">{{ filter.value }}</span>
+      <span class="text-surface-500">{{ filter.label }}:</span>&nbsp;<span class="font-medium">{{
+        filter.value
+      }}</span>
     </Chip>
     <div class="ml-auto"><slot name="end" /></div>
   </div>

@@ -7,10 +7,13 @@ import { EditorState, StateEffect } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-const props = withDefaults(defineProps<{
-  modelValue: string
-  language?: 'html' | 'css'
-}>(), { language: 'html' })
+const props = withDefaults(
+  defineProps<{
+    modelValue: string
+    language?: 'html' | 'css'
+  }>(),
+  { language: 'html' },
+)
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const host = ref<HTMLElement>()
 let view: EditorView | undefined
@@ -47,12 +50,15 @@ onMounted(() => {
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
 })
 
-watch(() => props.modelValue, (value) => {
-  if (!view || value === view.state.doc.toString()) return
-  view.dispatch({
-    changes: { from: 0, to: view.state.doc.length, insert: value },
-  })
-})
+watch(
+  () => props.modelValue,
+  (value) => {
+    if (!view || value === view.state.doc.toString()) return
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: value },
+    })
+  },
+)
 
 function insert(value: string) {
   if (!view) return

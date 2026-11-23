@@ -8,17 +8,33 @@
 // Duration:       "3" → 3 h, "3,5" / "3.5" → 3:30, "3:30", "90m", "1h30", "1h 30m".
 
 const KEYWORDS: Record<string, number | 'now'> = {
-  jetzt: 'now', now: 'now',
-  heute: 0, today: 0,
-  gestern: -1, yesterday: -1,
-  morgen: 1, tomorrow: 1,
+  jetzt: 'now',
+  now: 'now',
+  heute: 0,
+  today: 0,
+  gestern: -1,
+  yesterday: -1,
+  morgen: 1,
+  tomorrow: 1,
 }
 
-interface DateParts { year: number; month: number; day: number }
-interface TimeParts { hour: number; minute: number }
+interface DateParts {
+  year: number
+  month: number
+  day: number
+}
+interface TimeParts {
+  hour: number
+  minute: number
+}
 
-function fullYear(year: number, digits: number): number {
-  return digits <= 2 ? 2000 + year : year
+function fullYear(year: string): number {
+  return year.length <= 2 ? 2000 + Number(year) : Number(year)
+}
+
+// Capture group `index` of a match; the patterns below only ask for groups they require.
+function group(match: RegExpMatchArray, index: number): string {
+  return match[index] ?? ''
 }
 
 function validDate({ year, month, day }: DateParts): boolean {
@@ -32,81 +48,91 @@ function validTime({ hour, minute }: TimeParts): boolean {
 
 function parseDatePart(token: string, reference: Date): DateParts | null {
   let m = token.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
-  if (m) return { year: +m[1], month: +m[2], day: +m[3] }
+  if (m) return { year: +group(m, 1), month: +group(m, 2), day: +group(m, 3) }
   // 2.11. / 2.11 / 2.11.26 / 02.11.2026 (also with / or -)
   m = token.match(/^(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2}|\d{4})?)?\.?$/)
   if (m) {
-    const year = m[3] ? fullYear(+m[3], m[3].length) : reference.getFullYear()
-    return { year, month: +m[2], day: +m[1] }
+    const year = m[3] ? fullYear(m[3]) : reference.getFullYear()
+    return { year, month: +group(m, 2), day: +group(m, 1) }
   }
   // ddmmyy / ddmmyyyy
   m = token.match(/^(\d{2})(\d{2})(\d{2}|\d{4})$/)
-  if (m) return { year: fullYear(+m[3], m[3].length), month: +m[2], day: +m[1] }
+  if (m) return { year: fullYear(group(m, 3)), month: +group(m, 2), day: +group(m, 1) }
   return null
 }
 
 function parseTimePart(token: string): TimeParts | null {
   let m = token.match(/^(\d{1,2})[:.h](\d{2})(?:h|uhr)?$/i)
-  if (m) return { hour: +m[1], minute: +m[2] }
+  if (m) return { hour: +group(m, 1), minute: +group(m, 2) }
   m = token.match(/^(\d{1,2})(?:h|uhr)?$/i)
-  if (m) return { hour: +m[1], minute: 0 }
+  if (m) return { hour: +group(m, 1), minute: 0 }
   m = token.match(/^(\d{1,2})(\d{2})$/)
-  if (m) return { hour: +m[1], minute: +m[2] }
+  if (m) return { hour: +group(m, 1), minute: +group(m, 2) }
   return null
+}
+
+// A keyword's day, at the time already in the field ("now" is the current moment).
+function keywordDateTime(keyword: number | 'now', reference: Date): Date {
+  if (keyword === 'now') return new Date()
+  const today = new Date()
+  const day = new Date(reference)
+  day.setFullYear(today.getFullYear(), today.getMonth(), today.getDate() + keyword)
+  return day
+}
+
+function splitTokens(input: string): string[] {
+  const tokens = input.split(/[\sT,]+/).filter(Boolean)
+  // Everything in one block of digits: ddmmyyHHMM / ddmmyyyyHHMM.
+  const block = tokens.length === 1 ? tokens[0]?.match(/^(\d{6}|\d{8})(\d{4})$/) : null
+  return block ? [group(block, 1), group(block, 2)] : tokens
+}
+
+interface Parts {
+  date: DateParts | null
+  time: TimeParts | null
+}
+
+// One token: 6/8 digits or a dot are a date ("2.11"), unless that's no valid date ("18.30");
+// 1–4 digits or a colon are a time.
+function readSingleToken(token: string, reference: Date): Parts | null {
+  let date: DateParts | null = null
+  if (/^\d{6}$|^\d{8}$|[./-]/.test(token)) {
+    date = parseDatePart(token, reference)
+    if (date && !validDate(date)) date = null
+  }
+  const time = date ? null : parseTimePart(token)
+  return date || time ? { date, time } : null
+}
+
+function readTokens(tokens: string[], reference: Date): Parts | null {
+  const [first, second] = tokens
+  if (first === undefined || tokens.length > 2) return null
+  if (second === undefined) return readSingleToken(first, reference)
+  const date = parseDatePart(first, reference)
+  const time = parseTimePart(second)
+  return date && time ? { date, time } : null
 }
 
 /** The typed text as a Date, or null if it can't be read. `reference` supplies what's missing. */
 export function parseDateTime(text: string, reference: Date = new Date()): Date | null {
-  const input = text.trim().toLowerCase().replace(/\s*uhr$/, '')
+  const input = text
+    .trim()
+    .toLowerCase()
+    .replace(/\s*uhr$/, '')
   if (!input) return null
 
   const keyword = KEYWORDS[input]
-  if (keyword === 'now') return new Date()
-  if (typeof keyword === 'number') {
-    // That day, at the time already in the field.
-    const today = new Date()
-    const day = new Date(reference)
-    day.setFullYear(today.getFullYear(), today.getMonth(), today.getDate() + keyword)
-    return day
-  }
+  if (keyword === 'now' || typeof keyword === 'number') return keywordDateTime(keyword, reference)
 
-  let tokens = input.split(/[\sT,]+/).filter(Boolean)
-  // Everything in one block of digits: ddmmyyHHMM / ddmmyyyyHHMM.
-  if (tokens.length === 1) {
-    const m = tokens[0].match(/^(\d{6}|\d{8})(\d{4})$/)
-    if (m) tokens = [m[1], m[2]]
-  }
-
-  let date: DateParts | null = null
-  let time: TimeParts | null = null
-  if (tokens.length === 1) {
-    const token = tokens[0]
-    // 6/8 digits or a dot are a date ("2.11"), unless that's no valid date ("18.30");
-    // 1–4 digits or a colon are a time.
-    if (/^\d{6}$|^\d{8}$|[./-]/.test(token)) {
-      date = parseDatePart(token, reference)
-      if (date && !validDate(date)) date = null
-    }
-    if (!date) time = parseTimePart(token)
-    if (!date && !time) return null
-  } else if (tokens.length === 2) {
-    date = parseDatePart(tokens[0], reference)
-    time = parseTimePart(tokens[1])
-    if (!date || !time) return null
-  } else {
-    return null
-  }
+  const parts = readTokens(splitTokens(input), reference)
+  if (!parts) return null
+  const { date, time } = parts
+  if ((date && !validDate(date)) || (time && !validTime(time))) return null
 
   const result = new Date(reference)
   result.setSeconds(0, 0)
-  if (date) {
-    if (!validDate(date)) return null
-    result.setFullYear(date.year, date.month - 1, date.day)
-  }
-  if (time) {
-    if (!validTime(time)) return null
-    result.setHours(time.hour, time.minute)
-  }
+  if (date) result.setFullYear(date.year, date.month - 1, date.day)
+  if (time) result.setHours(time.hour, time.minute)
   return result
 }
 
@@ -135,8 +161,14 @@ export function parseDate(text: string, reference: Date = new Date()): string | 
   return `${date.year}-${pad(date.month)}-${pad(date.day)}`
 }
 
+/** A day as "YYYY-MM-DD" in local time (toISOString() would give the UTC day, before 1 or 2 am yesterday's). */
+export function isoDate(date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
 export function formatDate(iso: string): string {
-  const [year, month, day] = iso.split('-')
+  const [year = '', month = '', day = ''] = iso.split('-')
   return `${day}.${month}.${year}`
 }
 
@@ -145,14 +177,20 @@ export function parseDuration(text: string): number | null {
   const input = text.trim().toLowerCase().replace(/\s+/g, '')
   if (!input) return null
   let m = input.match(/^(\d+)[:](\d{1,2})h?$/)
-  if (m) return +m[2] < 60 ? +m[1] * 60 + +m[2] : null
+  if (m) return hoursAndMinutes(m)
   m = input.match(/^(\d+(?:[.,]\d+)?)h?$/)
-  if (m) return Math.round(parseFloat(m[1].replace(',', '.')) * 60)
+  if (m) return Math.round(parseFloat(group(m, 1).replace(',', '.')) * 60)
   m = input.match(/^(\d+)(?:m|min)$/)
-  if (m) return +m[1]
+  if (m) return +group(m, 1)
   m = input.match(/^(\d+)h(\d{1,2})(?:m|min)?$/)
-  if (m) return +m[2] < 60 ? +m[1] * 60 + +m[2] : null
+  if (m) return hoursAndMinutes(m)
   return null
+}
+
+// Groups 1 and 2 as hours and minutes; minutes past 59 are no duration.
+function hoursAndMinutes(match: RegExpMatchArray): number | null {
+  const minutes = +group(match, 2)
+  return minutes < 60 ? +group(match, 1) * 60 + minutes : null
 }
 
 export function formatDuration(minutes: number): string {

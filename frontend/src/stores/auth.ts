@@ -1,12 +1,5 @@
 import { defineStore } from 'pinia'
-import { api } from '../api/client'
-
-export interface User {
-  id: number
-  username: string
-  email: string
-  totp_enabled: boolean
-}
+import { authApi, type User } from '../api'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -16,7 +9,7 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async check() {
       try {
-        this.user = await api.get<User>('/api/v1/auth/me')
+        this.user = await authApi.me()
       } catch {
         this.user = null
       } finally {
@@ -24,14 +17,10 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     async login(username: string, password: string, otpCode = '') {
-      this.user = await api.post<User>('/api/v1/auth/login', {
-        username,
-        password,
-        otp_code: otpCode,
-      })
+      this.user = await authApi.login(username, password, otpCode)
     },
     async logout() {
-      await api.post('/api/v1/auth/logout')
+      await authApi.logout()
       this.user = null
     },
   },

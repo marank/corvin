@@ -24,6 +24,7 @@ import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
 import { usePagination } from '../../composables/usePagination'
 import { tableStateKeys } from '../../tableStateKeys'
+import { projectStatusValues as statuses } from '../../utils/enums'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -34,7 +35,11 @@ const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
 const form = ref<Partial<Project>>({ status: 'active' })
 
-const statuses = ['active', 'on_hold', 'done']
+function openNew() {
+  form.value = { status: 'active' }
+  modal.value?.open()
+}
+
 const pagination = usePagination(load, 'name')
 const sortOptions = [
   { label: '#', value: 'number' },
@@ -50,8 +55,14 @@ const search = ref('')
 const activeFilters = computed<ActiveFilter[]>(() => {
   const f = filters.value
   const active: ActiveFilter[] = []
-  if (f.customer) active.push({ key: 'customer', label: t('projects.customer'), value: names.value.customer })
-  if (f.status) active.push({ key: 'status', label: t('common.status'), value: t(`projects.status.${f.status}`) })
+  if (f.customer)
+    active.push({ key: 'customer', label: t('projects.customer'), value: names.value.customer })
+  if (f.status)
+    active.push({
+      key: 'status',
+      label: t('common.status'),
+      value: t(`projects.status.${f.status}`),
+    })
   return active
 })
 
@@ -73,7 +84,7 @@ async function save() {
     modal.value?.close()
     form.value = { status: 'active' }
     notify.ok(t('common.created'))
-    load()
+    void load()
   } catch (e) {
     notify.error(e)
   } finally {
@@ -86,34 +97,68 @@ async function save() {
   <div>
     <AppPageHeader :title="t('projects.title')">
       <template #actions>
-        <Button :label="t('projects.new')" icon="pi pi-plus" @click="form = { status: 'active' }; modal?.open()" />
+        <Button :label="t('projects.new')" icon="pi pi-plus" @click="openNew" />
       </template>
     </AppPageHeader>
 
     <AppDataTable
-      :rows="rows" :loading="pagination.loading.value" lazy selectable :delete-row="(row) => projectsApi.remove(row.id)" @bulk-deleted="load"
-      :total-records="pagination.totalRecords.value" :first="pagination.first.value"
-      :page-size="pagination.pageSize.value" :sort-field="pagination.sortField.value"
-      :sort-order="pagination.sortOrder.value" :sort-options="sortOptions"
-      :state-key="tableStateKeys.projects" @state-restore="pagination.onRestore" @page="pagination.onPage" @sort="pagination.onSort"
+      :rows="rows"
+      :loading="pagination.loading.value"
+      lazy
+      selectable
+      :delete-row="(row) => projectsApi.remove(row.id)"
+      @bulk-deleted="load"
+      :total-records="pagination.totalRecords.value"
+      :first="pagination.first.value"
+      :page-size="pagination.pageSize.value"
+      :sort-field="pagination.sortField.value"
+      :sort-order="pagination.sortOrder.value"
+      :sort-options="sortOptions"
+      :state-key="tableStateKeys.projects"
+      @state-restore="pagination.onRestore"
+      @page="pagination.onPage"
+      @sort="pagination.onSort"
       @row-click="(r: Project) => router.push(`/projects/${r.id}`)"
     >
       <template #toolbar>
-        <AppFilterBar :active="activeFilters" @remove="(key) => filters[key as 'customer' | 'status'] = null" @clear="filters = { customer: null, status: null }">
+        <AppFilterBar
+          :active="activeFilters"
+          @remove="(key) => (filters[key as 'customer' | 'status'] = null)"
+          @clear="filters = { customer: null, status: null }"
+        >
           <AppFormField :label="t('projects.customer')">
-            <CustomerSelect v-model="filters.customer" :placeholder="t('common.allCustomers')" @select="(c) => names.customer = c?.name ?? ''" />
+            <CustomerSelect
+              v-model="filters.customer"
+              :placeholder="t('common.allCustomers')"
+              @select="(c) => (names.customer = c?.name ?? '')"
+            />
           </AppFormField>
           <AppFormField :label="t('common.status')">
-            <AppEnumSelect v-model="filters.status" :options="statuses" label-prefix="projects.status" :placeholder="t('common.all')" show-clear class="w-full" />
+            <AppEnumSelect
+              v-model="filters.status"
+              :options="statuses"
+              label-prefix="projects.status"
+              :placeholder="t('common.all')"
+              show-clear
+              class="w-full"
+            />
           </AppFormField>
           <template #end><AppSearchInput v-model="search" /></template>
         </AppFilterBar>
       </template>
       <Column field="number" :header="t('common.numberShort')" sortable />
       <Column class="app-text" field="name" :header="t('common.name')" sortable />
-      <Column class="app-text" field="customer_name" sort-field="customer__name" :header="t('projects.customer')" sortable />
+      <Column
+        class="app-text"
+        field="customer_name"
+        sort-field="customer__name"
+        :header="t('projects.customer')"
+        sortable
+      />
       <Column field="status" :header="t('common.status')" sortable>
-        <template #body="{ data }"><AppStatusTag :status="data.status" :label="t(`projects.status.${data.status}`)" /></template>
+        <template #body="{ data }"
+          ><AppStatusTag :status="data.status" :label="t(`projects.status.${data.status}`)"
+        /></template>
       </Column>
       <Column class="app-num" :header="t('projects.usedHours')">
         <template #body="{ data }">
@@ -123,16 +168,34 @@ async function save() {
               class="inline-block w-12 h-1.5 bg-surface-200 dark:bg-surface-700 overflow-hidden"
               :title="`${Math.round(data.budget_hours_percent ?? 0)} %`"
             >
-              <span class="block h-full" :class="(data.budget_hours_percent ?? 0) >= 80 ? 'bg-danger' : 'bg-primary'" :style="{ width: `${Math.min(100, data.budget_hours_percent ?? 0)}%` }" />
+              <span
+                class="block h-full"
+                :class="(data.budget_hours_percent ?? 0) >= 80 ? 'bg-danger' : 'bg-primary'"
+                :style="{ width: `${Math.min(100, data.budget_hours_percent ?? 0)}%` }"
+              />
             </span>
             <span>
-              <AppDurationDisplay :minutes="data.used_hours * 60" /><template v-if="data.budget_hours"> / <AppDurationDisplay :minutes="data.budget_hours * 60" /></template>
+              <AppDurationDisplay :minutes="data.used_hours * 60" /><template
+                v-if="data.budget_hours"
+              >
+                / <AppDurationDisplay :minutes="data.budget_hours * 60"
+              /></template>
             </span>
           </span>
         </template>
       </Column>
       <Column :header="t('common.actions')" :reorderable-column="false">
-        <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await projectsApi.remove(data.id); load() })" /></template>
+        <template #body="{ data }"
+          ><AppIconButton
+            icon="pi pi-trash"
+            severity="danger"
+            @click.stop="
+              confirmDelete(async () => {
+                await projectsApi.remove(data.id)
+                load()
+              })
+            "
+        /></template>
       </Column>
       <template #card="{ row }">
         <div class="flex justify-between">
@@ -145,15 +208,34 @@ async function save() {
 
     <AppModal ref="modal" :form="form" :title="t('projects.new')" :loading="saving" @confirm="save">
       <div class="flex flex-col gap-4">
-        <AppFormField field="customer" :label="t('projects.customer')" required><CustomerSelect v-model="form.customer" /></AppFormField>
-        <AppFormField field="name" :label="t('common.name')" required><InputText v-model="form.name" class="w-full" /></AppFormField>
-        <AppFormField field="description" :label="t('time.description')"><Textarea v-model="form.description" rows="2" class="w-full" /></AppFormField>
+        <AppFormField field="customer" :label="t('projects.customer')" required
+          ><CustomerSelect v-model="form.customer"
+        /></AppFormField>
+        <AppFormField field="name" :label="t('common.name')" required
+          ><InputText v-model="form.name" class="w-full"
+        /></AppFormField>
+        <AppFormField field="description" :label="t('time.description')"
+          ><Textarea v-model="form.description" rows="2" class="w-full"
+        /></AppFormField>
         <div class="grid grid-cols-2 gap-3">
-          <AppFormField field="budget_hours" :label="t('projects.budgetHours')"><InputNumber v-model="form.budget_hours" class="w-full" /></AppFormField>
-          <AppFormField field="budget_amount" :label="t('projects.budgetAmount')"><InputNumber v-model="form.budget_amount" mode="currency" currency="EUR" class="w-full" /></AppFormField>
+          <AppFormField field="budget_hours" :label="t('projects.budgetHours')"
+            ><InputNumber v-model="form.budget_hours" class="w-full"
+          /></AppFormField>
+          <AppFormField field="budget_amount" :label="t('projects.budgetAmount')"
+            ><InputNumber
+              v-model="form.budget_amount"
+              mode="currency"
+              currency="EUR"
+              class="w-full"
+          /></AppFormField>
         </div>
         <AppFormField :label="t('common.status')">
-          <AppEnumSelect v-model="form.status" :options="statuses" label-prefix="projects.status" class="w-full" />
+          <AppEnumSelect
+            v-model="form.status"
+            :options="statuses"
+            label-prefix="projects.status"
+            class="w-full"
+          />
         </AppFormField>
       </div>
     </AppModal>

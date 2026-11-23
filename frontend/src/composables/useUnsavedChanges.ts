@@ -7,20 +7,21 @@ import { useI18n } from 'vue-i18n'
 export function useConfirmDiscard() {
   const confirm = useConfirm()
   const { t } = useI18n()
-  return () => new Promise<boolean>((resolve) => {
-    confirm.require({
-      header: t('common.unsavedTitle'),
-      message: t('common.unsavedMessage'),
-      icon: 'pi pi-exclamation-triangle',
-      rejectLabel: t('common.keepEditing'),
-      rejectProps: { text: true },
-      acceptLabel: t('common.discard'),
-      acceptClass: 'p-button-danger',
-      accept: () => resolve(true),
-      reject: () => resolve(false),
-      onHide: () => resolve(false),
+  return () =>
+    new Promise<boolean>((resolve) => {
+      confirm.require({
+        header: t('common.unsavedTitle'),
+        message: t('common.unsavedMessage'),
+        icon: 'pi pi-exclamation-triangle',
+        rejectLabel: t('common.keepEditing'),
+        rejectProps: { text: true },
+        acceptLabel: t('common.discard'),
+        acceptClass: 'p-button-danger',
+        accept: () => resolve(true),
+        reject: () => resolve(false),
+        onHide: () => resolve(false),
+      })
     })
-  })
 }
 
 /**

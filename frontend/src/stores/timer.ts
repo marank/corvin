@@ -1,19 +1,6 @@
 import { defineStore } from 'pinia'
-import type { TimeEntry } from '../api'
-import { api } from '../api/client'
+import { timeTrackingApi, type RunningEntry, type TimeEntry } from '../api'
 import { useSettingsStore } from './settings'
-
-export interface RunningEntry {
-  id: string
-  customer: string | null
-  customer_name: string | null
-  project: string | null
-  project_name: string | null
-  start_datetime: string
-  breaks: { id: string; start_datetime: string; end_datetime: string | null }[]
-  is_paused: boolean
-  description: string
-}
 
 function _formatElapsed(ms: number): string {
   const s = Math.floor(ms / 1000)
@@ -41,9 +28,7 @@ export const useTimerStore = defineStore('timer', {
   },
   actions: {
     async refresh() {
-      this.running = await api.get<RunningEntry | null>(
-        '/api/v1/time-tracking/active/',
-      )
+      this.running = await timeTrackingApi.active()
       this._tick()
     },
     _tick() {
@@ -54,13 +39,13 @@ export const useTimerStore = defineStore('timer', {
         return
       }
       const settings = useSettingsStore()
-      settings.load()
+      void settings.load()
       const calc = () => {
         const running = this.running
         if (!running) return
         const start = new Date(running.start_datetime).getTime()
-        const breaks = [...(running.breaks || [])].sort(
-          (a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()
+        const breaks = [...running.breaks].sort(
+          (a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime(),
         )
         let totalBreakMs = 0
         let activeEnd = Date.now()
@@ -90,16 +75,13 @@ export const useTimerStore = defineStore('timer', {
       this.startRequests++
     },
     async start(customer: string | null = null, project: string | null = null, description = '') {
-      this.running = await api.post<RunningEntry>(
-        '/api/v1/time-tracking/start/',
-        { customer, project, description },
-      )
+      this.running = await timeTrackingApi.start({ customer, project, description })
       this.version++
       this._tick()
     },
     async stop(): Promise<TimeEntry | null> {
       if (!this.running) return null
-      const entry = await api.post<TimeEntry>('/api/v1/time-tracking/stop/')
+      const entry = await timeTrackingApi.stop()
       this.running = null
       this.lastStopped = entry
       this.elapsed = 0
@@ -110,13 +92,13 @@ export const useTimerStore = defineStore('timer', {
     },
     async pause() {
       if (!this.running) return
-      this.running = await api.post<RunningEntry>('/api/v1/time-tracking/pause/')
+      this.running = await timeTrackingApi.pause()
       this.version++
       this._tick()
     },
     async resume() {
       if (!this.running) return
-      this.running = await api.post<RunningEntry>('/api/v1/time-tracking/resume/')
+      this.running = await timeTrackingApi.resume()
       this.version++
       this._tick()
     },

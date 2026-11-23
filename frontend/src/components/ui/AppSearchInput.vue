@@ -12,10 +12,14 @@ const { t } = useI18n()
 const text = ref(model.value)
 let timer: ReturnType<typeof setTimeout> | undefined
 
-watch(model, (value) => { if (value !== text.value.trim()) text.value = value })
+watch(model, (value) => {
+  if (value !== text.value.trim()) text.value = value
+})
 watch(text, (value) => {
   clearTimeout(timer)
-  timer = setTimeout(() => { model.value = value.trim() }, 300)
+  timer = setTimeout(() => {
+    model.value = value.trim()
+  }, 300)
 })
 onBeforeUnmount(() => clearTimeout(timer))
 </script>
@@ -23,6 +27,12 @@ onBeforeUnmount(() => clearTimeout(timer))
 <template>
   <IconField>
     <InputIcon class="pi pi-search" />
-    <InputText v-model="text" :placeholder="t('common.search')" :aria-label="t('common.search')" size="small" class="w-48" />
+    <InputText
+      v-model="text"
+      :placeholder="t('common.search')"
+      :aria-label="t('common.search')"
+      size="small"
+      class="w-48"
+    />
   </IconField>
 </template>

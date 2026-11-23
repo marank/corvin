@@ -12,7 +12,11 @@ const { t } = useI18n()
 
 <template>
   <AppEmptyState v-if="failed" icon="pi pi-exclamation-circle" :message="t('common.loadFailed')">
-    <router-link :to="backTo"><Button :label="backLabel" icon="pi pi-arrow-left" text size="small" /></router-link>
+    <router-link :to="backTo"
+      ><Button :label="backLabel" icon="pi pi-arrow-left" text size="small"
+    /></router-link>
   </AppEmptyState>
-  <div v-else class="flex justify-center py-16"><ProgressSpinner class="size-8!" stroke-width="4" /></div>
+  <div v-else class="flex justify-center py-16">
+    <ProgressSpinner class="size-8!" stroke-width="4" />
+  </div>
 </template>

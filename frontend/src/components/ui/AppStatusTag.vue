@@ -23,5 +23,8 @@ const severityMap: Record<string, string> = {
 </script>
 
 <template>
-  <Tag :value="label ?? props.status" :severity="(severityMap[props.status] as any) ?? 'secondary'" />
+  <Tag
+    :value="label ?? props.status"
+    :severity="(severityMap[props.status] as any) ?? 'secondary'"
+  />
 </template>

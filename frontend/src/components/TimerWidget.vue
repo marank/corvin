@@ -36,14 +36,20 @@ async function run(action: () => Promise<unknown>) {
 
 // Starting and stopping can be triggered from any page (timer store); the
 // dialogs live here so the flow is the same everywhere.
-watch(() => timer.startRequests, () => startDialog.value?.open())
-watch(() => timer.lastStopped, (entry) => {
-  if (!entry) return
-  stoppedEntry.value = entry
-  timer.lastStopped = null
-  if (settings.openStoppedTimeEntry === 'yes') entryModal.value?.open()
-  else if (settings.openStoppedTimeEntry === 'ask') askModal.value?.open()
-})
+watch(
+  () => timer.startRequests,
+  () => startDialog.value?.open(),
+)
+watch(
+  () => timer.lastStopped,
+  (entry) => {
+    if (!entry) return
+    stoppedEntry.value = entry
+    timer.lastStopped = null
+    if (settings.openStoppedTimeEntry === 'yes') entryModal.value?.open()
+    else if (settings.openStoppedTimeEntry === 'ask') askModal.value?.open()
+  },
+)
 
 function answerOpenEntry(open: boolean) {
   askModal.value?.close()
@@ -58,23 +64,56 @@ function entrySaved() {
 </script>
 
 <template>
-  <div v-if="timer.running || settings.alwaysShowTimerWidget" class="flex items-center gap-2 border border-primary px-2 py-1">
+  <div
+    v-if="timer.running || settings.alwaysShowTimerWidget"
+    class="flex items-center gap-2 border border-primary px-2 py-1"
+  >
     <template v-if="timer.running?.is_paused">
       <span class="flex gap-0.5 animate-breathe">
         <span class="w-1 h-3 bg-yellow-500" />
         <span class="w-1 h-3 bg-yellow-500" />
       </span>
     </template>
-    <span v-else-if="timer.running" class="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-green-500 animate-breathe" />
-    <span v-else class="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-surface-400" />
-    <span class="text-sm font-mono">{{ timer.elapsedText }}<span v-if="timer.running?.is_paused" class="text-surface-500"> ({{ timer.breakElapsedText }})</span></span>
-    <span v-if="timer.running?.description || timer.running?.project_name" class="hidden md:inline text-xs text-surface-500 truncate max-w-40">{{ timer.running.description || timer.running.project_name }}</span>
+    <span
+      v-else-if="timer.running"
+      class="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-green-500 animate-breathe"
+    />
+    <span
+      v-else
+      class="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-surface-400"
+    />
+    <span class="text-sm font-mono"
+      >{{ timer.elapsedText
+      }}<span v-if="timer.running?.is_paused" class="text-surface-500">
+        ({{ timer.breakElapsedText }})</span
+      ></span
+    >
+    <span
+      v-if="timer.running?.description || timer.running?.project_name"
+      class="hidden md:inline text-xs text-surface-500 truncate max-w-40"
+      >{{ timer.running.description || timer.running.project_name }}</span
+    >
     <template v-if="timer.running">
-      <AppIconButton v-if="timer.running.is_paused" icon="pi pi-play" :aria-label="t('time.resumeTimer')" @click="run(timer.resume)" />
-      <AppIconButton v-else icon="pi pi-pause" :aria-label="t('time.pauseTimer')" @click="run(timer.pause)" />
-      <AppIconButton icon="pi pi-stop" :aria-label="t('time.stopTimer')" @click="run(timer.stop)" />
+      <AppIconButton
+        v-if="timer.running.is_paused"
+        icon="pi pi-play"
+        :label="t('time.resumeTimer')"
+        @click="run(timer.resume)"
+      />
+      <AppIconButton
+        v-else
+        icon="pi pi-pause"
+        :label="t('time.pauseTimer')"
+        @click="run(timer.pause)"
+      />
+      <AppIconButton icon="pi pi-stop" :label="t('time.stopTimer')" @click="run(timer.stop)" />
     </template>
-    <AppIconButton v-else icon="pi pi-play" :aria-label="t('time.startTimer')" @click="timer.requestStart()" />
+    <AppIconButton
+      v-else
+      icon="pi pi-play"
+      :label="t('time.startTimer')"
+      @click="timer.requestStart()"
+    />
   </div>
 
   <TimerStartDialog ref="startDialog" />
@@ -87,7 +126,15 @@ function entrySaved() {
     </template>
   </AppModal>
 
-  <AppModal ref="entryModal" :form="entryForm?.state" :loading="entryForm?.saving" :title="t('time.editEntry')" size="lg" @confirm="entryForm?.save()" @closed="stoppedEntry = null">
+  <AppModal
+    ref="entryModal"
+    :form="entryForm?.state"
+    :loading="entryForm?.saving"
+    :title="t('time.editEntry')"
+    size="lg"
+    @confirm="entryForm?.save()"
+    @closed="stoppedEntry = null"
+  >
     <TimeEntryForm v-if="stoppedEntry" ref="entryForm" :entry="stoppedEntry" @saved="entrySaved" />
   </AppModal>
 </template>

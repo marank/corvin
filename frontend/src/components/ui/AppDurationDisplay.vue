@@ -6,7 +6,7 @@ const props = defineProps<{ minutes: number | null }>()
 const { t } = useI18n()
 
 const text = computed(() => {
-  if (props.minutes === null || props.minutes === undefined) return '—'
+  if (props.minutes == null) return '—'
   // Round to whole minutes first, otherwise 59.6 would become "0:60 h".
   const total = Math.round(props.minutes)
   const h = Math.floor(total / 60)

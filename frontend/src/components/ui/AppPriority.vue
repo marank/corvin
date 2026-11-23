@@ -12,7 +12,12 @@ const look: Record<string, { icon: string; class: string }> = {
 </script>
 
 <template>
-  <span class="inline-flex items-center gap-1 text-sm whitespace-nowrap" :class="look[priority]?.class">
-    <i :class="look[priority]?.icon" class="text-xs" aria-hidden="true" />{{ t(`tasks.priorities.${priority}`) }}
+  <span
+    class="inline-flex items-center gap-1 text-sm whitespace-nowrap"
+    :class="look[priority]?.class"
+  >
+    <i :class="look[priority]?.icon" class="text-xs" aria-hidden="true" />{{
+      t(`tasks.priorities.${priority}`)
+    }}
   </span>
 </template>

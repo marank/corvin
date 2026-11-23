@@ -16,7 +16,7 @@ const props = withDefaults(
     // The edited object; closing via X, Esc or Cancel after changing it asks first.
     form?: unknown
   }>(),
-  { size: 'md', showFooter: true, loading: false },
+  { size: 'md', confirmLabel: undefined, showFooter: true, loading: false, form: undefined },
 )
 const emit = defineEmits<{ confirm: []; closed: [] }>()
 const { t } = useI18n()
@@ -39,7 +39,9 @@ function open() {
   clearFormErrors()
   visible.value = true
   // Callers usually fill the form right before open(); take the snapshot once props caught up.
-  nextTick(() => { snapshot = JSON.stringify(props.form) })
+  void nextTick(() => {
+    snapshot = JSON.stringify(props.form)
+  })
 }
 // Programmatic close (after saving). The Dialog's @hide emits `closed` for every path.
 function close() {
@@ -47,7 +49,12 @@ function close() {
 }
 // User-initiated close: X, Esc, Cancel.
 async function requestClose() {
-  if (props.form !== undefined && JSON.stringify(props.form) !== snapshot && !(await confirmDiscard())) return
+  if (
+    props.form !== undefined &&
+    JSON.stringify(props.form) !== snapshot &&
+    !(await confirmDiscard())
+  )
+    return
   close()
 }
 
@@ -57,7 +64,7 @@ defineExpose({ open, close })
 <template>
   <Dialog
     :visible="visible"
-    @update:visible="(value: boolean) => value ? (visible = true) : requestClose()"
+    @update:visible="(value: boolean) => (value ? (visible = true) : requestClose())"
     :header="title"
     modal
     :class="widthClass"

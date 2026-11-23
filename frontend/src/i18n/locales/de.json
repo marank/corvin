@@ -148,7 +148,12 @@
     "paymentTerms": "Zahlungsziel (Tage)",
     "paymentTermsDefault": "Standard verwenden",
     "invoiceContact": "Standard für Rechnungen",
-    "groups": { "masterData": "Stammdaten", "contact": "Kontaktdaten", "billing": "Abrechnung", "timeTracking": "Zeiterfassung" },
+    "groups": {
+      "masterData": "Stammdaten",
+      "contact": "Kontaktdaten",
+      "billing": "Abrechnung",
+      "timeTracking": "Zeiterfassung"
+    },
     "place": "Ort"
   },
   "projects": {
@@ -245,7 +250,7 @@
   "invoices": {
     "dateFrom": "Leistungen ab",
     "dateTo": "Leistungen bis",
-    "emailSent": "E-Mail gesendet",
+    "emailQueued": "E-Mail wird versendet. Die Rechnung wechselt auf „Versendet“, sobald sie raus ist.",
     "paymentAdded": "Zahlung erfasst",
     "title": "Rechnungen",
     "new": "Neue Rechnung",
@@ -258,7 +263,14 @@
     "vat": "MwSt.",
     "paid": "Bezahlt",
     "remaining": "Offen",
-    "status": { "draft": "Entwurf", "issued": "Ausgestellt", "sent": "Gesendet", "paid": "Bezahlt", "partially_paid": "Teilbezahlt", "cancelled": "Storniert" },
+    "status": {
+      "draft": "Entwurf",
+      "issued": "Ausgestellt",
+      "sent": "Gesendet",
+      "paid": "Bezahlt",
+      "partially_paid": "Teilbezahlt",
+      "cancelled": "Storniert"
+    },
     "eInvoice": "E-Rechnung",
     "eInvoiceFormats": { "none": "Keine", "zugferd": "ZUGFeRD", "xrechnung": "XRechnung" },
     "groupBy": "Gruppierung",
@@ -334,7 +346,20 @@
     "mailSubject": "E-Mail-Betreff",
     "mailBody": "E-Mail-Text",
     "placeholders": "Variablen und Bausteine",
-    "variableGroups": { "invoice": "Rechnung", "page": "Seite und Gestaltung", "customer": "Kunde", "company": "Unternehmen", "bankAccount": "Bankkonto", "invoiceContacts": "Rechnungs-Ansprechpartner", "companyContacts": "Ansprechpartner (Unternehmen)", "relations": "Projekt und Vertrag", "formatting": "Formatierung", "lines": "Rechnungspositionen", "textBlocks": "Textbausteine", "images": "Bilder" },
+    "variableGroups": {
+      "invoice": "Rechnung",
+      "page": "Seite und Gestaltung",
+      "customer": "Kunde",
+      "company": "Unternehmen",
+      "bankAccount": "Bankkonto",
+      "invoiceContacts": "Rechnungs-Ansprechpartner",
+      "companyContacts": "Ansprechpartner (Unternehmen)",
+      "relations": "Projekt und Vertrag",
+      "formatting": "Formatierung",
+      "lines": "Rechnungspositionen",
+      "textBlocks": "Textbausteine",
+      "images": "Bilder"
+    },
     "assignments": "Zuordnung",
     "assignmentsHint": "Wählen Sie für jeden Belegtyp eine Vorlage aus. Ohne Auswahl wird die Standardvorlage verwendet.",
     "reportTypes": {
@@ -364,7 +389,15 @@
     "companyName": "Firmenname",
     "city": "Ort",
     "country": "Land",
-    "groups": { "company": "Unternehmens- und Kontaktdaten", "address": "Anschrift", "tax": "Steuerdaten", "banking": "Bankkonto", "formatting": "Darstellungsformate", "invoicing": "Rechnungsvorgaben", "timeTracking": "Zeiterfassung" },
+    "groups": {
+      "company": "Unternehmens- und Kontaktdaten",
+      "address": "Anschrift",
+      "tax": "Steuerdaten",
+      "banking": "Bankkonto",
+      "formatting": "Darstellungsformate",
+      "invoicing": "Rechnungsvorgaben",
+      "timeTracking": "Zeiterfassung"
+    },
     "taxId": "Steuernummer",
     "vatId": "USt-IdNr.",
     "website": "Website",
@@ -396,7 +429,12 @@
     "logo": "Logo",
     "companyContacts": "Ansprechpartner",
     "images": "Bilder",
-    "imageKinds": { "logo_light": "Vollständiges Logo – hell", "logo_dark": "Vollständiges Logo – dunkel", "icon_light": "Symbol – hell", "icon_dark": "Symbol – dunkel" },
+    "imageKinds": {
+      "logo_light": "Vollständiges Logo – hell",
+      "logo_dark": "Vollständiges Logo – dunkel",
+      "icon_light": "Symbol – hell",
+      "icon_dark": "Symbol – dunkel"
+    },
     "uploadImage": "Bild hochladen",
     "additionalImages": "Weitere Bilder",
     "addImage": "Bild hinzufügen",
@@ -410,15 +448,33 @@
     "timerCountsDuringBreak": "Timer während Pausen weiterlaufen lassen",
     "alwaysShowTimerWidget": "Timer-Widget immer anzeigen",
     "openStoppedTimeEntry": "Zeiteintrag nach dem Stoppen öffnen",
-    "roundingDirections": { "nearest": "Kaufmännisch", "backwards": "Abrunden", "forwards": "Aufrunden" },
+    "roundingDirections": {
+      "nearest": "Kaufmännisch",
+      "backwards": "Abrunden",
+      "forwards": "Aufrunden"
+    },
     "numbering": "Nummerngenerierung",
     "numberingHelp": "Verfügbare Platzhalter: {'{'}counter{'}'}, {'{'}counter:3{'}'}, {'{'}year:4{'}'}, {'{'}year:2{'}'}, {'{'}month:2{'}'}, {'{'}day:2{'}'} und beliebige Modellfelder wie {'{'}customer.number{'}'}, {'{'}customer.vat_id{'}'} oder {'{'}project.customer.number{'}'}.",
     "numberFormat": "Format",
     "numberScope": "Zählerbereich",
     "numberStart": "Startwert",
     "numberPreview": "Vorschau",
-    "scopes": { "global": "Global", "year": "Pro Jahr", "customer": "Pro Kunde", "customer_year": "Pro Kunde und Jahr", "project": "Pro Projekt", "project_year": "Pro Projekt und Jahr" },
-    "entities": { "customer": "Kunden", "project": "Projekte", "invoice": "Rechnungen", "contract": "Verträge", "visit": "Vor-Ort-Termine", "task": "Aufgaben" },
+    "scopes": {
+      "global": "Global",
+      "year": "Pro Jahr",
+      "customer": "Pro Kunde",
+      "customer_year": "Pro Kunde und Jahr",
+      "project": "Pro Projekt",
+      "project_year": "Pro Projekt und Jahr"
+    },
+    "entities": {
+      "customer": "Kunden",
+      "project": "Projekte",
+      "invoice": "Rechnungen",
+      "contract": "Verträge",
+      "visit": "Vor-Ort-Termine",
+      "task": "Aufgaben"
+    },
     "changePassword": "Passwort ändern",
     "oldPassword": "Altes Passwort",
     "newPassword": "Neues Passwort",

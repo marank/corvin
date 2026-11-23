@@ -1,0 +1,17 @@
+{
+  "path": ["src", "../backend/core", "../backend/config"],
+  "format": ["typescript", "tsx", "javascript", "vue", "python"],
+  "minTokens": 70,
+  "threshold": 3,
+  "ignore": [
+    "**/migrations/**",
+    "**/tests/**",
+    "**/__tests__/**",
+    "**/locale/**",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/*.d.ts"
+  ],
+  "gitignore": true,
+  "reporters": ["console"]
+}

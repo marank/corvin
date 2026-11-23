@@ -67,22 +67,51 @@ async function save() {
 
 <template>
   <div v-if="visit">
-    <AppPageHeader back-to="/visits" :back-label="t('nav.visits')" :title="`${visit.customer_name} — ${dayjs(visit.date).format(formatting.dateFormat)}`" :subtitle="[visit.number, visit.location].filter(Boolean).join(' · ')">
+    <AppPageHeader
+      back-to="/visits"
+      :back-label="t('nav.visits')"
+      :title="`${visit.customer_name} — ${dayjs(visit.date).format(formatting.dateFormat)}`"
+      :subtitle="[visit.number, visit.location].filter(Boolean).join(' · ')"
+    >
       <template #actions>
-        <Button :label="t('common.delete')" text severity="danger" @click="confirmDelete(async () => { await visitsApi.remove(id); router.push('/visits') })" />
+        <Button
+          :label="t('common.delete')"
+          text
+          severity="danger"
+          @click="
+            confirmDelete(async () => {
+              await visitsApi.remove(id)
+              router.push('/visits')
+            })
+          "
+        />
         <Button :label="t('common.save')" :loading="saving" @click="save" />
       </template>
     </AppPageHeader>
 
     <div class="flex flex-wrap items-start gap-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl flex-[1_1_48rem]">
-        <AppFormField field="customer" :label="t('projects.customer')"><CustomerSelect v-model="form.customer" /></AppFormField>
-        <AppFormField field="project" :label="t('projects.project')"><ProjectSelect v-model="form.project" :customer-id="form.customer" /></AppFormField>
-        <AppFormField field="date" :label="t('common.date')"><AppDateInput v-model="(form.date as any)" /></AppFormField>
-        <AppFormField field="location" :label="t('visits.location')"><InputText v-model="form.location" class="w-full" /></AppFormField>
-        <AppFormField field="arrival" :label="t('visits.arrival')"><InputText v-model="form.arrival" type="time" class="w-full" /></AppFormField>
-        <AppFormField field="departure" :label="t('visits.departure')"><InputText v-model="form.departure" type="time" class="w-full" /></AppFormField>
-        <AppFormField field="notes" :label="t('visits.report')" class="md:col-span-2"><Textarea v-model="form.notes" rows="6" class="w-full" /></AppFormField>
+        <AppFormField field="customer" :label="t('projects.customer')"
+          ><CustomerSelect v-model="form.customer"
+        /></AppFormField>
+        <AppFormField field="project" :label="t('projects.project')"
+          ><ProjectSelect v-model="form.project" :customer-id="form.customer"
+        /></AppFormField>
+        <AppFormField field="date" :label="t('common.date')"
+          ><AppDateInput v-model="form.date as any"
+        /></AppFormField>
+        <AppFormField field="location" :label="t('visits.location')"
+          ><InputText v-model="form.location" class="w-full"
+        /></AppFormField>
+        <AppFormField field="arrival" :label="t('visits.arrival')"
+          ><InputText v-model="form.arrival" type="time" class="w-full"
+        /></AppFormField>
+        <AppFormField field="departure" :label="t('visits.departure')"
+          ><InputText v-model="form.departure" type="time" class="w-full"
+        /></AppFormField>
+        <AppFormField field="notes" :label="t('visits.report')" class="md:col-span-2"
+          ><Textarea v-model="form.notes" rows="6" class="w-full"
+        /></AppFormField>
       </div>
 
       <Tabs value="entries" class="min-w-0 flex-[1_1_28rem]">
@@ -93,14 +122,31 @@ async function save() {
         <TabPanels>
           <TabPanel value="entries" class="pt-4">
             <AppDataTable :rows="entries" :state-key="tableStateKeys.visitTimeEntries">
-              <Column field="start_datetime" :header="t('common.date')" sortable><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template></Column>
-              <Column class="app-text" field="description" :header="t('time.description')" sortable />
-              <Column class="app-num" field="duration_minutes" :header="t('time.duration')" sortable>
-                <template #body="{ data }"><AppDurationDisplay :minutes="data.duration_minutes" /></template>
+              <Column field="start_datetime" :header="t('common.date')" sortable
+                ><template #body="{ data }"
+                  ><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template
+              ></Column>
+              <Column
+                class="app-text"
+                field="description"
+                :header="t('time.description')"
+                sortable
+              />
+              <Column
+                class="app-num"
+                field="duration_minutes"
+                :header="t('time.duration')"
+                sortable
+              >
+                <template #body="{ data }"
+                  ><AppDurationDisplay :minutes="data.duration_minutes"
+                /></template>
               </Column>
             </AppDataTable>
           </TabPanel>
-          <TabPanel value="attachments" class="pt-4"><AttachmentList model="onsitevisit" :object-id="id" /></TabPanel>
+          <TabPanel value="attachments" class="pt-4"
+            ><AttachmentList model="onsitevisit" :object-id="id"
+          /></TabPanel>
         </TabPanels>
       </Tabs>
     </div>

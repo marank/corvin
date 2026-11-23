@@ -69,6 +69,7 @@ async function confirmTotp() {
 async function disableTotp() {
   try {
     await securityApi.totpDisable(disablePassword.value)
+    disablePassword.value = ''
     disableModal.value?.close()
     if (auth.user) auth.user.totp_enabled = false
     notify.ok(t('settings.totpDisabled'))
@@ -85,30 +86,45 @@ function revokeOthers() {
     rejectLabel: t('common.cancel'),
     rejectProps: { text: true },
     acceptLabel: t('settings.revokeOthers'),
-    accept: async () => {
-      try {
-        await securityApi.revokeAllSessions()
-        sessions.value = await securityApi.sessions()
-        notify.ok(t('settings.revokedOthers'))
-      } catch (e) {
-        notify.error(e)
-      }
-    },
+    accept: () => void revokeOtherSessions(),
   })
+}
+
+async function revokeOtherSessions() {
+  try {
+    await securityApi.revokeAllSessions()
+    sessions.value = await securityApi.sessions()
+    notify.ok(t('settings.revokedOthers'))
+  } catch (e) {
+    notify.error(e)
+  }
 }
 </script>
 
 <template>
   <div>
-    <AppPageHeader back-to="/settings" :back-label="t('nav.settings')" :title="t('settings.security')" />
+    <AppPageHeader
+      back-to="/settings"
+      :back-label="t('nav.settings')"
+      :title="t('settings.security')"
+    />
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl">
       <section class="app-card p-4">
         <h2 class="font-semibold mb-3">{{ t('settings.changePassword') }}</h2>
         <div class="flex flex-col gap-3">
-          <AppFormField :label="t('settings.oldPassword')"><Password v-model="oldPw" :feedback="false" class="w-full" input-class="w-full" /></AppFormField>
-          <AppFormField :label="t('settings.newPassword')"><Password v-model="newPw" class="w-full" input-class="w-full" /></AppFormField>
-          <Button :label="t('common.save')" class="self-start" :disabled="!oldPw || !newPw" @click="changePassword" />
+          <AppFormField :label="t('settings.oldPassword')"
+            ><Password v-model="oldPw" :feedback="false" class="w-full" input-class="w-full"
+          /></AppFormField>
+          <AppFormField :label="t('settings.newPassword')"
+            ><Password v-model="newPw" class="w-full" input-class="w-full"
+          /></AppFormField>
+          <Button
+            :label="t('common.save')"
+            class="self-start"
+            :disabled="!oldPw || !newPw"
+            @click="changePassword"
+          />
         </div>
       </section>
 
@@ -117,8 +133,18 @@ function revokeOthers() {
         <p class="text-sm text-surface-500 mb-3">
           {{ auth.user?.totp_enabled ? t('settings.totpEnabled') : t('settings.totpDisabled') }}
         </p>
-        <Button v-if="!auth.user?.totp_enabled" :label="t('settings.totpSetup')" @click="startTotp" />
-        <Button v-else :label="t('settings.totpDisable')" severity="danger" text @click="disableModal?.open()" />
+        <Button
+          v-if="!auth.user?.totp_enabled"
+          :label="t('settings.totpSetup')"
+          @click="startTotp"
+        />
+        <Button
+          v-else
+          :label="t('settings.totpDisable')"
+          severity="danger"
+          text
+          @click="disableModal?.open()"
+        />
       </section>
 
       <section class="app-card p-4 md:col-span-2">
@@ -131,7 +157,8 @@ function revokeOthers() {
             <span class="font-mono truncate max-w-72">{{ s.key }}</span>
             <span class="flex items-center gap-2 text-surface-500">
               <Tag v-if="s.current" :value="t('settings.currentSession')" severity="success" />
-              {{ t('settings.expires') }} <AppDateTimeDisplay :value="s.expire_date" type="datetime" />
+              {{ t('settings.expires') }}
+              <AppDateTimeDisplay :value="s.expire_date" type="datetime" />
             </span>
           </li>
         </ul>
@@ -143,7 +170,13 @@ function revokeOthers() {
         <img v-if="qrDataUrl" :src="qrDataUrl" :alt="t('settings.totpScan')" />
         <p class="text-sm text-surface-500">{{ t('settings.totpScan') }}</p>
         <AppFormField :label="t('settings.totpConfirm')" class="w-full">
-          <InputText v-model="totpCode" class="w-full" autocomplete="one-time-code" inputmode="numeric" @keydown.enter="totpCode && confirmTotp()" />
+          <InputText
+            v-model="totpCode"
+            class="w-full"
+            autocomplete="one-time-code"
+            inputmode="numeric"
+            @keydown.enter="totpCode && confirmTotp()"
+          />
         </AppFormField>
       </div>
       <div v-else>
@@ -161,8 +194,15 @@ function revokeOthers() {
       </template>
     </AppModal>
 
-    <AppModal ref="disableModal" :title="t('settings.totpDisableTitle')" :confirm-label="t('settings.totpDisable')" @confirm="disableTotp">
-      <AppFormField :label="t('auth.password')"><Password v-model="disablePassword" :feedback="false" class="w-full" input-class="w-full" /></AppFormField>
+    <AppModal
+      ref="disableModal"
+      :title="t('settings.totpDisableTitle')"
+      :confirm-label="t('settings.totpDisable')"
+      @confirm="disableTotp"
+    >
+      <AppFormField :label="t('auth.password')"
+        ><Password v-model="disablePassword" :feedback="false" class="w-full" input-class="w-full"
+      /></AppFormField>
     </AppModal>
   </div>
 </template>

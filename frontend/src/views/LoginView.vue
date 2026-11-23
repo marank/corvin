@@ -8,6 +8,7 @@ import Button from 'primevue/button'
 import Message from 'primevue/message'
 import AppLogo from '../components/ui/AppLogo.vue'
 import { useAuthStore } from '../stores/auth'
+import { ApiError } from '../api/client'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -26,9 +27,10 @@ async function submit() {
   error.value = ''
   try {
     await auth.login(username.value, password.value, otpCode.value)
-    router.push((route.query.next as string) ?? '/')
-  } catch (e: any) {
-    if ((e?.data as { requires_otp?: boolean })?.requires_otp) {
+    void router.push((route.query.next as string | undefined) ?? '/')
+  } catch (e) {
+    const data = e instanceof ApiError ? e.data : undefined
+    if ((data as { requires_otp?: boolean } | undefined)?.requires_otp) {
       needsOtp.value = true
       if (otpCode.value) error.value = t('auth.otpFailed')
     } else {
@@ -52,15 +54,40 @@ async function submit() {
         <Message v-if="error" severity="error" size="small">{{ error }}</Message>
         <div class="flex flex-col gap-1">
           <label for="login-username" class="text-sm font-medium">{{ t('auth.username') }}</label>
-          <InputText id="login-username" v-model="username" required autocomplete="username" autofocus />
+          <!-- eslint-disable vuejs-accessibility/no-autofocus -- the login form's first field; the page has nothing else to do. -->
+          <InputText
+            id="login-username"
+            v-model="username"
+            required
+            autocomplete="username"
+            autofocus
+          />
+          <!-- eslint-enable vuejs-accessibility/no-autofocus -->
         </div>
         <div class="flex flex-col gap-1">
           <label for="login-password" class="text-sm font-medium">{{ t('auth.password') }}</label>
-          <Password v-model="password" input-id="login-password" required :feedback="false" toggle-mask autocomplete="current-password" class="w-full" input-class="w-full" />
+          <Password
+            v-model="password"
+            input-id="login-password"
+            required
+            :feedback="false"
+            toggle-mask
+            autocomplete="current-password"
+            class="w-full"
+            input-class="w-full"
+          />
         </div>
         <div v-if="needsOtp" class="flex flex-col gap-1">
           <label for="login-otp" class="text-sm font-medium">{{ t('auth.otpCode') }}</label>
-          <InputText id="login-otp" v-model="otpCode" autocomplete="one-time-code" inputmode="numeric" autofocus />
+          <!-- eslint-disable vuejs-accessibility/no-autofocus -- the code field appears after the password step; focus follows it. -->
+          <InputText
+            id="login-otp"
+            v-model="otpCode"
+            autocomplete="one-time-code"
+            inputmode="numeric"
+            autofocus
+          />
+          <!-- eslint-enable vuejs-accessibility/no-autofocus -->
           <small class="text-surface-500">{{ t('auth.otpHint') }}</small>
         </div>
         <Button type="submit" :label="t('auth.login')" :loading="loading" class="mt-2" />
@@ -74,14 +101,30 @@ async function submit() {
 /* Brand colors as a soft backdrop and an accent line on the card. */
 .login-page {
   background:
-    radial-gradient(40rem 24rem at 15% 10%, color-mix(in srgb, #22d3ee 14%, transparent), transparent 70%),
-    radial-gradient(40rem 24rem at 85% 90%, color-mix(in srgb, #a855f7 14%, transparent), transparent 70%),
+    radial-gradient(
+      40rem 24rem at 15% 10%,
+      color-mix(in srgb, #22d3ee 14%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      40rem 24rem at 85% 90%,
+      color-mix(in srgb, #a855f7 14%, transparent),
+      transparent 70%
+    ),
     var(--p-surface-50);
 }
 .dark .login-page {
   background:
-    radial-gradient(40rem 24rem at 15% 10%, color-mix(in srgb, #22d3ee 10%, transparent), transparent 70%),
-    radial-gradient(40rem 24rem at 85% 90%, color-mix(in srgb, #a855f7 10%, transparent), transparent 70%),
+    radial-gradient(
+      40rem 24rem at 15% 10%,
+      color-mix(in srgb, #22d3ee 10%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      40rem 24rem at 85% 90%,
+      color-mix(in srgb, #a855f7 10%, transparent),
+      transparent 70%
+    ),
     var(--p-surface-950);
 }
 .login-accent {

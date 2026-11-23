@@ -282,6 +282,33 @@ export interface Attachment {
 
 const base = '/api/v1'
 
+export interface User {
+  id: number
+  username: string
+  email: string
+  totp_enabled: boolean
+}
+
+export const authApi = {
+  me: () => api.get<User>(`${base}/auth/me`),
+  login: (username: string, password: string, otpCode: string) =>
+    api.post<User>(`${base}/auth/login`, { username, password, otp_code: otpCode }),
+  logout: () => api.post(`${base}/auth/logout`),
+}
+
+/** The timer's entry while it runs. */
+export interface RunningEntry {
+  id: string
+  customer: string | null
+  customer_name: string | null
+  project: string | null
+  project_name: string | null
+  start_datetime: string
+  breaks: { id: string; start_datetime: string; end_datetime: string | null }[]
+  is_paused: boolean
+  description: string
+}
+
 export const bankAccountsApi = {
   list: () => api.get<Page<BankAccount>>(`${base}/bank-accounts/?page_size=200`),
   create: (d: Partial<BankAccount>) => api.post<BankAccount>(`${base}/bank-accounts/`, d),
@@ -294,8 +321,7 @@ export const customersApi = {
   list: (params = '') => api.get<Page<Customer>>(`${base}/customers/?${params}`),
   get: (id: string) => api.get<Customer>(`${base}/customers/${id}/`),
   create: (d: Partial<Customer>) => api.post<Customer>(`${base}/customers/`, d),
-  update: (id: string, d: Partial<Customer>) =>
-    api.put<Customer>(`${base}/customers/${id}/`, d),
+  update: (id: string, d: Partial<Customer>) => api.put<Customer>(`${base}/customers/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/customers/${id}/`),
 }
 
@@ -303,8 +329,7 @@ export const addressesApi = {
   list: (customerId: string) =>
     api.get<Page<Address>>(`${base}/addresses/?customer=${customerId}&page_size=500`),
   create: (d: Partial<Address>) => api.post<Address>(`${base}/addresses/`, d),
-  update: (id: string, d: Partial<Address>) =>
-    api.put<Address>(`${base}/addresses/${id}/`, d),
+  update: (id: string, d: Partial<Address>) => api.put<Address>(`${base}/addresses/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/addresses/${id}/`),
 }
 
@@ -312,8 +337,7 @@ export const contactsApi = {
   list: (customerId: string) =>
     api.get<Page<Contact>>(`${base}/contacts/?customer=${customerId}&page_size=500`),
   create: (d: Partial<Contact>) => api.post<Contact>(`${base}/contacts/`, d),
-  update: (id: string, d: Partial<Contact>) =>
-    api.put<Contact>(`${base}/contacts/${id}/`, d),
+  update: (id: string, d: Partial<Contact>) => api.put<Contact>(`${base}/contacts/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/contacts/${id}/`),
 }
 
@@ -321,8 +345,7 @@ export const projectsApi = {
   list: (params = '') => api.get<Page<Project>>(`${base}/projects/?${params}`),
   get: (id: string) => api.get<Project>(`${base}/projects/${id}/`),
   create: (d: Partial<Project>) => api.post<Project>(`${base}/projects/`, d),
-  update: (id: string, d: Partial<Project>) =>
-    api.put<Project>(`${base}/projects/${id}/`, d),
+  update: (id: string, d: Partial<Project>) => api.put<Project>(`${base}/projects/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/projects/${id}/`),
 }
 
@@ -338,8 +361,7 @@ export const visitsApi = {
   list: (params = '') => api.get<Page<Visit>>(`${base}/visits/?${params}`),
   get: (id: string) => api.get<Visit>(`${base}/visits/${id}/`),
   create: (d: Partial<Visit>) => api.post<Visit>(`${base}/visits/`, d),
-  update: (id: string, d: Partial<Visit>) =>
-    api.put<Visit>(`${base}/visits/${id}/`, d),
+  update: (id: string, d: Partial<Visit>) => api.put<Visit>(`${base}/visits/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/visits/${id}/`),
 }
 
@@ -351,9 +373,12 @@ export const timeTrackingApi = {
   update: (id: string, d: Record<string, unknown>) =>
     api.put<TimeEntry>(`${base}/time-tracking/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/time-tracking/${id}/`),
+  active: () => api.get<RunningEntry | null>(`${base}/time-tracking/active/`),
+  start: (d: { customer: string | null; project: string | null; description: string }) =>
+    api.post<RunningEntry>(`${base}/time-tracking/start/`, d),
   stop: () => api.post<TimeEntry>(`${base}/time-tracking/stop/`),
-  pause: () => api.post<TimeEntry>(`${base}/time-tracking/pause/`),
-  resume: () => api.post<TimeEntry>(`${base}/time-tracking/resume/`),
+  pause: () => api.post<RunningEntry>(`${base}/time-tracking/pause/`),
+  resume: () => api.post<RunningEntry>(`${base}/time-tracking/resume/`),
 }
 
 export const ratesApi = {
@@ -365,18 +390,15 @@ export const ratesApi = {
 }
 
 export const contractsApi = {
-  list: (params = '') =>
-    api.get<Page<SupportContract>>(`${base}/support-contracts/?${params}`),
+  list: (params = '') => api.get<Page<SupportContract>>(`${base}/support-contracts/?${params}`),
   get: (id: string) => api.get<SupportContract>(`${base}/support-contracts/${id}/`),
   create: (d: Partial<SupportContract>) =>
     api.post<SupportContract>(`${base}/support-contracts/`, d),
   update: (id: string, d: Partial<SupportContract>) =>
     api.put<SupportContract>(`${base}/support-contracts/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/support-contracts/${id}/`),
-  usage: (id: string) =>
-    api.get<ContractUsage>(`${base}/support-contracts/${id}/usage/`),
-  runNow: (id: string) =>
-    api.post<Invoice>(`${base}/support-contracts/${id}/run_now/`),
+  usage: (id: string) => api.get<ContractUsage>(`${base}/support-contracts/${id}/usage/`),
+  runNow: (id: string) => api.post<Invoice>(`${base}/support-contracts/${id}/run_now/`),
 }
 
 export interface ConsolidateRequest {
@@ -404,10 +426,8 @@ export interface ConsolidatePreview {
 export const invoicesApi = {
   list: (params = '') => api.get<Page<Invoice>>(`${base}/invoices/?${params}`),
   get: (id: string) => api.get<Invoice>(`${base}/invoices/${id}/`),
-  update: (id: string, d: Partial<Invoice>) =>
-    api.put<Invoice>(`${base}/invoices/${id}/`, d),
-  patch: (id: string, d: Partial<Invoice>) =>
-    api.patch<Invoice>(`${base}/invoices/${id}/`, d),
+  update: (id: string, d: Partial<Invoice>) => api.put<Invoice>(`${base}/invoices/${id}/`, d),
+  patch: (id: string, d: Partial<Invoice>) => api.patch<Invoice>(`${base}/invoices/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/invoices/${id}/`),
   consolidate: (d: ConsolidateRequest) => api.post<Invoice>(`${base}/invoices/consolidate/`, d),
   consolidatePreview: (d: ConsolidateRequest) =>
@@ -465,8 +485,7 @@ export const templatesApi = {
 }
 
 export const attachmentsApi = {
-  contentTypes: () =>
-    api.get<Record<string, number>>(`${base}/attachments/content_types/`),
+  contentTypes: () => api.get<Record<string, number>>(`${base}/attachments/content_types/`),
   list: (contentType: number, objectId: string) =>
     api.get<Page<Attachment>>(
       `${base}/attachments/?content_type=${contentType}&object_id=${objectId}&page_size=500`,
@@ -483,8 +502,7 @@ export const attachmentsApi = {
 
 export const companyContactsApi = {
   list: () => api.get<Page<CompanyContact>>(`${base}/company-contacts/?page_size=200`),
-  create: (d: Partial<CompanyContact>) =>
-    api.post<CompanyContact>(`${base}/company-contacts/`, d),
+  create: (d: Partial<CompanyContact>) => api.post<CompanyContact>(`${base}/company-contacts/`, d),
   update: (id: string, d: Partial<CompanyContact>) =>
     api.put<CompanyContact>(`${base}/company-contacts/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/company-contacts/${id}/`),
@@ -507,9 +525,9 @@ export const companyImagesApi = {
 
 export const settingsApi = {
   get: () => api.get<Record<string, unknown>>(`${base}/settings/`),
-  update: (d: Record<string, unknown>) =>
-    api.put<Record<string, unknown>>(`${base}/settings/`, d),
-  updateWithLogo: (form: FormData) => api.upload<Record<string, unknown>>(`${base}/settings/`, form),
+  update: (d: Record<string, unknown>) => api.put<Record<string, unknown>>(`${base}/settings/`, d),
+  updateWithLogo: (form: FormData) =>
+    api.upload<Record<string, unknown>>(`${base}/settings/`, form),
   previewNumber: (d: { entity: string; format: string; scope: string[]; start: number }) =>
     api.post<{ preview: string }>(`${base}/settings/preview-number/`, d),
 }
@@ -524,14 +542,9 @@ export const securityApi = {
   totpSetup: () => api.post<{ config_url: string }>(`${base}/security/totp/setup`),
   totpConfirm: (code: string) =>
     api.post<{ backup_codes: string[] }>(`${base}/security/totp/confirm`, { code }),
-  totpDisable: (password: string) =>
-    api.post(`${base}/security/totp/disable`, { password }),
+  totpDisable: (password: string) => api.post(`${base}/security/totp/disable`, { password }),
   sessions: () =>
-    api.get<{ key: string; expire_date: string; current: boolean }[]>(
-      `${base}/security/sessions`,
-    ),
-  revokeSession: (key: string) =>
-    api.delete(`${base}/security/sessions`, { key }),
-  revokeAllSessions: () =>
-    api.delete(`${base}/security/sessions`, { all: true }),
+    api.get<{ key: string; expire_date: string; current: boolean }[]>(`${base}/security/sessions`),
+  revokeSession: (key: string) => api.delete(`${base}/security/sessions`, { key }),
+  revokeAllSessions: () => api.delete(`${base}/security/sessions`, { all: true }),
 }

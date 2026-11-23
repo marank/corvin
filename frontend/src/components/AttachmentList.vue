@@ -43,7 +43,7 @@ async function onUpload(ev: { files: File | File[] }) {
     notify.error(e)
   } finally {
     uploading.value = false
-    load()
+    void load()
   }
 }
 
@@ -57,13 +57,28 @@ function remove(a: Attachment) {
 
 <template>
   <div>
-    <FileUpload mode="basic" auto :multiple="true" :custom-upload="true" :disabled="uploading" @uploader="onUpload" :choose-label="t('common.upload')" choose-icon="pi pi-upload" />
+    <FileUpload
+      mode="basic"
+      auto
+      :multiple="true"
+      :custom-upload="true"
+      :disabled="uploading"
+      @uploader="onUpload"
+      :choose-label="t('common.upload')"
+      choose-icon="pi pi-upload"
+    />
     <AppEmptyState v-if="!items.length" />
     <ul v-else class="mt-3 divide-y divide-surface-200 dark:divide-surface-800">
       <li v-for="a in items" :key="a.id" class="flex items-center gap-3 py-2">
         <i class="pi pi-paperclip" />
-        <a :href="a.url" target="_blank" class="text-sm text-primary truncate flex-1">{{ a.name }}</a>
-        <AppDateTimeDisplay class="text-xs text-surface-400" :value="a.uploaded_at" type="datetime" />
+        <a :href="a.url" target="_blank" class="text-sm text-primary truncate flex-1">{{
+          a.name
+        }}</a>
+        <AppDateTimeDisplay
+          class="text-xs text-surface-400"
+          :value="a.uploaded_at"
+          type="datetime"
+        />
         <AppIconButton icon="pi pi-trash" severity="danger" @click="remove(a)" />
       </li>
     </ul>

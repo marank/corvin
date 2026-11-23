@@ -18,9 +18,9 @@ export function usePagination(load: () => unknown, defaultOrdering = '') {
   const sortField = ref(defaultField)
   const sortOrder = ref<1 | -1>(defaultOrder)
   const first = computed(() => (page.value - 1) * pageSize.value)
-  const ordering = computed(() => sortField.value
-    ? `${sortOrder.value === -1 ? '-' : ''}${sortField.value}`
-    : '')
+  const ordering = computed(() =>
+    sortField.value ? `${sortOrder.value === -1 ? '-' : ''}${sortField.value}` : '',
+  )
   let started = false
   let requestId = 0
 

@@ -1,3 +1,7 @@
+import { toRaw, watch, type App } from 'vue'
+import type { PrimeVueLocaleOptions } from 'primevue/config'
+import { i18n } from './index'
+
 // PrimeVue's built-in texts (date picker, paginator, aria labels) per app locale.
 // Keys not listed fall back to PrimeVue's English defaults.
 export const primeVueLocales: Record<string, Record<string, unknown>> = {
@@ -6,8 +10,34 @@ export const primeVueLocales: Record<string, Record<string, unknown>> = {
     dayNames: ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'],
     dayNamesShort: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'],
     dayNamesMin: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'],
-    monthNames: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
-    monthNamesShort: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+    monthNames: [
+      'Januar',
+      'Februar',
+      'März',
+      'April',
+      'Mai',
+      'Juni',
+      'Juli',
+      'August',
+      'September',
+      'Oktober',
+      'November',
+      'Dezember',
+    ],
+    monthNamesShort: [
+      'Jan',
+      'Feb',
+      'Mär',
+      'Apr',
+      'Mai',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Dez',
+    ],
     today: 'Heute',
     clear: 'Leeren',
     weekHeader: 'KW',
@@ -61,4 +91,23 @@ export const primeVueLocales: Record<string, Record<string, unknown>> = {
   en: {
     firstDayOfWeek: 1,
   },
+}
+
+/** Keeps PrimeVue's own texts (calendar, paginator, aria) in the app language. Call after app.use(PrimeVue). */
+export function syncPrimeVueLocale(app: App) {
+  const primeConfig = app.config.globalProperties.$primevue.config
+  const primeDefaults: Partial<PrimeVueLocaleOptions> =
+    structuredClone(toRaw(primeConfig.locale)) ?? {}
+  watch(
+    i18n.global.locale,
+    (locale) => {
+      const overrides = primeVueLocales[locale] ?? {}
+      primeConfig.locale = {
+        ...primeDefaults,
+        ...overrides,
+        aria: { ...primeDefaults.aria, ...(overrides.aria as object) },
+      } as typeof primeConfig.locale
+    },
+    { immediate: true },
+  )
 }

@@ -33,12 +33,29 @@ const activeOptions = [
   { label: t('common.active'), value: 'true' },
   { label: t('common.inactive'), value: 'false' },
 ]
-const activeFilters = computed<ActiveFilter[]>(() => filters.value.is_active
-  ? [{ key: 'is_active', label: t('common.status'), value: activeOptions.find((o) => o.value === filters.value.is_active)!.label }]
-  : [])
+const activeFilters = computed<ActiveFilter[]>(() =>
+  filters.value.is_active
+    ? [
+        {
+          key: 'is_active',
+          label: t('common.status'),
+          value: activeOptions.find((o) => o.value === filters.value.is_active)!.label,
+        },
+      ]
+    : [],
+)
 const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
-const form = ref({ name: '', email: '', phone: '', website: '', vat_id: '', buyer_reference: '', payment_terms_days: null as number | null, notes: '' })
+const form = ref({
+  name: '',
+  email: '',
+  phone: '',
+  website: '',
+  vat_id: '',
+  buyer_reference: '',
+  payment_terms_days: null as number | null,
+  notes: '',
+})
 const pagination = usePagination(load, 'name')
 const sortOptions = [
   { label: '#', value: 'number' },
@@ -63,9 +80,18 @@ async function save() {
   try {
     await customersApi.create(form.value)
     modal.value?.close()
-    form.value = { name: '', email: '', phone: '', website: '', vat_id: '', buyer_reference: '', payment_terms_days: null, notes: '' }
+    form.value = {
+      name: '',
+      email: '',
+      phone: '',
+      website: '',
+      vat_id: '',
+      buyer_reference: '',
+      payment_terms_days: null,
+      notes: '',
+    }
     notify.ok(t('common.created'))
-    load()
+    void load()
   } catch (e) {
     notify.error(e)
   } finally {
@@ -86,7 +112,9 @@ async function save() {
       :rows="rows"
       :loading="pagination.loading.value"
       lazy
-      selectable :delete-row="(row) => customersApi.remove(row.id)" @bulk-deleted="load"
+      selectable
+      :delete-row="(row) => customersApi.remove(row.id)"
+      @bulk-deleted="load"
       :total-records="pagination.totalRecords.value"
       :first="pagination.first.value"
       :page-size="pagination.pageSize.value"
@@ -100,9 +128,21 @@ async function save() {
       @row-click="(r: Customer) => router.push(`/customers/${r.id}`)"
     >
       <template #toolbar>
-        <AppFilterBar :active="activeFilters" @remove="filters.is_active = null" @clear="filters.is_active = null">
+        <AppFilterBar
+          :active="activeFilters"
+          @remove="filters.is_active = null"
+          @clear="filters.is_active = null"
+        >
           <AppFormField :label="t('common.status')">
-            <Select v-model="filters.is_active" :options="activeOptions" option-label="label" option-value="value" :placeholder="t('common.all')" show-clear class="w-full" />
+            <Select
+              v-model="filters.is_active"
+              :options="activeOptions"
+              option-label="label"
+              option-value="value"
+              :placeholder="t('common.all')"
+              show-clear
+              class="w-full"
+            />
           </AppFormField>
           <template #end><AppSearchInput v-model="search" /></template>
         </AppFilterBar>
@@ -110,36 +150,91 @@ async function save() {
       <Column field="number" :header="t('common.numberShort')" sortable />
       <Column class="app-text" field="name" :header="t('common.name')" sortable />
       <Column :header="t('customers.place')">
-        <template #body="{ data }">{{ data.primary_address ? `${data.primary_address.postal_code} ${data.primary_address.city}` : '—' }}</template>
+        <template #body="{ data }">{{
+          data.primary_address
+            ? `${data.primary_address.postal_code} ${data.primary_address.city}`
+            : '—'
+        }}</template>
       </Column>
       <Column field="email" :header="t('common.email')" sortable />
       <Column field="project_count" :header="t('nav.projects')" sortable />
-      <Column class="app-num" field="uninvoiced_hours" :header="t('customers.uninvoicedHours')" sortable>
-        <template #body="{ data }"><AppDurationDisplay :minutes="(data.uninvoiced_hours ?? 0) * 60" /></template>
+      <Column
+        class="app-num"
+        field="uninvoiced_hours"
+        :header="t('customers.uninvoicedHours')"
+        sortable
+      >
+        <template #body="{ data }"
+          ><AppDurationDisplay :minutes="(data.uninvoiced_hours ?? 0) * 60"
+        /></template>
       </Column>
       <Column :header="t('common.status')">
-        <template #body="{ data }"><AppStatusTag :status="data.is_active ? 'active' : 'inactive'" :label="data.is_active ? t('common.active') : t('common.inactive')" /></template>
+        <template #body="{ data }"
+          ><AppStatusTag
+            :status="data.is_active ? 'active' : 'inactive'"
+            :label="data.is_active ? t('common.active') : t('common.inactive')"
+        /></template>
       </Column>
       <Column :header="t('common.actions')" :reorderable-column="false">
-        <template #body="{ data }"><AppIconButton icon="pi pi-trash" severity="danger" @click.stop="confirmDelete(async () => { await customersApi.remove(data.id); load() })" /></template>
+        <template #body="{ data }"
+          ><AppIconButton
+            icon="pi pi-trash"
+            severity="danger"
+            @click.stop="
+              confirmDelete(async () => {
+                await customersApi.remove(data.id)
+                load()
+              })
+            "
+        /></template>
       </Column>
       <template #card="{ row }">
         <div class="font-medium">{{ row.name }}</div>
-        <div class="text-sm text-surface-500">{{ row.primary_address ? `${row.primary_address.postal_code} ${row.primary_address.city}` : '' }}</div>
+        <div class="text-sm text-surface-500">
+          {{
+            row.primary_address
+              ? `${row.primary_address.postal_code} ${row.primary_address.city}`
+              : ''
+          }}
+        </div>
       </template>
     </AppDataTable>
 
-    <AppModal ref="modal" :form="form" :title="t('customers.new')" :loading="saving" @confirm="save">
+    <AppModal
+      ref="modal"
+      :form="form"
+      :title="t('customers.new')"
+      :loading="saving"
+      @confirm="save"
+    >
       <div class="flex flex-col gap-4">
-        <AppFormField field="name" :label="t('common.name')" required><InputText v-model="form.name" class="w-full" /></AppFormField>
+        <AppFormField field="name" :label="t('common.name')" required
+          ><InputText v-model="form.name" class="w-full"
+        /></AppFormField>
         <div class="grid grid-cols-2 gap-3">
-          <AppFormField field="email" :label="t('common.email')"><InputText v-model="form.email" class="w-full" /></AppFormField>
-          <AppFormField field="phone" :label="t('common.phone')"><InputText v-model="form.phone" class="w-full" /></AppFormField>
+          <AppFormField field="email" :label="t('common.email')"
+            ><InputText v-model="form.email" class="w-full"
+          /></AppFormField>
+          <AppFormField field="phone" :label="t('common.phone')"
+            ><InputText v-model="form.phone" class="w-full"
+          /></AppFormField>
         </div>
-        <AppFormField field="website" :label="t('customers.website')"><InputText v-model="form.website" class="w-full" /></AppFormField>
-        <AppFormField field="vat_id" :label="t('customers.vatId')"><InputText v-model="form.vat_id" class="w-full" /></AppFormField>
-        <AppFormField field="buyer_reference" :label="t('customers.buyerReference')"><InputText v-model="form.buyer_reference" class="w-full" /></AppFormField>
-        <AppFormField field="payment_terms_days" :label="t('customers.paymentTerms')"><InputNumber v-model="form.payment_terms_days" :min="0" :placeholder="t('customers.paymentTermsDefault')" class="w-full" /></AppFormField>
+        <AppFormField field="website" :label="t('customers.website')"
+          ><InputText v-model="form.website" class="w-full"
+        /></AppFormField>
+        <AppFormField field="vat_id" :label="t('customers.vatId')"
+          ><InputText v-model="form.vat_id" class="w-full"
+        /></AppFormField>
+        <AppFormField field="buyer_reference" :label="t('customers.buyerReference')"
+          ><InputText v-model="form.buyer_reference" class="w-full"
+        /></AppFormField>
+        <AppFormField field="payment_terms_days" :label="t('customers.paymentTerms')"
+          ><InputNumber
+            v-model="form.payment_terms_days"
+            :min="0"
+            :placeholder="t('customers.paymentTermsDefault')"
+            class="w-full"
+        /></AppFormField>
       </div>
     </AppModal>
   </div>

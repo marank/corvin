@@ -16,15 +16,17 @@ export function useConfirmDelete() {
       rejectProps: { text: true },
       acceptLabel: t('common.delete'),
       acceptClass: 'p-button-danger',
-      // The backend refuses some deletes (e.g. protected relations); say so instead of failing silently.
-      accept: async () => {
-        try {
-          await action()
-          notify.ok(t('common.deleted'))
-        } catch (e) {
-          notify.error(e)
-        }
-      },
+      accept: () => void run(action),
     })
+  }
+
+  // The backend refuses some deletes (e.g. protected relations); say so instead of failing silently.
+  async function run(action: () => Promise<unknown>) {
+    try {
+      await action()
+      notify.ok(t('common.deleted'))
+    } catch (e) {
+      notify.error(e)
+    }
   }
 }

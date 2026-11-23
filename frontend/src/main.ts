@@ -1,4 +1,4 @@
-import { createApp, toRaw, watch } from 'vue'
+import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import PrimeVue from 'primevue/config'
 import ToastService from 'primevue/toastservice'
@@ -6,7 +6,7 @@ import ConfirmationService from 'primevue/confirmationservice'
 import App from './App.vue'
 import router from './router'
 import { i18n, setLocale } from './i18n'
-import { primeVueLocales } from './i18n/primevue'
+import { syncPrimeVueLocale } from './i18n/primevue'
 import { FlatPreset } from './theme/preset'
 import './style.css'
 
@@ -31,17 +31,7 @@ app.use(PrimeVue, {
 if (localStorage.getItem('dark') === '1') {
   document.documentElement.classList.add('dark')
 }
-// Keep PrimeVue's own texts (calendar, paginator, aria) in the app language.
-const primeConfig = app.config.globalProperties.$primevue.config
-const primeDefaults = structuredClone(toRaw(primeConfig.locale)) as Record<string, any>
-watch(i18n.global.locale, (locale) => {
-  const overrides = primeVueLocales[locale] ?? {}
-  primeConfig.locale = {
-    ...primeDefaults,
-    ...overrides,
-    aria: { ...primeDefaults.aria, ...(overrides.aria as object) },
-  } as typeof primeConfig.locale
-}, { immediate: true })
+syncPrimeVueLocale(app)
 setLocale(localStorage.getItem('locale') ?? 'de')
 
 app.mount('#app')

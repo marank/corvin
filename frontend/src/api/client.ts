@@ -1,8 +1,8 @@
 import { i18n } from '../i18n'
 
 function getCsrfToken(): string {
-  const match = document.cookie.match(/csrftoken=([^;]+)/)
-  return match ? decodeURIComponent(match[1]) : ''
+  const token = document.cookie.match(/csrftoken=([^;]+)/)?.[1]
+  return token ? decodeURIComponent(token) : ''
 }
 
 export class ApiError extends Error {
@@ -15,10 +15,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(path, {
     credentials: 'same-origin',
     headers: {
@@ -50,7 +47,10 @@ async function requestBlob(path: string, options: RequestInit = {}): Promise<Blo
   })
   if (!res.ok) {
     const contentType = res.headers.get('content-type') ?? ''
-    throw new ApiError(res.status, contentType.includes('json') ? await res.json() : await res.text())
+    throw new ApiError(
+      res.status,
+      contentType.includes('json') ? await res.json() : await res.text(),
+    )
   }
   return res.blob()
 }
