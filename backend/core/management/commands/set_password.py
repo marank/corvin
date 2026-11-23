@@ -1,7 +1,8 @@
 from getpass import getpass
+from typing import Any
 
 from django.contrib.auth.models import User
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand, CommandError, CommandParser
 
 from core.services.admin_user import set_password
 
@@ -9,11 +10,11 @@ from core.services.admin_user import set_password
 class Command(BaseCommand):
     help = "Set a user's password exactly as typed (unlike changepassword: no password rules)."
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("username")
 
-    def handle(self, *args, username, **options):
-        if not User.objects.filter(username=username).exists():
+    def handle(self, *args: Any, username: str, **options: Any) -> None:
+        if not User.objects.filter(username__iexact=username).exists():
             raise CommandError(f"User '{username}' does not exist.")
         password = getpass("Password: ")
         if not password:

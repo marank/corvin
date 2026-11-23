@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from django.contrib import admin
 
 from core.models import (
@@ -18,19 +20,28 @@ from core.models import (
     TimeEntry,
 )
 
+# Django's admin classes are generic only in django-stubs, not at runtime.
+if TYPE_CHECKING:
+    LineItemInlineBase = admin.TabularInline[InvoiceLineItem, Invoice]
+    PaymentInlineBase = admin.TabularInline[Payment, Invoice]
+    InvoiceAdminBase = admin.ModelAdmin[Invoice]
+else:
+    LineItemInlineBase = PaymentInlineBase = admin.TabularInline
+    InvoiceAdminBase = admin.ModelAdmin
 
-class LineItemInline(admin.TabularInline):
+
+class LineItemInline(LineItemInlineBase):
     model = InvoiceLineItem
     extra = 0
 
 
-class PaymentInline(admin.TabularInline):
+class PaymentInline(PaymentInlineBase):
     model = Payment
     extra = 0
 
 
 @admin.register(Invoice)
-class InvoiceAdmin(admin.ModelAdmin):
+class InvoiceAdmin(InvoiceAdminBase):
     list_display = ["number", "customer", "issue_date", "status", "total"]
     list_filter = ["status"]
     inlines = [LineItemInline, PaymentInline]
