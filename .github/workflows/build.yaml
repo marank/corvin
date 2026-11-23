@@ -1,0 +1,366 @@
+# CI: check backend, frontend, the workflows and the repository; then build the image,
+# smoke-test it as the compose stack (app, worker), scan it, and push it to the
+# GitHub container registry (ghcr.io/<owner>/<repository>) with a provenance attestation.
+#
+# No secrets needed: pushes use the workflow's GITHUB_TOKEN. Every command a check runs lives
+# in the justfile, so CI and `just check` cannot drift apart.
+#
+# Pull requests run the checks and a test build. Pushes to main push `latest` and `sha-…`;
+# version tags (v1.2.3) push 1.2.3, 1.2 and 1. Once a week main is rebuilt even without a
+# change, so the image gets the base images' security fixes and a newly known vulnerability
+# turns the run red.
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Mondays 03:17 UTC (off the full hour, when GitHub's scheduler is busiest).
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Nothing by default; each job asks for what it needs.
+permissions: {}
+
+env:
+  REGISTRY: ghcr.io
+  # Started with `docker run` below; Dependabot does not see it. Bump tag and digest by hand.
+  TRIVY_IMAGE: aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
+
+jobs:
+  # --- Backend: `just check-backend` and `just check-deploy` against PostgreSQL -----------
+  backend:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    services:
+      postgres:
+        # Same major as compose.yml and PG_MAJOR in the Dockerfile; bump them together.
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: ci
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Tests run against PostgreSQL like production.
+      DB_TYPE: postgres
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_NAME: ci
+      DB_USER: ci
+      DB_PASSWORD: ci
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # WeasyPrint needs the same libraries as the Dockerfile; msgfmt comes with gettext.
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gettext \
+            libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
+
+      # No dependency caches in this workflow: it publishes images, and a cache written by
+      # one run could feed tampered packages into a later one (cache poisoning).
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: false
+
+      - name: Install just
+        run: uv tool install rust-just==1.59.0
+
+      - name: Checks and tests
+        run: just check-backend
+
+      - name: Deploy checks
+        run: just check-deploy
+
+  # --- Frontend: `just check-frontend` ------------------------------------------------------
+  frontend:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
+      - name: Install just
+        run: uv tool install rust-just==1.59.0
+
+      # pnpm in the version of packageManager in package.json (the one place it is set).
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: frontend/package.json
+
+      # No pnpm cache, as in the backend job.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          package-manager-cache: false
+
+      - name: Checks, tests, build
+        run: just check-frontend
+
+  # --- Workflows: `just check-workflows` (actionlint syntax, zizmor security audit) ----------
+  workflows:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
+      - name: Install just
+        run: uv tool install rust-just==1.59.0
+
+      # With a token zizmor also runs its online audits (e.g. known-vulnerable actions).
+      - name: Lint and audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: just check-workflows
+
+  # --- End of support: `just check-eol`, only in the weekly run ----------------------------
+  # Updates Dependabot ignores (PostgreSQL majors) or doesn't offer (base image majors) come
+  # up here: the run turns red 180 days before a platform's support ends. Not a dependency of
+  # `image` and not a required check, so it never blocks the rebuild or a pull request.
+  eol:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
+      - name: Install just
+        run: uv tool install rust-just==1.59.0
+
+      - name: Check
+        run: just check-eol
+
+  # --- Repository: committed secrets, vulnerable lock files, Dockerfile/compose ------------
+  repository:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Secrets, critical fixable vulnerabilities and HIGH/CRITICAL Dockerfile/compose
+      # misconfigurations fail (exceptions with reasons in .trivyignore); HIGH vulnerabilities
+      # are reported. The files are streamed into the scanner as a tar archive; a SARIF
+      # report goes to the Security tab.
+      - name: Scan
+        run: |
+          mkdir -p "$RUNNER_TEMP/sarif"
+          trivy() {
+            tar -c --exclude=.git --exclude=node_modules --exclude=.venv . \
+              | docker run --rm -i -v trivy-cache:/root/.cache/trivy -v "$RUNNER_TEMP/sarif:/out" \
+                  --entrypoint sh "$TRIVY_IMAGE" -c \
+                  'mkdir /src && tar -x -C /src &&
+                   test -f /src/Dockerfile -a -f /src/backend/uv.lock || { echo "nothing to scan" >&2; exit 2; }
+                   cd /src && exec trivy fs --no-progress --skip-version-check --ignorefile .trivyignore "$@" /src' \
+                  trivy "$@"
+          }
+          trivy --scanners vuln,secret,misconfig --format sarif --output /out/repository.sarif
+          trivy --scanners secret --exit-code 1
+          trivy --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1
+          trivy --scanners misconfig --severity HIGH,CRITICAL --exit-code 1
+          trivy --scanners vuln --severity HIGH
+
+      # Code scanning results need GitHub Advanced Security on private repositories.
+      - name: Upload to the Security tab
+        if: always() && !github.event.repository.private
+        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        with:
+          sarif_file: ${{ runner.temp }}/sarif/repository.sarif
+          category: repository
+
+  # --- Dependency review: new vulnerable dependencies in a pull request (licenses: just check) -
+  dependency-review:
+    if: github.event_name == 'pull_request' && !github.event.repository.private
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
+        with:
+          fail-on-severity: high
+
+  # --- Image: build, smoke-test the compose stack, scan, push -------------------------------
+  image:
+    needs: [backend, frontend, workflows, repository]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+      id-token: write
+      attestations: write
+    env:
+      PUSH: ${{ github.event_name != 'pull_request' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Image name
+        id: names
+        env:
+          REPO: ${{ github.repository }}
+        run: echo "image=$(echo "$REGISTRY/$REPO" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        if: env.PUSH == 'true'
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # latest from main, sha-<commit> always, 1.2.3 / 1.2 / 1 from a version tag
+      # (pre-releases only their full version).
+      - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        id: meta
+        with:
+          images: ${{ steps.names.outputs.image }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+
+      # Into the local Docker daemon for the smoke test and the scan. The runtime stage is
+      # always built without cache (no-cache-filters), so system package updates are never
+      # held back; the push below reuses this build's cache, so the tested layers go out.
+      - name: Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          pull: true
+          no-cache-filters: runtime
+          load: true
+          provenance: false
+          tags: corvin:ci
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Throwaway secrets for the smoke test; compose needs the file for every command.
+      - name: Smoke-test environment
+        run: |
+          SECRET=$(head -c 48 /dev/urandom | base64 | tr -d '/+=')
+          sed -e "s/^SECRET_KEY=.*/SECRET_KEY=$SECRET/" \
+              -e "s#^APP_URLS=.*#APP_URLS=https://app.example.com#" \
+              -e "s/^DB_PASSWORD=.*/DB_PASSWORD=smoke-$SECRET/" \
+              -e "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=smoke-admin-$SECRET/" \
+              -e "s/^TRUSTED_PROXIES=.*/TRUSTED_PROXIES=127.0.0.1/" \
+              -e "s/^APP_PORT=.*/APP_PORT=0/" \
+              .env.example > .env
+
+      # The stack from compose.yml with the just-built image, hardened as in production, so an
+      # image that cannot boot is never pushed. docker/smoke-test probes each container from
+      # inside; TRUSTED_PROXIES=127.0.0.1 lets the probes act like the TLS proxy in front.
+      - name: Smoke test
+        env:
+          APP_IMAGE: corvin:ci
+          COMPOSE_PROJECT_NAME: smoke-${{ github.run_id }}
+        run: |
+          trap 'docker compose logs || true; docker compose down -v || true; rm -f .env' EXIT
+          docker compose up -d
+
+          healthy=false
+          for i in $(seq 1 60); do
+            if [ "$(docker compose ps app --format '{{.Health}}')" = healthy ]; then
+              echo "Healthy after ${i}x3s"; healthy=true; break
+            fi
+            sleep 3
+          done
+          if [ "$healthy" != true ]; then
+            echo "Stack did not become healthy" >&2
+            exit 1
+          fi
+
+          for role in app worker; do
+            docker compose exec -T "$role" sh /usr/local/bin/smoke-test "$role"
+          done
+
+      # Known vulnerabilities (OS packages, Python wheels) and secrets baked into the image.
+      # Critical fixable ones fail the run; HIGH is reported.
+      - name: Vulnerability scan
+        run: |
+          mkdir -p "$RUNNER_TEMP/sarif"
+          trivy() {
+            docker save corvin:ci \
+              | docker run --rm -i -v trivy-cache:/root/.cache/trivy -v "$RUNNER_TEMP/sarif:/out" \
+                  --entrypoint sh "$TRIVY_IMAGE" -c \
+                  'cat > /tmp/image.tar &&
+                   exec trivy image --no-progress --skip-version-check --ignore-unfixed \
+                     --input /tmp/image.tar "$@"' \
+                  trivy "$@"
+          }
+          trivy --scanners vuln,secret --format sarif --output /out/image.sarif
+          trivy --scanners vuln,secret --severity CRITICAL --exit-code 1
+          trivy --scanners vuln --severity HIGH
+
+      - name: Upload to the Security tab
+        if: always() && !github.event.repository.private
+        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        with:
+          sarif_file: ${{ runner.temp }}/sarif/image.sarif
+          category: image
+
+      - name: Push
+        id: push
+        if: env.PUSH == 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+
+      # Verifiable with `gh attestation verify oci://<image> --owner <owner>`. Attestations
+      # need a public repository (or GitHub Enterprise Cloud for private ones).
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        if: env.PUSH == 'true' && !github.event.repository.private
+        with:
+          subject-name: ${{ steps.names.outputs.image }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true

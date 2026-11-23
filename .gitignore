@@ -22,7 +22,8 @@ frontend/dist/
 .DS_Store
 Thumbs.db
 .idea/
-.claude/
+.claude/*
+!.claude/settings.json
 .vscode/*
 !.vscode/tasks.json
 !.vscode/extensions.json
