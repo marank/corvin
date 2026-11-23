@@ -7862,9 +7862,8 @@
                     "numbering_schemes": {},
                     "payment_terms_days": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 0
                     },
                     "locale": {
                         "type": "string",
@@ -7901,18 +7900,16 @@
                     },
                     "time_rounding_start_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 0
                     },
                     "time_rounding_end_direction": {
                         "$ref": "#/components/schemas/TimeRoundingDirectionEnum"
                     },
                     "time_rounding_end_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 0
                     },
                     "timer_counts_during_break": {
                         "type": "boolean"
@@ -8030,9 +8027,8 @@
                     "numbering_schemes": {},
                     "payment_terms_days": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 0
                     },
                     "locale": {
                         "type": "string",
@@ -8074,18 +8070,16 @@
                     },
                     "time_rounding_start_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 0
                     },
                     "time_rounding_end_direction": {
                         "$ref": "#/components/schemas/TimeRoundingDirectionEnum"
                     },
                     "time_rounding_end_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 0
                     },
                     "timer_counts_during_break": {
                         "type": "boolean"
@@ -8285,17 +8279,15 @@
                     },
                     "rounding_increment_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "nullable": true,
                         "description": "Round time entries up to this increment"
                     },
                     "payment_terms_days": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "nullable": true
                     },
                     "bank_account": {
@@ -8423,17 +8415,15 @@
                     },
                     "rounding_increment_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "nullable": true,
                         "description": "Round time entries up to this increment"
                     },
                     "payment_terms_days": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "nullable": true
                     },
                     "bank_account": {
@@ -8539,30 +8529,26 @@
                     },
                     "margin_top": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "description": "mm"
                     },
                     "margin_right": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "description": "mm"
                     },
                     "margin_bottom": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "description": "mm"
                     },
                     "margin_left": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "description": "mm"
                     },
                     "font_size": {
@@ -8659,30 +8645,26 @@
                     },
                     "margin_top": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "description": "mm"
                     },
                     "margin_right": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "description": "mm"
                     },
                     "margin_bottom": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "description": "mm"
                     },
                     "margin_left": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "description": "mm"
                     },
                     "font_size": {
@@ -9081,9 +9063,8 @@
                     },
                     "position": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 0
                     },
                     "description": {
                         "type": "string",
@@ -9139,9 +9120,8 @@
                     },
                     "position": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 0
                     },
                     "description": {
                         "type": "string",
@@ -10342,17 +10322,15 @@
                     },
                     "rounding_increment_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "nullable": true,
                         "description": "Round time entries up to this increment"
                     },
                     "payment_terms_days": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "nullable": true
                     },
                     "bank_account": {
@@ -10379,30 +10357,26 @@
                     },
                     "margin_top": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "description": "mm"
                     },
                     "margin_right": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "description": "mm"
                     },
                     "margin_bottom": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "description": "mm"
                     },
                     "margin_left": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "description": "mm"
                     },
                     "font_size": {
@@ -10516,9 +10490,8 @@
                     },
                     "position": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 0
                     },
                     "description": {
                         "type": "string",
@@ -10699,9 +10672,8 @@
                     },
                     "rounding_increment_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "nullable": true
                     }
                 }
@@ -10813,9 +10785,8 @@
                     },
                     "position": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 0
                     }
                 }
             },
@@ -11041,9 +11012,8 @@
                     },
                     "rounding_increment_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "nullable": true
                     },
                     "used_hours": {
@@ -11126,9 +11096,8 @@
                     },
                     "rounding_increment_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "nullable": true
                     }
                 },
@@ -11422,9 +11391,8 @@
                     },
                     "position": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 0
                     },
                     "created_at": {
                         "type": "string",
@@ -11487,9 +11455,8 @@
                     },
                     "position": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 0
                     }
                 },
                 "required": [

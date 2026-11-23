@@ -17,7 +17,12 @@ COMMITTED = Path(__file__).resolve().parents[2] / "frontend" / "openapi.json"
 
 
 def export(target: Path) -> None:
-    """The schema as `just api-schema` writes it (test settings: no .env or secrets needed)."""
+    """The schema as `just api-schema` writes it (test settings: no .env or secrets needed).
+
+    Always with the PostgreSQL backend, as in production: DRF takes integer limits from the
+    database backend (SQLite allows 64 bits, PostgreSQL 32), so the schema would otherwise
+    differ between a native run and CI. Exporting needs no database connection.
+    """
     subprocess.run(
         [
             sys.executable,
@@ -31,7 +36,7 @@ def export(target: Path) -> None:
             str(target),
         ],
         check=True,
-        env={**os.environ, "DJANGO_SETTINGS_MODULE": "config.settings_test"},
+        env={**os.environ, "DJANGO_SETTINGS_MODULE": "config.settings_test", "DB_TYPE": "postgres"},
     )
 
 

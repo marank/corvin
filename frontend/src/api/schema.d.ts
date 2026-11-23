@@ -1488,7 +1488,6 @@ export interface components {
             default_vat_rate?: string;
             vat_enabled?: boolean;
             numbering_schemes?: unknown;
-            /** Format: int64 */
             payment_terms_days?: number;
             locale?: string;
             date_format?: string;
@@ -1500,10 +1499,8 @@ export interface components {
             theme?: string;
             template_assignments?: unknown;
             time_rounding_start_direction?: components["schemas"]["TimeRoundingDirectionEnum"];
-            /** Format: int64 */
             time_rounding_start_minutes?: number;
             time_rounding_end_direction?: components["schemas"]["TimeRoundingDirectionEnum"];
-            /** Format: int64 */
             time_rounding_end_minutes?: number;
             timer_counts_during_break?: boolean;
             always_show_timer_widget?: boolean;
@@ -1532,7 +1529,6 @@ export interface components {
             default_vat_rate?: string;
             vat_enabled?: boolean;
             numbering_schemes?: unknown;
-            /** Format: int64 */
             payment_terms_days?: number;
             locale?: string;
             date_format?: string;
@@ -1544,10 +1540,8 @@ export interface components {
             theme?: string;
             template_assignments?: unknown;
             time_rounding_start_direction?: components["schemas"]["TimeRoundingDirectionEnum"];
-            /** Format: int64 */
             time_rounding_start_minutes?: number;
             time_rounding_end_direction?: components["schemas"]["TimeRoundingDirectionEnum"];
-            /** Format: int64 */
             time_rounding_end_minutes?: number;
             timer_counts_during_break?: boolean;
             always_show_timer_widget?: boolean;
@@ -1607,12 +1601,8 @@ export interface components {
             notes?: string;
             /** @description Leitweg-ID (XRechnung) */
             buyer_reference?: string;
-            /**
-             * Format: int64
-             * @description Round time entries up to this increment
-             */
+            /** @description Round time entries up to this increment */
             rounding_increment_minutes?: number | null;
-            /** Format: int64 */
             payment_terms_days?: number | null;
             /** Format: uuid */
             bank_account?: string | null;
@@ -1642,12 +1632,8 @@ export interface components {
             notes?: string;
             /** @description Leitweg-ID (XRechnung) */
             buyer_reference?: string;
-            /**
-             * Format: int64
-             * @description Round time entries up to this increment
-             */
+            /** @description Round time entries up to this increment */
             rounding_increment_minutes?: number | null;
-            /** Format: int64 */
             payment_terms_days?: number | null;
             /** Format: uuid */
             bank_account?: string | null;
@@ -1680,25 +1666,13 @@ export interface components {
             readonly id: string;
             name: string;
             page_size?: components["schemas"]["PageSizeEnum"];
-            /**
-             * Format: int64
-             * @description mm
-             */
+            /** @description mm */
             margin_top?: number;
-            /**
-             * Format: int64
-             * @description mm
-             */
+            /** @description mm */
             margin_right?: number;
-            /**
-             * Format: int64
-             * @description mm
-             */
+            /** @description mm */
             margin_bottom?: number;
-            /**
-             * Format: int64
-             * @description mm
-             */
+            /** @description mm */
             margin_left?: number;
             /** Format: decimal */
             font_size?: string;
@@ -1727,25 +1701,13 @@ export interface components {
         DocumentTemplateRequest: {
             name: string;
             page_size?: components["schemas"]["PageSizeEnum"];
-            /**
-             * Format: int64
-             * @description mm
-             */
+            /** @description mm */
             margin_top?: number;
-            /**
-             * Format: int64
-             * @description mm
-             */
+            /** @description mm */
             margin_right?: number;
-            /**
-             * Format: int64
-             * @description mm
-             */
+            /** @description mm */
             margin_bottom?: number;
-            /**
-             * Format: int64
-             * @description mm
-             */
+            /** @description mm */
             margin_left?: number;
             /** Format: decimal */
             font_size?: string;
@@ -1876,7 +1838,6 @@ export interface components {
             readonly id: string;
             /** Format: uuid */
             invoice: string;
-            /** Format: int64 */
             position?: number;
             description: string;
             /** Format: decimal */
@@ -1895,7 +1856,6 @@ export interface components {
         InvoiceLineItemRequest: {
             /** Format: uuid */
             invoice: string;
-            /** Format: int64 */
             position?: number;
             description: string;
             /** Format: decimal */
@@ -2381,12 +2341,8 @@ export interface components {
             notes?: string;
             /** @description Leitweg-ID (XRechnung) */
             buyer_reference?: string;
-            /**
-             * Format: int64
-             * @description Round time entries up to this increment
-             */
+            /** @description Round time entries up to this increment */
             rounding_increment_minutes?: number | null;
-            /** Format: int64 */
             payment_terms_days?: number | null;
             /** Format: uuid */
             bank_account?: string | null;
@@ -2396,25 +2352,13 @@ export interface components {
         PatchedDocumentTemplateRequest: {
             name?: string;
             page_size?: components["schemas"]["PageSizeEnum"];
-            /**
-             * Format: int64
-             * @description mm
-             */
+            /** @description mm */
             margin_top?: number;
-            /**
-             * Format: int64
-             * @description mm
-             */
+            /** @description mm */
             margin_right?: number;
-            /**
-             * Format: int64
-             * @description mm
-             */
+            /** @description mm */
             margin_bottom?: number;
-            /**
-             * Format: int64
-             * @description mm
-             */
+            /** @description mm */
             margin_left?: number;
             /** Format: decimal */
             font_size?: string;
@@ -2452,7 +2396,6 @@ export interface components {
         PatchedInvoiceLineItemRequest: {
             /** Format: uuid */
             invoice?: string;
-            /** Format: int64 */
             position?: number;
             description?: string;
             /** Format: decimal */
@@ -2521,7 +2464,6 @@ export interface components {
             budget_hours?: string | null;
             /** Format: decimal */
             budget_amount?: string | null;
-            /** Format: int64 */
             rounding_increment_minutes?: number | null;
         };
         /** @description Sets owner from the request and scopes FK fields to the owner. */
@@ -2573,7 +2515,6 @@ export interface components {
             due_date?: string | null;
             priority?: components["schemas"]["PriorityEnum"];
             status?: components["schemas"]["TaskStatusEnum"];
-            /** Format: int64 */
             position?: number;
         };
         /** @description Sets owner from the request and scopes FK fields to the owner. */
@@ -2664,7 +2605,6 @@ export interface components {
             budget_hours?: string | null;
             /** Format: decimal */
             budget_amount?: string | null;
-            /** Format: int64 */
             rounding_increment_minutes?: number | null;
             /** Format: double */
             readonly used_hours: number;
@@ -2690,7 +2630,6 @@ export interface components {
             budget_hours?: string | null;
             /** Format: decimal */
             budget_amount?: string | null;
-            /** Format: int64 */
             rounding_increment_minutes?: number | null;
         };
         /**
@@ -2810,7 +2749,6 @@ export interface components {
             due_date?: string | null;
             priority?: components["schemas"]["PriorityEnum"];
             status?: components["schemas"]["TaskStatusEnum"];
-            /** Format: int64 */
             position?: number;
             /** Format: date-time */
             readonly created_at: string;
@@ -2831,7 +2769,6 @@ export interface components {
             due_date?: string | null;
             priority?: components["schemas"]["PriorityEnum"];
             status?: components["schemas"]["TaskStatusEnum"];
-            /** Format: int64 */
             position?: number;
         };
         /**
