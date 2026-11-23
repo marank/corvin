@@ -1,0 +1,15 @@
+#!/bin/sh
+# Started by supervisord in the app container: deploy checks, migrations and the first
+# administrator (ADMIN_* in .env, only if missing) are brought up to date, then gunicorn
+# serves Django on 127.0.0.1:8000 behind nginx. Workers: GUNICORN_WORKERS, default 3.
+set -eu
+cd /app
+
+python manage.py check --deploy --fail-level ERROR
+python manage.py migrate --noinput
+python manage.py ensure_admin
+exec gunicorn config.wsgi:application \
+  --bind 127.0.0.1:8000 \
+  --workers "${GUNICORN_WORKERS:-3}" \
+  --worker-tmp-dir /tmp \
+  --forwarded-allow-ips 127.0.0.1

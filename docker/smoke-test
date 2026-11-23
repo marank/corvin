@@ -1,0 +1,63 @@
+#!/bin/sh
+# Smoke test of a running container, run inside it — the one place for these probes:
+#   docker compose exec -T <service> sh /usr/local/bin/smoke-test app|worker
+# app:       nginx serves the SPA, its static files and the API, login without CSRF token
+#            is refused, every supervisord program (gunicorn, nginx) runs.
+# worker:    the job worker runs, and a backup (pg_dump + uploads) lands in /backups.
+# All:       nothing runs as root, the root filesystem is read-only.
+# Stops at the first failure.
+set -eu
+cd /app
+role="${1:?usage: smoke-test app|worker}"
+
+fail() { echo "smoke test ($role) failed: $*" >&2; exit 1; }
+probe() { python /usr/local/bin/healthcheck "$1" "$2" || fail "$1 did not answer $2"; }
+
+case "$role" in
+  app)
+    probe /api/v1/health 200
+    probe / 200
+    probe /invoices 200
+    probe /manifest.webmanifest 200
+    # static files: the SPA's public files and a built, hashed asset
+    probe /favicon.svg 200
+    asset=$(cd /srv/spa && ls assets/*.js | head -n 1)
+    probe "/$asset" 200
+    probe /api/v1/auth/me 401
+    # Login without CSRF token is refused.
+    python - <<'EOF' || fail "login without CSRF token was not refused"
+import os, sys, urllib.error, urllib.request
+from urllib.parse import urlsplit
+url = urlsplit((os.environ.get("APP_URLS") or "http://localhost").split(",")[0].strip())
+request = urllib.request.Request(
+    "http://127.0.0.1:8080/api/v1/auth/login", data=b"{}", method="POST",
+    headers={"Host": url.netloc, "X-Forwarded-Proto": url.scheme, "Content-Type": "application/json"},
+)
+try:
+    status = urllib.request.urlopen(request, timeout=5).status
+except urllib.error.HTTPError as error:
+    status = error.code
+print(f"/api/v1/auth/login (no CSRF): {status}")
+sys.exit(0 if status == 403 else 1)
+EOF
+    status=$(supervisorctl -c /etc/supervisord.conf status || true)
+    echo "$status"
+    [ -n "$status" ] || fail "supervisorctl gave no status"
+    if echo "$status" | grep -v RUNNING >/dev/null; then fail "not every program is running"; fi
+    ;;
+  worker)
+    # [p]: the pattern does not match grep's own command line.
+    grep -qa '[p]rocrastinate' /proc/[0-9]*/cmdline || fail "the job worker is not running"
+    # pg_dump in the image must accept the server's version and write into /backups.
+    python manage.py backup || fail "backup"
+    ;;
+  *) fail "unknown role" ;;
+esac
+
+[ "$(id -u)" != 0 ] || fail "the container runs as root"
+if grep -l '^Uid:[[:space:]]*0[[:space:]]' /proc/[0-9]*/status 2>/dev/null | grep -q .; then
+  fail "a process runs as root"
+fi
+if touch /app/.probe 2>/dev/null; then fail "the root filesystem is writable"; fi
+
+echo "smoke test ($role) passed"

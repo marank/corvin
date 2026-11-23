@@ -1,0 +1,18 @@
+#!/bin/sh
+# Started by supervisord in the app container. Renders TRUSTED_PROXIES (comma/space
+# separated addresses or CIDRs) into the includes of app.conf — in /tmp, the root filesystem
+# is read-only —, checks the configuration, then runs nginx in the foreground.
+set -eu
+
+dir=/tmp/nginx
+mkdir -p "$dir"
+: > "$dir/realip.conf"
+: > "$dir/geo.conf"
+for proxy in $(echo "${TRUSTED_PROXIES:-}" | tr ',' ' '); do
+  echo "set_real_ip_from $proxy;" >> "$dir/realip.conf"
+  echo "$proxy 1;" >> "$dir/geo.conf"
+done
+echo "trusted proxies: ${TRUSTED_PROXIES:-none}"
+
+nginx -e /dev/stderr -t -q
+exec nginx -e /dev/stderr -g 'daemon off;'
