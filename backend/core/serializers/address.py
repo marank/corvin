@@ -3,7 +3,7 @@ from core.models import Address
 from .base import OwnedSerializer
 
 
-class AddressSerializer(OwnedSerializer):
+class AddressSerializer(OwnedSerializer[Address]):
     owner_fk_fields = ("customer",)
 
     class Meta:

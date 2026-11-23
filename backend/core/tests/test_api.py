@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from typing import Any
 
 import pytest
 from django.contrib.auth.models import User
@@ -79,8 +80,8 @@ def test_customer_ordering_by_annotations(client, user, customer, project):
     TimeEntry.objects.create(
         owner=user,
         customer=other,
-        start_datetime=timezone.make_aware(datetime(2026, 9, 1, 9, 0), tz),
-        end_datetime=timezone.make_aware(datetime(2026, 9, 1, 12, 0), tz),
+        start_datetime=datetime(2026, 9, 1, 9, 0, tzinfo=tz),
+        end_datetime=datetime(2026, 9, 1, 12, 0, tzinfo=tz),
     )
 
     by_projects = client.get("/api/v1/customers/?ordering=-project_count").json()
@@ -102,8 +103,8 @@ def test_time_entry_date_range_filter(client, user, customer):
         TimeEntry.objects.create(
             owner=user,
             customer=customer,
-            start_datetime=timezone.make_aware(datetime(2026, 9, day, 9, 0), tz),
-            end_datetime=timezone.make_aware(datetime(2026, 9, day, 10, 0), tz),
+            start_datetime=datetime(2026, 9, day, 9, 0, tzinfo=tz),
+            end_datetime=datetime(2026, 9, day, 10, 0, tzinfo=tz),
         )
     r = client.get(
         "/api/v1/time-tracking/?start_datetime__date__gte=2026-09-15"
@@ -120,13 +121,13 @@ def test_time_entry_summary(client, user, customer):
         TimeEntry.objects.create(
             owner=user,
             customer=customer,
-            start_datetime=timezone.make_aware(datetime(2026, 9, day, 9, 0), tz),
-            end_datetime=timezone.make_aware(datetime(2026, 9, day, 11, 0), tz),
+            start_datetime=datetime(2026, 9, day, 9, 0, tzinfo=tz),
+            end_datetime=datetime(2026, 9, day, 11, 0, tzinfo=tz),
         )
     TimeEntry.objects.create(
         owner=user,
         customer=customer,
-        start_datetime=timezone.make_aware(datetime(2026, 9, 4, 9, 0), tz),
+        start_datetime=datetime(2026, 9, 4, 9, 0, tzinfo=tz),
     )
     r = client.get(
         f"/api/v1/time-tracking/summary/?customer={customer.id}"
@@ -157,7 +158,7 @@ def test_timer_flow(client, customer, project):
 
 @pytest.mark.django_db
 def test_create_time_entry_with_breaks(client, customer, project):
-    payload = {
+    payload: dict[str, Any] = {
         "customer": str(customer.id),
         "project": str(project.id),
         "start_datetime": "2026-09-01T09:00:00+02:00",
@@ -191,8 +192,8 @@ def test_consolidate_endpoint(client, user, customer, project):
         owner=user,
         customer=customer,
         project=project,
-        start_datetime=timezone.make_aware(datetime(2026, 9, 1, 9, 0), tz),
-        end_datetime=timezone.make_aware(datetime(2026, 9, 1, 11, 0), tz),
+        start_datetime=datetime(2026, 9, 1, 9, 0, tzinfo=tz),
+        end_datetime=datetime(2026, 9, 1, 11, 0, tzinfo=tz),
     )
     r = client.post(
         "/api/v1/invoices/consolidate/", {"customer_id": customer.id, "group_by": "project"}
@@ -303,7 +304,7 @@ def test_invoice_uses_vat_setting_and_customer_payment_terms(client, user, custo
     assert r.json()["vat_amount"] == "0.00"
     assert r.json()["total"] == "100.00"
     assert r.json()["currency"] == "USD"
-    assert r.json()["due_date"] == str(date.today() + timedelta(days=7))
+    assert r.json()["due_date"] == str(timezone.localdate() + timedelta(days=7))
 
 
 @pytest.mark.django_db
@@ -329,7 +330,7 @@ def test_invoice_uses_default_payment_terms(client, user, customer):
         format="json",
     )
     assert r.status_code == 201
-    assert r.json()["due_date"] == str(date.today() + timedelta(days=30))
+    assert r.json()["due_date"] == str(timezone.localdate() + timedelta(days=30))
 
 
 @pytest.mark.django_db
@@ -494,8 +495,8 @@ def test_dashboard_ignores_drafts_and_names_customers(client, user, customer, pr
         owner=user,
         customer=customer,
         project=project,
-        start_datetime=timezone.make_aware(datetime(2026, 9, 1, 9, 0), tz),
-        end_datetime=timezone.make_aware(datetime(2026, 9, 1, 11, 0), tz),
+        start_datetime=datetime(2026, 9, 1, 9, 0, tzinfo=tz),
+        end_datetime=datetime(2026, 9, 1, 11, 0, tzinfo=tz),
     )
     client.post(
         "/api/v1/invoices/consolidate/", {"customer_id": str(customer.id)}, format="json"

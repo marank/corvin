@@ -14,5 +14,5 @@ class BankAccount(OwnedModel):
     class Meta:
         ordering = ["name", "bank_name"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name

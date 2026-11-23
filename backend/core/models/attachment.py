@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
@@ -17,10 +19,10 @@ class Attachment(OwnedModel):
     class Meta:
         ordering = ["-uploaded_at"]
 
-    def save(self, *args, **kwargs):
-        if not self.name and self.file:
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        if not self.name and self.file and self.file.name:
             self.name = self.file.name.rsplit("/", 1)[-1]
         super().save(*args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name or str(self.file)

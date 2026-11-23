@@ -28,5 +28,5 @@ class DocumentArchive(OwnedModel):
             )
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.content_object} ({self.kind})"

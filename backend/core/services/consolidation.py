@@ -1,18 +1,26 @@
 import re
 from collections import defaultdict
+from collections.abc import Callable, Iterable
 from datetime import date, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
+from typing import Any, NotRequired, TypedDict
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import override
 
 from core.models import (
+    BankAccount,
+    CompanySettings,
+    Contact,
     Customer,
+    DocumentTemplate,
     Invoice,
     InvoiceLineItem,
     Project,
@@ -21,6 +29,16 @@ from core.models import (
 
 from .numbering import next_number
 from .rates import resolve_rate, round_up_minutes, rounding_increment
+
+
+class Line(TypedDict):
+    """An invoice line before it is saved (`total` only in previews)."""
+
+    description: str
+    quantity: Decimal
+    unit: str
+    unit_price: Decimal
+    total: NotRequired[Decimal]
 
 
 def _format_date(d: date, pattern: str) -> str:
@@ -36,12 +54,13 @@ def _format_date(d: date, pattern: str) -> str:
     return re.sub(r"YYYY|YY|MM|DD|M|D", lambda m: tokens[m.group()], pattern)
 
 
-def _line_for_entries(owner, entries, description: str) -> dict:
+def _line_for_entries(
+    owner: User, customer: Customer, entries: list[TimeEntry], description: str
+) -> Line:
     """One line item from a group of entries: round each entry, apply
     each entry's own effective-dated rate, average the unit price."""
     total_minutes = 0
-    total_amount = Decimal("0")
-    customer = entries[0].customer
+    total_amount = Decimal(0)
     for e in entries:
         minutes = round_up_minutes(
             e.duration_minutes,
@@ -57,7 +76,7 @@ def _line_for_entries(owner, entries, description: str) -> dict:
         total_minutes += minutes
         total_amount += Decimal(minutes) / 60 * rate
     quantity = (Decimal(total_minutes) / 60).quantize(Decimal("0.01"))
-    unit_price = (total_amount / quantity).quantize(Decimal("0.01")) if quantity else Decimal("0")
+    unit_price = (total_amount / quantity).quantize(Decimal("0.01")) if quantity else Decimal(0)
     return {
         "description": description,
         "quantity": quantity,
@@ -76,21 +95,21 @@ def _entry_text(description: str, scope: str) -> str:
     return f"{scope}: {description}"
 
 
-def _default_vat_rate(company) -> Decimal:
+def _default_vat_rate(company: CompanySettings | None) -> Decimal:
     if company is None:
-        return Decimal("19")
-    return company.default_vat_rate if company.vat_enabled else Decimal("0")
+        return Decimal(19)
+    return company.default_vat_rate if company.vat_enabled else Decimal(0)
 
 
 def billable_entries(
     *,
-    owner,
+    owner: User,
     customer: Customer,
     project: Project | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
-    entry_ids: list | None = None,
-):
+    entry_ids: list[Any] | None = None,
+) -> QuerySet[TimeEntry]:
     """Uninvoiced, billable, finished entries of a customer that a new invoice may bill.
     `entry_ids` narrows them to the user's selection (ids outside the set are ignored)."""
     qs = TimeEntry.objects.filter(
@@ -112,22 +131,43 @@ def billable_entries(
     return qs.order_by("start_datetime")
 
 
-def build_lines(*, owner, customer: Customer, entries, group_by: str):
-    """Group entries into line-item dicts. Returns [(line, entries_on_that_line), ...]."""
-    groups: dict[tuple, list[TimeEntry]] = defaultdict(list)
-    if group_by == "entry":
-        for e in entries:
-            groups[(e.id,)].append(e)
-    elif group_by == "day":
-        for e in entries:
-            groups[(e.project_id, timezone.localdate(e.start_datetime))].append(e)
-    elif group_by == "project":
-        for e in entries:
-            groups[(e.project_id,)].append(e)
-    else:
-        raise ValidationError(_("Unknown grouping: %(group_by)s") % {"group_by": group_by})
+# What puts entries on the same line, per `group_by`.
+_GROUP_KEYS: dict[str, Callable[[TimeEntry], tuple[Any, ...]]] = {
+    "entry": lambda e: (e.id,),
+    "day": lambda e: (e.project_id, timezone.localdate(e.start_datetime)),
+    "project": lambda e: (e.project_id,),
+}
 
-    company = getattr(owner, "company_settings", None)
+
+def _group_entries(
+    entries: list[TimeEntry], group_by: str
+) -> dict[tuple[Any, ...], list[TimeEntry]]:
+    key = _GROUP_KEYS.get(group_by)
+    if key is None:
+        raise ValidationError(_("Unknown grouping: %(group_by)s") % {"group_by": group_by})
+    groups: dict[tuple[Any, ...], list[TimeEntry]] = defaultdict(list)
+    for e in entries:
+        groups[key(e)].append(e)
+    return groups
+
+
+def _line_description(group_by: str, first: TimeEntry, scope: str, work_date: str) -> str:
+    # Line texts end up on the document, which always renders in LANGUAGE_CODE.
+    with override(settings.LANGUAGE_CODE):
+        if group_by == "entry":
+            return f"{work_date} — {_entry_text(first.description, scope)}"
+        if group_by == "day":
+            return f"{work_date} — {scope}"
+        services = _("Services")
+        return f"{scope} — {services}"
+
+
+def build_lines(
+    *, owner: User, customer: Customer, entries: list[TimeEntry], group_by: str
+) -> list[tuple[Line, list[TimeEntry]]]:
+    """Group entries into line-item dicts. Returns [(line, entries_on_that_line), ...]."""
+    groups = _group_entries(entries, group_by)
+    company: CompanySettings | None = getattr(owner, "company_settings", None)
     lines = []
     # Chronological lines, whatever order the entries were created in.
     for group in sorted(groups.values(), key=lambda g: min(e.start_datetime for e in g)):
@@ -137,34 +177,26 @@ def build_lines(*, owner, customer: Customer, entries, group_by: str):
             timezone.localdate(first.start_datetime),
             company.date_format if company else "DD.MM.YYYY",
         )
-        # Line texts end up on the document, which always renders in LANGUAGE_CODE.
-        with override(settings.LANGUAGE_CODE):
-            if group_by == "entry":
-                desc = f"{work_date} — {_entry_text(first.description, scope)}"
-            elif group_by == "day":
-                desc = f"{work_date} — {scope}"
-            else:
-                services = _("Services")
-                desc = f"{scope} — {services}"
-        lines.append((_line_for_entries(owner, group, desc), group))
+        desc = _line_description(group_by, first, scope, work_date)
+        lines.append((_line_for_entries(owner, customer, group, desc), group))
     return lines
 
 
-def _line_total(line: dict) -> Decimal:
+def _line_total(line: Line) -> Decimal:
     return (Decimal(line["quantity"]) * Decimal(line["unit_price"])).quantize(Decimal("0.01"))
 
 
 def preview(
     *,
-    owner,
+    owner: User,
     customer: Customer,
     project: Project | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
-    entry_ids: list | None = None,
+    entry_ids: list[Any] | None = None,
     group_by: str = "entry",
-    extra_lines: list[dict] | None = None,
-) -> dict:
+    extra_lines: list[Line] | None = None,
+) -> dict[str, Any]:
     """What `consolidate` would create, without writing anything."""
     entries = list(
         billable_entries(
@@ -182,10 +214,10 @@ def preview(
             owner=owner, customer=customer, entries=entries, group_by=group_by
         )
     ]
-    lines += [dict(line) for line in extra_lines or []]
+    lines += [Line(**line) for line in extra_lines or []]
     for line in lines:
         line["total"] = _line_total(line)
-    subtotal = sum((line["total"] for line in lines), Decimal("0"))
+    subtotal = sum((line["total"] for line in lines), Decimal(0))
     vat_rate = _default_vat_rate(getattr(owner, "company_settings", None))
     vat_amount = (subtotal * vat_rate / 100).quantize(Decimal("0.01"))
     return {
@@ -201,19 +233,19 @@ def preview(
 @transaction.atomic
 def consolidate(
     *,
-    owner,
+    owner: User,
     customer: Customer,
     project: Project | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
-    entry_ids: list | None = None,
+    entry_ids: list[Any] | None = None,
     group_by: str = "entry",
     vat_rate: Decimal | None = None,
-    template=None,
-    contacts=None,
-    bank_account=None,
+    template: DocumentTemplate | None = None,
+    contacts: Iterable[Contact] | None = None,
+    bank_account: BankAccount | None = None,
     e_invoice_format: str = Invoice.EInvoiceFormat.NONE,
-    extra_lines: list[dict] | None = None,
+    extra_lines: list[Line] | None = None,
 ) -> Invoice:
     qs = billable_entries(
         owner=owner,
@@ -228,7 +260,7 @@ def consolidate(
         raise ValidationError(_("No billable, uninvoiced time entries found."))
     lines = build_lines(owner=owner, customer=customer, entries=entries, group_by=group_by)
 
-    company = getattr(owner, "company_settings", None)
+    company: CompanySettings | None = getattr(owner, "company_settings", None)
     issue_date = timezone.localdate()
     payment_terms_days = (
         customer.payment_terms_days

@@ -65,8 +65,8 @@ def make_entry(user, project):
             owner=user,
             customer=kw.pop("customer", project.customer),
             project=project,
-            start_datetime=timezone.make_aware(datetime(d.year, d.month, d.day, h1, m1), tz),
-            end_datetime=timezone.make_aware(datetime(d.year, d.month, d.day, h2, m2), tz),
+            start_datetime=datetime(d.year, d.month, d.day, h1, m1, tzinfo=tz),
+            end_datetime=datetime(d.year, d.month, d.day, h2, m2, tzinfo=tz),
             **kw,
         )
 
@@ -95,9 +95,9 @@ def contract(user, customer, project):
         owner=user,
         customer=customer,
         name="Gold Support",
-        included_hours=Decimal("10"),
+        included_hours=Decimal(10),
         period="monthly",
-        fixed_price=Decimal("750"),
+        fixed_price=Decimal(750),
         bill_overage=True,
         start_date=date(2026, 9, 1),
         next_billing_date=date(2026, 10, 1),

@@ -54,10 +54,10 @@ def test_fetcher_allows_only_own_images(user, django_user_model):
     for url in (
         f"file://{foreign.image.path}",
         f"file://{own.image.path}/../../{foreign.image.name}",
-        "http://backend:8000/api/v1/health",
+        "http://127.0.0.1:8000/api/v1/health",
         "file:///etc/hostname",
     ):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Resource not allowed in documents"):
             fetcher.fetch(url)
     assert fetcher.fetch("data:text/plain,ok").read() == b"ok"
 

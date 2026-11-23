@@ -13,7 +13,7 @@ def ensure_admin(username: str, email: str, password: str) -> str:
     """
     if not username or not password:
         return "ADMIN_USERNAME or ADMIN_PASSWORD is empty, no administrator created."
-    if User.objects.filter(username=username).exists():
+    if User.objects.filter(username__iexact=username).exists():
         return f"Administrator '{username}' exists."
     with transaction.atomic():
         user = User.objects.create_superuser(username, email, password)
@@ -23,6 +23,6 @@ def ensure_admin(username: str, email: str, password: str) -> str:
 
 def set_password(username: str, password: str) -> None:
     """Set the password exactly as given, without Django's password rules."""
-    user = User.objects.get(username=username)
+    user = User.objects.get(username__iexact=username)
     user.set_password(password)
     user.save(update_fields=["password"])

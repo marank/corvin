@@ -17,5 +17,5 @@ class CompanyContact(OwnedModel):
     def name(self) -> str:
         return f"{self.first_name} {self.last_name}".strip()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name

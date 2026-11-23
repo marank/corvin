@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
+from django.contrib.auth.models import User
 from django.db import transaction
 from django.template import Variable, VariableDoesNotExist
 from django.utils import timezone
@@ -63,7 +64,7 @@ def render_number(
 ) -> str:
     ctx = RenderContext(counter, today or timezone.localdate(), values or {})
 
-    def replace(match):
+    def replace(match: re.Match[str]) -> str:
         token = match.group(1)
         name, separator, param = token.partition(":")
         param = param if separator else None
@@ -86,7 +87,7 @@ def render_number(
     return TOKEN_PATTERN.sub(replace, format_string)
 
 
-def get_scheme(owner, entity: str) -> dict:
+def get_scheme(owner: User, entity: str) -> dict[str, Any]:
     default = NUMBERING_SCHEMES[entity]
     company = getattr(owner, "company_settings", None)
     configured = (company.numbering_schemes or {}).get(entity, {}) if company else {}
@@ -124,7 +125,7 @@ def _scope_key(scope: Any, values: dict[str, Any], today: date) -> str:
     return ":".join(parts) or "global"
 
 
-def next_number(owner, entity: str, values: dict[str, Any] | None = None) -> str:
+def next_number(owner: User, entity: str, values: dict[str, Any] | None = None) -> str:
     values = values or {}
     scheme = get_scheme(owner, entity)
     today = timezone.localdate()

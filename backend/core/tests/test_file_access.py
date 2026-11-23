@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
+from rest_framework.request import Request
 from rest_framework.test import APIClient
 
 from core.models import Attachment, CompanyImage
@@ -100,4 +101,4 @@ def test_throttle_uses_last_forwarded_address(user):
     request = (
         APIClient().get("/api/v1/health", HTTP_X_FORWARDED_FOR="6.6.6.6, 203.0.113.7").wsgi_request
     )
-    assert LoginThrottle().get_ident(request) == "203.0.113.7"
+    assert LoginThrottle().get_ident(Request(request)) == "203.0.113.7"

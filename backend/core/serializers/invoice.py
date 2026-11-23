@@ -1,5 +1,8 @@
+from typing import Any, cast
+
 from django.utils.translation import gettext as _
 from rest_framework import serializers
+from rest_framework.fields import Field
 
 from core.models import Contact, Invoice
 
@@ -10,7 +13,7 @@ from .invoice_line_item import InvoiceLineItemSerializer
 from .payment import PaymentSerializer
 
 
-class InvoiceSerializer(OwnedSerializer):
+class InvoiceSerializer(OwnedSerializer[Invoice]):
     owner_fk_fields = (
         "customer",
         "project",
@@ -37,14 +40,15 @@ class InvoiceSerializer(OwnedSerializer):
     remaining = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     partially_paid = serializers.BooleanField(read_only=True)
 
-    def get_fields(self):
+    def get_fields(self) -> dict[str, Field[Any, Any, Any, Any]]:
         fields = super().get_fields()
-        fields["contact_ids"].child_relation.queryset = Contact.objects.filter(
-            owner=self.context["request"].user
-        )
+        contact_ids = cast(serializers.ManyRelatedField, fields["contact_ids"])
+        # drf-stubs declare `queryset` as `QuerySet | Manager`; mypy then treats the
+        # assignment as a Manager descriptor call.
+        contact_ids.child_relation.queryset = self.owned(Contact.objects.all())  # type: ignore[arg-type]  # see above
         return fields
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         attrs = super().validate(attrs)
         customer = attrs.get("customer", getattr(self.instance, "customer", None))
         contacts = attrs.get("contacts", [])

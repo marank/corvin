@@ -31,5 +31,5 @@ class OnSiteVisit(OwnedModel):
             )
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.customer.name} @ {self.date}"

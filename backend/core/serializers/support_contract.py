@@ -5,7 +5,7 @@ from core.models import SupportContract
 from .base import OwnedSerializer
 
 
-class SupportContractSerializer(OwnedSerializer):
+class SupportContractSerializer(OwnedSerializer[SupportContract]):
     owner_fk_fields = ("customer", "project", "template")
 
     customer_name = serializers.CharField(source="customer.name", read_only=True)

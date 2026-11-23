@@ -5,7 +5,7 @@ from core.models import InvoiceLineItem
 from .base import OwnedSerializer
 
 
-class InvoiceLineItemSerializer(OwnedSerializer):
+class InvoiceLineItemSerializer(OwnedSerializer[InvoiceLineItem]):
     owner_fk_fields = ("invoice",)
 
     total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)

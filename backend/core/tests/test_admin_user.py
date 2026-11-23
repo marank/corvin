@@ -14,7 +14,8 @@ def test_creates_superuser_with_company_settings():
 
     user = User.objects.get(username="boss")
     assert "created" in message
-    assert user.is_superuser and user.is_staff
+    assert user.is_superuser
+    assert user.is_staff
     assert user.email == "it@example.com"
     assert user.check_password(STRONG)
     assert CompanySettings.objects.filter(user=user).exists()

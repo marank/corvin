@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import models
 
 from .base import OwnedModel
@@ -30,10 +32,10 @@ class CompanyImage(OwnedModel):
             ),
         ]
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         if self.kind != self.Kind.ADDITIONAL:
             self.key = self.kind
         super().save(*args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name

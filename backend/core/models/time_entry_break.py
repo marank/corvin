@@ -11,5 +11,5 @@ class TimeEntryBreak(OwnedModel):
     class Meta:
         ordering = ["start_datetime"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Break {self.time_entry} {self.start_datetime}"

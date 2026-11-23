@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import TypedDict
 
 from django.utils import timezone
 
@@ -7,19 +8,26 @@ from core.models import Project
 from .rates import resolve_rate
 
 
-def budget_stats(project: Project) -> dict:
+class BudgetStats(TypedDict):
+    used_hours: Decimal
+    used_amount: Decimal
+    budget_hours_percent: float | None
+    budget_amount_percent: float | None
+
+
+def budget_stats(project: Project) -> BudgetStats:
     """Used hours/amount + burn-down percentages for a project."""
     entries = project.time_entries.filter(end_datetime__isnull=False)
     used_minutes = sum(e.duration_minutes for e in entries)
     used_hours = Decimal(used_minutes) / 60
-    amount = Decimal("0")
+    amount = Decimal(0)
     for e in entries.select_related("project__customer"):
         rate = resolve_rate(
             owner=project.owner,
             customer=project.customer,
             project=project,
             on_date=timezone.localdate(e.start_datetime),
-        ) or Decimal("0")
+        ) or Decimal(0)
         amount += Decimal(e.duration_minutes) / 60 * rate
     return {
         "used_hours": used_hours.quantize(Decimal("0.01")),

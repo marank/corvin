@@ -1,5 +1,5 @@
-# Fast checks before each commit; the full set is the VS Code `check` task (and CI).
-# Install once: uv tool run pre-commit install   (versions are kept current by Renovate)
+# Fast checks before each commit; the full set is `just check` (and CI).
+# Install once: uv tool run pre-commit install   (versions are kept current by Dependabot)
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0

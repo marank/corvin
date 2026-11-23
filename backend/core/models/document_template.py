@@ -56,12 +56,12 @@ class DocumentTemplate(OwnedModel):
         ordering = ["name"]
 
     @property
-    def page_width(self):
+    def page_width(self) -> str:
         return PAGE_DIMENSIONS[self.page_size][0]
 
     @property
-    def page_height(self):
+    def page_height(self) -> str:
         return PAGE_DIMENSIONS[self.page_size][1]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name

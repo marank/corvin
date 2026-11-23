@@ -1,10 +1,11 @@
 from pathlib import Path
+from typing import Any
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.template import Context, Template
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.safestring import mark_safe
 from django.utils.translation import override
 
 from core.models import (
@@ -19,7 +20,7 @@ from .erechnung import build_xrechnung_xml
 from .templates import ensure_default_template
 
 
-def company_image_context(owner, for_pdf=False) -> dict:
+def company_image_context(owner: User, for_pdf: bool = False) -> dict[str, str]:
     images = CompanyImage.objects.filter(owner=owner)
     return {
         image.key: (
@@ -31,7 +32,9 @@ def company_image_context(owner, for_pdf=False) -> dict:
     }
 
 
-def template_page_context(template: DocumentTemplate, document_type="invoice") -> dict:
+def template_page_context(
+    template: DocumentTemplate, document_type: str = "invoice"
+) -> dict[str, Any]:
     return {
         "document_type": document_type,
         "size": template.page_size,
@@ -52,7 +55,15 @@ def template_page_context(template: DocumentTemplate, document_type="invoice") -
     }
 
 
-def document_context(invoice, *, owner, items, payments, contacts, for_pdf=False) -> dict:
+def document_context(
+    invoice: Any,
+    *,
+    owner: User,
+    items: list[Any],
+    payments: list[Any],
+    contacts: list[Any],
+    for_pdf: bool = False,
+) -> dict[str, Any]:
     """The variables a document template sees; real invoices and the designer's sample alike."""
     return {
         "invoice": invoice,
@@ -71,7 +82,7 @@ def document_context(invoice, *, owner, items, payments, contacts, for_pdf=False
     }
 
 
-def default_template_context(invoice: Invoice, for_pdf=False) -> dict:
+def default_template_context(invoice: Invoice, for_pdf: bool = False) -> dict[str, Any]:
     return document_context(
         invoice,
         owner=invoice.owner,
@@ -82,11 +93,13 @@ def default_template_context(invoice: Invoice, for_pdf=False) -> dict:
     )
 
 
-def text_block_context(owner, context: Context) -> dict:
-    rendered = {}
-    for block in TextBlock.objects.filter(owner=owner):
-        rendered[block.key] = mark_safe(Template(block.content).render(context))
-    return rendered
+def text_block_context(owner: User, context: Context) -> dict[str, str]:
+    # Template.render returns a SafeString: the block's own markup stays HTML, while the
+    # variables it uses were autoescaped while rendering.
+    return {
+        block.key: Template(block.content).render(context)
+        for block in TextBlock.objects.filter(owner=owner)
+    }
 
 
 def build_pdf_html(
@@ -152,7 +165,7 @@ html, body {{ margin: 0; }}
 </html>"""
 
 
-def render_document_html(template: DocumentTemplate, data: dict, owner) -> str:
+def render_document_html(template: DocumentTemplate, data: dict[str, Any], owner: User) -> str:
     """Render a template's parts with the given variables into the full document."""
     context = Context(data)
     context["page"] = template_page_context(template, "invoice")
@@ -167,13 +180,14 @@ def render_document_html(template: DocumentTemplate, data: dict, owner) -> str:
     return build_pdf_html(template, css=css, **body)
 
 
-def write_pdf(html: str, owner, **options) -> bytes:
+def write_pdf(html: str, owner: User, **options: Any) -> bytes:
     """Render HTML to PDF, loading only the owner's own images (see OwnerResourceFetcher)."""
     from weasyprint import HTML  # deferred: native libs load lazily on Windows
 
     from .pdf_fetcher import OwnerResourceFetcher
 
-    return HTML(string=html, url_fetcher=OwnerResourceFetcher(owner)).write_pdf(**options)
+    pdf: bytes = HTML(string=html, url_fetcher=OwnerResourceFetcher(owner)).write_pdf(**options)
+    return pdf
 
 
 def invoice_template(invoice: Invoice) -> DocumentTemplate:
@@ -194,7 +208,7 @@ def invoice_template(invoice: Invoice) -> DocumentTemplate:
 # Documents use the configured language, not the viewer's UI language.
 @override(settings.LANGUAGE_CODE)
 def render_invoice_html(
-    invoice: Invoice, template: DocumentTemplate | None = None, for_pdf=False
+    invoice: Invoice, template: DocumentTemplate | None = None, for_pdf: bool = False
 ) -> str:
     """Render the invoice's DB-stored template to a full HTML document."""
     if template is None:
@@ -213,5 +227,6 @@ def render_invoice_pdf(invoice: Invoice) -> bytes:
         # embeds factur-x.xml + adds the Factur-X XMP extension schema
         from drafthorse.pdf import attach_xml
 
-        return attach_xml(pdf, xml)
+        archived: bytes = attach_xml(pdf, xml)
+        return archived
     return write_pdf(html, invoice.owner)

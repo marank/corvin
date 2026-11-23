@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 
+from .bank_account import BankAccount
 from .base import OwnedModel
 from .contact import Contact
 from .customer import Customer
@@ -85,7 +86,7 @@ class Invoice(OwnedModel):
         ]
 
     @property
-    def bank_account(self):
+    def bank_account(self) -> BankAccount | None:
         if self.bank_account_override_id:
             return self.bank_account_override
         if self.customer.bank_account_id:
@@ -94,22 +95,22 @@ class Invoice(OwnedModel):
         return company.default_bank_account if company else None
 
     @property
-    def amount_paid(self):
-        return sum(p.amount for p in self.payments.all())
+    def amount_paid(self) -> Decimal:
+        return sum((p.amount for p in self.payments.all()), Decimal(0))
 
     @property
-    def remaining(self):
+    def remaining(self) -> Decimal:
         return self.total - self.amount_paid
 
     @property
-    def partially_paid(self):
+    def partially_paid(self) -> bool:
         return self.amount_paid > 0 and self.remaining > 0
 
-    def recalc_totals(self):
+    def recalc_totals(self) -> None:
         self.subtotal = sum(i.total for i in self.items.all())
         self.vat_amount = (self.subtotal * self.vat_rate / 100).quantize(Decimal("0.01"))
         self.total = self.subtotal + self.vat_amount
         self.save(update_fields=["subtotal", "vat_amount", "total", "updated_at"])
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.number} ({self.customer.name})"

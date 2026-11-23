@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 from django.db import transaction
 
 from core.models import CompanySettings, DocumentTemplate
@@ -59,7 +60,7 @@ DEFAULT_FOOTER = (
 )
 
 
-def ensure_default_template(owner) -> DocumentTemplate:
+def ensure_default_template(owner: User) -> DocumentTemplate:
     """Return the owner's first template, creating the default one if none exists."""
     with transaction.atomic():
         # Locking the owner serialises concurrent first requests: only one creates the default.

@@ -8,13 +8,14 @@ dependencies = [
     "django[argon2]>=6.1.2,<7.0",
     "djangorestframework>=3.18.3",
     "django-filter>=26.2",
-    "django-environ>=0.14.0",
     "django-otp>=1.7.5",
     "weasyprint>=70.0",
     "drafthorse>=2025.2.0",
     "psycopg[binary]>=3.3.6",
     "gunicorn>=26.2.0; sys_platform != 'win32'",
     "pillow>=13.0.0",
+    "drf-spectacular>=0.30.0",
+    "procrastinate[django]>=3.12.0",
 ]
 
 [dependency-groups]
@@ -25,23 +26,98 @@ dev = [
     "ruff>=0.17.3",
     "pytest-cov>=7.1.0",
     "deptry>=0.25.1",
+    "mypy>=2.4.1",
+    "django-stubs>=6.1.2",
+    "djangorestframework-stubs>=3.18.2",
+    "types-django-filter>=26.2.0.20261107",
+    "pytest-randomly>=5.1.0",
+    "import-linter>=2.17",
+    "complexipy>=9.0.0",
 ]
 
 [tool.uv]
 package = false
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "config.settings.development"
+DJANGO_SETTINGS_MODULE = "config.settings_test"
 python_files = ["test_*.py"]
 testpaths = ["core/tests"]
+# pytest-randomly shuffles the test order on every run, so tests that pass only because of
+# another test's leftovers fail; the seed is printed (`--randomly-seed=…` to repeat,
+# `-p no:randomly` to switch it off while debugging).
 
 [tool.ruff]
 target-version = "py315"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W", "UP", "B", "SIM"]
-ignore = ["E501"]
+# Correctness, readability and safety — limits against tangled and deeply nested code
+# (C90), deliberately none against length (no PLR0915 statements, no max-lines).
+select = [
+    "E", "W", "F", "I", "UP", "B", "DJ", "SIM",
+    "C90",     # cyclomatic complexity
+    "DTZ",     # timezone-aware datetimes only
+    "T20",     # no print()
+    "ERA",     # no commented-out code
+    "S",       # security patterns (bandit)
+    "BLE",     # no blind `except Exception` that swallows errors
+    "TRY",     # exception handling: no `except: pass`, re-raise with context, …
+    "PERF",    # slow patterns (building a list in a loop, …)
+    "FURB",    # older, longer spellings of what the standard library does directly
+    "PT",      # pytest: tests that assert something, no stray fixtures
+    "PGH",     # no blanket `# noqa` / `# type: ignore`
+    "RUF100",  # unused `# noqa` fails
+]
+ignore = [
+    "E501",
+    "TRY003",  # messages passed to the exception class are fine
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "S105", "S106"]  # assert, passwords in fixtures
+"conftest.py" = ["S101"]
+# Command-line tools print their result.
+"scripts/**" = ["T201"]
+# Runs `manage.py spectacular` with a fixed argument list and sys.executable, no user input.
+"scripts/check_openapi.py" = ["S603"]
+
+# Layers inside `core`: entry points (URLs, admin, management commands) use views or services;
+# views use serializers, services and models; serializers may call services; services use
+# models; models import none of them. Tests are in no layer, so they may import anything.
+# `lint-imports` runs in `just check-backend`.
+[tool.importlinter]
+root_packages = ["core", "config"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Layers inside core"
+type = "layers"
+containers = ["core"]
+layers = [
+    "urls | admin | management | tasks",
+    "views",
+    "request_helpers",
+    "serializers",
+    "services",
+    "jobs",
+    "models",
+]
+
+[[tool.importlinter.contracts]]
+name = "Services and models know nothing about HTTP or DRF"
+type = "forbidden"
+source_modules = ["core.services", "core.models", "core.tasks", "core.jobs"]
+forbidden_modules = ["rest_framework", "drf_spectacular", "core.request_helpers"]
+
+[tool.complexipy]
+# Cognitive complexity (how hard a function is to follow; nesting costs more than a flat list
+# of cases) at most 15 per function. `uv run complexipy` in `just check-backend`.
+paths = ["."]
+max-complexity-allowed = 15
+failed = true
 
 [tool.deptry]
 # Tests may import dev dependencies (pytest, factory-boy).
@@ -60,4 +136,39 @@ omit = ["*/migrations/*", "config/asgi.py", "config/wsgi.py", "manage.py"]
 skip_covered = true
 show_missing = true
 # Current level; raise it as tests are added, never lower it.
-fail_under = 92
+fail_under = 93
+
+[tool.mypy]
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+strict = true
+# Checks against cases the types rule out (`if x is None` for a non-optional x, a branch
+# that can't run) are reported instead of kept "to be safe".
+warn_unreachable = true
+strict_equality_for_none = true
+enable_error_code = [
+    "redundant-expr",
+    "truthy-bool",          # `if obj:` on an object that is always true
+    "possibly-undefined",   # a variable only set in some branches
+    "ignore-without-code",  # `# type: ignore` names the error it silences
+    "exhaustive-match",     # a `match` over an enum or union misses a case
+]
+exclude = ["/migrations/"]
+
+[[tool.mypy.overrides]]
+module = ["*.migrations.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+# Third-party packages without type information (no py.typed, no stub package).
+module = ["django_otp", "django_otp.*", "weasyprint", "weasyprint.*", "drafthorse", "drafthorse.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Tests: still type-checked, but test functions and fixtures need no annotations.
+module = ["core.tests.*", "conftest"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+
+[tool.django-stubs]
+django_settings_module = "config.settings_test"

@@ -1,18 +1,50 @@
 from datetime import timedelta
+from typing import Any
 
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.models import Invoice, Project, SupportContract, TimeEntry
+from core.request_helpers import request_user
+from core.services.budgets import budget_stats
 from core.services.contracts import contract_usage
+
+_TOTAL = {"total": serializers.DecimalField(max_digits=14, decimal_places=2, allow_null=True)}
+_DASHBOARD = inline_serializer(
+    "DashboardStats",
+    {
+        "revenue_by_month": inline_serializer(
+            "MonthRevenue", {"month": serializers.DateField(), **_TOTAL}, many=True
+        ),
+        "hours_by_customer": inline_serializer(
+            "CustomerHours",
+            {"customer__name": serializers.CharField(), "hours": serializers.FloatField()},
+            many=True,
+        ),
+        "uninvoiced_hours": serializers.FloatField(),
+        "week_hours": serializers.FloatField(),
+        "open_invoices": inline_serializer(
+            "InvoiceSum", {**_TOTAL, "count": serializers.IntegerField()}
+        ),
+        "overdue": inline_serializer("OverdueSum", {**_TOTAL, "count": serializers.IntegerField()}),
+        # Keys from services.contracts.contract_usage / services.budgets.budget_stats.
+        "contracts": serializers.ListField(child=serializers.DictField()),
+        "budget_warnings": serializers.ListField(child=serializers.DictField()),
+        "timer_running": serializers.UUIDField(allow_null=True),
+    },
+)
 
 
 class DashboardStatsView(APIView):
-    def get(self, request):
-        user = request.user
+    @extend_schema(responses=_DASHBOARD)
+    def get(self, request: Request) -> Response:
+        user = request_user(request)
         today = timezone.localdate()
         year_ago = today - timedelta(days=365)
 
@@ -32,7 +64,9 @@ class DashboardStatsView(APIView):
 
         hours_by_customer = (
             entries.values("customer__name")
-            .annotate(hours=Sum("duration_minutes") / 60.0)
+            # django-stubs: "hours" clashes with the TimeEntry.hours property, though values()
+            # rows are plain dicts and Django allows it.
+            .annotate(hours=Sum("duration_minutes") / 60.0)  # type: ignore[no-redef, misc]  # see above
             .order_by("-hours")[:10]
         )
 
@@ -54,16 +88,15 @@ class DashboardStatsView(APIView):
             .aggregate(total=Sum("total"), count=Count("id"))
         )
 
-        contracts = []
-        for c in SupportContract.objects.filter(owner=user, active=True):
-            contracts.append({"id": c.id, "name": c.name, **contract_usage(c)})
+        contracts: list[dict[str, Any]] = [
+            {"id": c.id, "name": c.name, **contract_usage(c)}
+            for c in SupportContract.objects.filter(owner=user, active=True)
+        ]
 
-        budget_warnings = []
+        budget_warnings: list[dict[str, Any]] = []
         for p in Project.objects.filter(owner=user).exclude(
             budget_hours__isnull=True, budget_amount__isnull=True
         ):
-            from core.services.budgets import budget_stats
-
             s = budget_stats(p)
             if (s["budget_hours_percent"] or 0) >= 80 or (s["budget_amount_percent"] or 0) >= 80:
                 budget_warnings.append(

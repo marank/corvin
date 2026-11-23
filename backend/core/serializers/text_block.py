@@ -3,7 +3,7 @@ from core.models import TextBlock
 from .base import OwnedSerializer, validate_template_syntax
 
 
-class TextBlockSerializer(OwnedSerializer):
+class TextBlockSerializer(OwnedSerializer[TextBlock]):
     class Meta:
         model = TextBlock
         fields = [

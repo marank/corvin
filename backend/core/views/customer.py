@@ -1,9 +1,11 @@
 from types import SimpleNamespace
 
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Q, QuerySet, Sum
 from django.utils.translation import gettext_lazy as _
+from rest_framework.serializers import BaseSerializer
 
 from core.models import Address, Contact, Customer
+from core.request_helpers import request_user
 from core.serializers import (
     AddressSerializer,
     ContactSerializer,
@@ -14,7 +16,7 @@ from core.services.numbering import next_number
 from .base import OwnedViewSet
 
 
-class CustomerViewSet(OwnedViewSet):
+class CustomerViewSet(OwnedViewSet[Customer]):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
     filterset_fields = ["is_active"]
@@ -32,11 +34,13 @@ class CustomerViewSet(OwnedViewSet):
         "created_at",
     ]
 
-    def perform_create(self, serializer):
+    def perform_create(self, serializer: BaseSerializer[Customer]) -> None:
         customer = SimpleNamespace(**serializer.validated_data)
-        serializer.save(number=next_number(self.request.user, "customer", {"customer": customer}))
+        serializer.save(
+            number=next_number(request_user(self.request), "customer", {"customer": customer})
+        )
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Customer]:
         return (
             super()
             .get_queryset()
@@ -61,7 +65,7 @@ class CustomerViewSet(OwnedViewSet):
         )
 
 
-class ContactViewSet(OwnedViewSet):
+class ContactViewSet(OwnedViewSet[Contact]):
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
     filterset_fields = ["customer"]
@@ -69,7 +73,7 @@ class ContactViewSet(OwnedViewSet):
     ordering_fields = ["first_name", "last_name", "email", "role", "created_at"]
 
 
-class AddressViewSet(OwnedViewSet):
+class AddressViewSet(OwnedViewSet[Address]):
     queryset = Address.objects.select_related("customer")
     serializer_class = AddressSerializer
     filterset_fields = ["customer", "is_primary"]

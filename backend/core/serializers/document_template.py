@@ -24,7 +24,7 @@ validate_font = RegexValidator(
 TEMPLATE_FIELDS = ("body_html", "css", "header_html", "footer_html", "mail_subject", "mail_body")
 
 
-class DocumentTemplateSerializer(OwnedSerializer):
+class DocumentTemplateSerializer(OwnedSerializer[DocumentTemplate]):
     class Meta:
         model = DocumentTemplate
         fields = [

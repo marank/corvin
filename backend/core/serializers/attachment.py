@@ -6,7 +6,7 @@ from core.models import Attachment
 from .base import OwnedSerializer
 
 
-class AttachmentSerializer(OwnedSerializer):
+class AttachmentSerializer(OwnedSerializer[Attachment]):
     url = serializers.SerializerMethodField()
 
     class Meta:
@@ -22,7 +22,7 @@ class AttachmentSerializer(OwnedSerializer):
         ]
         read_only_fields = ["name", "uploaded_at"]
 
-    def get_url(self, obj):
+    def get_url(self, obj: Attachment) -> str:
         request = self.context.get("request")
         url = reverse("attachment-file", args=[obj.pk])
         return request.build_absolute_uri(url) if request else url

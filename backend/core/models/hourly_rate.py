@@ -36,11 +36,11 @@ class HourlyRate(OwnedModel):
     class Meta:
         ordering = ["-valid_from"]
 
-    def clean(self):
+    def clean(self) -> None:
         if self.project and self.customer and self.project.customer_id != self.customer_id:
             raise ValidationError(_("Project does not belong to the selected customer."))
         if self.project and not self.customer:
             self.customer = self.project.customer
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.amount} €/h from {self.valid_from}"

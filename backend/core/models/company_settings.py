@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 
 from django.conf import settings
 from django.db import models
@@ -15,7 +16,7 @@ NUMBERING_SCHEMES = {
 }
 
 
-def default_numbering_schemes():
+def default_numbering_schemes() -> dict[str, dict[str, Any]]:
     return deepcopy(NUMBERING_SCHEMES)
 
 
@@ -101,5 +102,5 @@ class CompanySettings(UuidModel):
         default=OpenStoppedTimeEntry.ASK,
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Settings of {self.user}"

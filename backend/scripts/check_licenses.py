@@ -25,17 +25,17 @@ INCOMPATIBLE = re.compile(
     | (?<!Lesser\ )(?<!Library\ )General\ Public\ License\ v2\ \(GPLv2\)
     | (?<![LA])GPLv2(?!\+|\ or\ later)
     """,
-    re.I | re.X,
+    re.IGNORECASE | re.VERBOSE,
 )
 # Not open source, or nothing machine-readable: needs a look (and an ALLOW entry).
 # ("Unlicense" is public domain and doesn't match.)
 PROPRIETARY = re.compile(
-    r"SEE LICENSE IN|\bUNLICENSED\b|proprietary|commercial|^\s*UNKNOWN\s*$|^\s*$", re.I
+    r"SEE LICENSE IN|\bUNLICENSED\b|proprietary|commercial|^\s*UNKNOWN\s*$|^\s*$", re.IGNORECASE
 )
 CHOICE = re.compile(r";|\s+OR\s+")
 
-# Packages whose metadata is wrong or ambiguous, after checking them by hand:
-# {"package-name": "reason"}
+# Packages whose metadata is wrong or ambiguous, after checking them by hand, mapped from the
+# lower-case package name to the reason.
 ALLOW: dict[str, str] = {}
 
 

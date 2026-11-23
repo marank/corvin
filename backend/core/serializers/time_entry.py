@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework import serializers
 
 from core.models import TimeEntry, TimeEntryBreak
@@ -5,14 +7,14 @@ from core.models import TimeEntry, TimeEntryBreak
 from .base import OwnedSerializer
 
 
-class TimeEntryBreakSerializer(serializers.ModelSerializer):
+class TimeEntryBreakSerializer(serializers.ModelSerializer[TimeEntryBreak]):
     class Meta:
         model = TimeEntryBreak
         fields = ["id", "start_datetime", "end_datetime"]
         read_only_fields = ["id"]
 
 
-class TimeEntrySerializer(OwnedSerializer):
+class TimeEntrySerializer(OwnedSerializer[TimeEntry]):
     owner_fk_fields = ("customer", "project", "visit", "contract")
 
     project_name = serializers.CharField(source="project.name", read_only=True, default=None)
@@ -30,7 +32,7 @@ class TimeEntrySerializer(OwnedSerializer):
     def get_is_paused(self, obj: TimeEntry) -> bool:
         return obj.breaks.filter(end_datetime__isnull=True).exists()
 
-    def create(self, validated_data: dict) -> TimeEntry:
+    def create(self, validated_data: dict[str, Any]) -> TimeEntry:
         breaks_data = validated_data.pop("breaks", [])
         instance = super().create(validated_data)
         if breaks_data:
@@ -38,7 +40,7 @@ class TimeEntrySerializer(OwnedSerializer):
             instance.save()
         return instance
 
-    def update(self, instance: TimeEntry, validated_data: dict) -> TimeEntry:
+    def update(self, instance: TimeEntry, validated_data: dict[str, Any]) -> TimeEntry:
         breaks_data = validated_data.pop("breaks", None)
         instance = super().update(instance, validated_data)
         if breaks_data is not None:
@@ -47,7 +49,7 @@ class TimeEntrySerializer(OwnedSerializer):
         return instance
 
     @staticmethod
-    def _sync_breaks(instance: TimeEntry, breaks_data: list[dict]) -> None:
+    def _sync_breaks(instance: TimeEntry, breaks_data: list[dict[str, Any]]) -> None:
         existing = {str(b.id): b for b in instance.breaks.all()}
         kept_ids = set()
         for b_data in breaks_data:

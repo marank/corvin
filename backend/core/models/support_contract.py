@@ -85,5 +85,5 @@ class SupportContract(OwnedModel):
             prev = add_periods(prev, self.period)
         return prev, start
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.customer.name})"

@@ -3,6 +3,7 @@ from decimal import Decimal
 
 import pytest
 from django.contrib.auth.models import User
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from core.models import HourlyRate, Invoice, TimeEntry
@@ -18,7 +19,7 @@ def client(user):
 @pytest.fixture
 def rate(user, customer):
     return HourlyRate.objects.create(
-        owner=user, customer=customer, amount=Decimal("80"), valid_from=date(2025, 1, 1)
+        owner=user, customer=customer, amount=Decimal(80), valid_from=date(2025, 1, 1)
     )
 
 
@@ -44,9 +45,9 @@ def test_preview_matches_consolidate_and_writes_nothing(client, customer, two_en
     assert r.status_code == 200
     data = r.json()
     assert data["entry_count"] == 2
-    assert Decimal(data["subtotal"]) == Decimal("320")
+    assert Decimal(data["subtotal"]) == Decimal(320)
     assert Decimal(data["total"]) == Decimal("380.80")
-    assert [Decimal(line["total"]) for line in data["lines"]] == [Decimal("160")] * 2
+    assert [Decimal(line["total"]) for line in data["lines"]] == [Decimal(160)] * 2
     assert not Invoice.objects.exists()
     assert not TimeEntry.objects.filter(invoice__isnull=False).exists()
 
@@ -71,7 +72,7 @@ def test_consolidate_bills_only_selected_entries(client, customer, two_entries):
     assert first.invoice == invoice
     assert first.invoice_item == invoice.items.get()
     assert second.invoice is None
-    assert invoice.subtotal == Decimal("160")
+    assert invoice.subtotal == Decimal(160)
 
 
 @pytest.mark.django_db
@@ -116,21 +117,22 @@ def test_line_items_add_edit_delete(client, customer, two_entries):
     assert r.status_code == 201
     assert r.json()["position"] == 3
     invoice.refresh_from_db()
-    assert invoice.subtotal == Decimal("360")
+    assert invoice.subtotal == Decimal(360)
 
     r = client.patch(
         f"/api/v1/invoice-items/{first_item.id}/", {"unit_price": "100"}, format="json"
     )
     assert r.status_code == 200
     invoice.refresh_from_db()
-    assert invoice.subtotal == Decimal("400")
+    assert invoice.subtotal == Decimal(400)
 
     released = TimeEntry.objects.get(invoice_item=first_item)
     assert client.delete(f"/api/v1/invoice-items/{first_item.id}/").status_code == 204
     released.refresh_from_db()
-    assert released.invoice is None and released.invoice_item is None
+    assert released.invoice is None
+    assert released.invoice_item is None
     invoice.refresh_from_db()
-    assert invoice.subtotal == Decimal("200")
+    assert invoice.subtotal == Decimal(200)
     assert list(invoice.items.values_list("position", flat=True)) == [1, 2]
 
 
@@ -223,8 +225,8 @@ def test_timer_messages_follow_accept_language(client):
 
 @pytest.mark.django_db
 def test_receivable_filter_matches_dashboard(client, customer, user):
-    today = date.today()
-    common = {"owner": user, "customer": customer, "issue_date": today, "total": Decimal("10")}
+    today = timezone.localdate()
+    common = {"owner": user, "customer": customer, "issue_date": today, "total": Decimal(10)}
     Invoice.objects.create(number="R1", status=Invoice.Status.ISSUED, due_date=today, **common)
     Invoice.objects.create(
         number="R2", status=Invoice.Status.SENT, due_date=date(2020, 1, 1), **common

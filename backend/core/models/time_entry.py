@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -78,17 +79,20 @@ class TimeEntry(OwnedModel):
     def hours(self) -> float:
         return round(self.duration_minutes / 60, 2)
 
-    def clean(self):
+    def clean(self) -> None:
         if self.customer:
             if self.project and self.project.customer_id != self.customer_id:
                 raise ValidationError({"project": _("Project does not belong to the customer.")})
             if self.contract:
-                if self.contract.customer_id != self.customer_id:
-                    raise ValidationError(_("Contract does not belong to the entry's customer."))
-                if self.contract.project_id and (self.contract.project_id != self.project_id):
-                    raise ValidationError(_("Contract is limited to a different project."))
+                self._check_contract(self.contract)
             if self.visit and self.visit.customer_id != self.customer_id:
                 raise ValidationError(_("Visit does not belong to the entry's customer."))
+
+    def _check_contract(self, contract: SupportContract) -> None:
+        if contract.customer_id != self.customer_id:
+            raise ValidationError(_("Contract does not belong to the entry's customer."))
+        if contract.project_id and (contract.project_id != self.project_id):
+            raise ValidationError(_("Contract is limited to a different project."))
 
     def _round_minutes(self, value: datetime, direction: str, increment: int) -> datetime:
         total_seconds = value.hour * 3600 + value.minute * 60 + value.second
@@ -106,16 +110,15 @@ class TimeEntry(OwnedModel):
         midnight = value.replace(hour=0, minute=0, second=0, microsecond=0)
         return midnight + timedelta(seconds=rounded)
 
-    def _apply_rounding(self):
+    def _apply_rounding(self) -> None:
         company = getattr(self.owner, "company_settings", None)
         if not company:
             return
-        if self.start_datetime:
-            self.normalized_start_datetime = self._round_minutes(
-                self.start_datetime,
-                company.time_rounding_start_direction,
-                company.time_rounding_start_minutes,
-            )
+        self.normalized_start_datetime = self._round_minutes(
+            self.start_datetime,
+            company.time_rounding_start_direction,
+            company.time_rounding_start_minutes,
+        )
         if self.end_datetime:
             self.normalized_end_datetime = self._round_minutes(
                 self.end_datetime,
@@ -130,7 +133,7 @@ class TimeEntry(OwnedModel):
                 total += int((b.end_datetime - b.start_datetime).total_seconds() // 60)
         return total
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         self._apply_rounding()
         if self.normalized_start_datetime and self.normalized_end_datetime:
             minutes = (
@@ -144,6 +147,6 @@ class TimeEntry(OwnedModel):
         self.full_clean()
         super().save(*args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         customer = self.customer.name if self.customer else "—"
         return f"{customer} {timezone.localdate(self.start_datetime)} ({self.hours}h)"

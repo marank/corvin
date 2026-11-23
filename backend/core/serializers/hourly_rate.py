@@ -5,7 +5,7 @@ from core.models import HourlyRate
 from .base import OwnedSerializer
 
 
-class HourlyRateSerializer(OwnedSerializer):
+class HourlyRateSerializer(OwnedSerializer[HourlyRate]):
     owner_fk_fields = ("customer", "project")
 
     customer_name = serializers.CharField(source="customer.name", read_only=True, default=None)

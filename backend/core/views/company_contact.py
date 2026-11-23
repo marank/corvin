@@ -4,7 +4,7 @@ from core.serializers import CompanyContactSerializer
 from .base import OwnedViewSet
 
 
-class CompanyContactViewSet(OwnedViewSet):
+class CompanyContactViewSet(OwnedViewSet[CompanyContact]):
     queryset = CompanyContact.objects.all()
     serializer_class = CompanyContactSerializer
     search_fields = ["first_name", "last_name", "role", "email"]

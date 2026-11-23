@@ -1,24 +1,28 @@
+from typing import Any
+
 from django.db.models import Count, Sum
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from core.models import Customer, TimeEntry, TimeEntryBreak
+from core.request_helpers import request_user
 from core.serializers import TimeEntrySerializer
 
 from .base import OwnedViewSet
 
 
-class StartTimerSerializer(serializers.Serializer):
+class StartTimerSerializer(serializers.Serializer[Any]):
     customer = serializers.UUIDField(required=False, allow_null=True)
     project = serializers.UUIDField(required=False, allow_null=True)
     description = serializers.CharField(required=False, allow_blank=True)
 
 
-class TimeEntryViewSet(OwnedViewSet):
+class TimeEntryViewSet(OwnedViewSet[TimeEntry]):
     queryset = TimeEntry.objects.select_related("customer", "project", "contract").prefetch_related(
         "breaks"
     )
@@ -43,14 +47,14 @@ class TimeEntryViewSet(OwnedViewSet):
         "duration_minutes",
     ]
 
-    def perform_destroy(self, instance):
+    def perform_destroy(self, instance: TimeEntry) -> None:
         if instance.invoice_id:
             # Remove it from a draft by deleting the invoice line instead.
             raise ValidationError(_("Invoiced time entries cannot be deleted."))
         instance.delete()
 
     @action(detail=False, methods=["get"])
-    def summary(self, request):
+    def summary(self, request: Request) -> Response:
         totals = (
             self.filter_queryset(self.get_queryset())
             .order_by()
@@ -67,7 +71,7 @@ class TimeEntryViewSet(OwnedViewSet):
         )
 
     @action(detail=False, methods=["get"])
-    def active(self, request):
+    def active(self, request: Request) -> Response:
         """The running timer, if any."""
         entry = (
             self.get_queryset().filter(end_datetime__isnull=True).prefetch_related("breaks").first()
@@ -77,7 +81,7 @@ class TimeEntryViewSet(OwnedViewSet):
         )
 
     @action(detail=False, methods=["post"])
-    def start(self, request):
+    def start(self, request: Request) -> Response:
         if self.get_queryset().filter(end_datetime__isnull=True).exists():
             return Response(
                 {"detail": _("A timer is already running.")},
@@ -88,7 +92,7 @@ class TimeEntryViewSet(OwnedViewSet):
         customer = None
         if ser.validated_data.get("customer"):
             customer = Customer.objects.filter(
-                owner=request.user, pk=ser.validated_data["customer"]
+                owner=request_user(request), pk=ser.validated_data["customer"]
             ).first()
             if not customer:
                 return Response(
@@ -104,7 +108,7 @@ class TimeEntryViewSet(OwnedViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         entry = TimeEntry.objects.create(
-            owner=request.user,
+            owner=request_user(request),
             customer=customer,
             project=project,
             start_datetime=timezone.localtime(),
@@ -116,11 +120,11 @@ class TimeEntryViewSet(OwnedViewSet):
             status=status.HTTP_201_CREATED,
         )
 
-    def _active_entry(self):
+    def _active_entry(self) -> TimeEntry | None:
         return self.get_queryset().filter(end_datetime__isnull=True).first()
 
     @action(detail=False, methods=["post"])
-    def stop(self, request):
+    def stop(self, request: Request) -> Response:
         entry = self._active_entry()
         if not entry:
             return Response(
@@ -135,7 +139,7 @@ class TimeEntryViewSet(OwnedViewSet):
         return Response(TimeEntrySerializer(entry, context={"request": request}).data)
 
     @action(detail=False, methods=["post"])
-    def pause(self, request):
+    def pause(self, request: Request) -> Response:
         entry = self._active_entry()
         if not entry:
             return Response(
@@ -149,7 +153,7 @@ class TimeEntryViewSet(OwnedViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         TimeEntryBreak.objects.create(
-            owner=request.user,
+            owner=request_user(request),
             time_entry=entry,
             start_datetime=timezone.localtime(),
             end_datetime=None,
@@ -162,7 +166,7 @@ class TimeEntryViewSet(OwnedViewSet):
         )
 
     @action(detail=False, methods=["post"])
-    def resume(self, request):
+    def resume(self, request: Request) -> Response:
         entry = self._active_entry()
         if not entry:
             return Response(

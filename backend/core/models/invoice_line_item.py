@@ -26,5 +26,5 @@ class InvoiceLineItem(OwnedModel):
     def total(self) -> Decimal:
         return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.description

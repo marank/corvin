@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 
-from core.models import Invoice
+from core.models import CompanySettings, Invoice
 
 COUNTRY_IDS = {
     "deutschland": "DE",
@@ -26,7 +26,7 @@ def _country_id(name: str) -> str:
     return COUNTRY_IDS.get(name.strip().lower(), "DE")
 
 
-def _validate(invoice: Invoice, company) -> None:
+def _validate(invoice: Invoice, company: CompanySettings | None) -> CompanySettings:
     missing = []
     if not company or not company.company_name:
         missing.append("company_name")
@@ -37,10 +37,11 @@ def _validate(invoice: Invoice, company) -> None:
         and not invoice.customer.buyer_reference
     ):
         missing.append("customer.buyer_reference (Leitweg-ID)")
-    if missing:
+    if missing or company is None:
         raise ValidationError(
             {"e_invoice": _("Missing required fields: %(fields)s") % {"fields": ", ".join(missing)}}
         )
+    return company
 
 
 def build_xrechnung_xml(invoice: Invoice) -> bytes:
@@ -51,8 +52,7 @@ def build_xrechnung_xml(invoice: Invoice) -> bytes:
     from drafthorse.models.payment import PaymentMeans, PaymentTerms
     from drafthorse.models.tradelines import LineItem
 
-    company = getattr(invoice.owner, "company_settings", None)
-    _validate(invoice, company)
+    company = _validate(invoice, getattr(invoice.owner, "company_settings", None))
 
     doc = Document()
     if invoice.e_invoice_format == Invoice.EInvoiceFormat.XRECHNUNG:
@@ -94,7 +94,7 @@ def build_xrechnung_xml(invoice: Invoice) -> bytes:
         li.document.line_id = str(item.position)
         li.product.name = item.description
         li.agreement.net.amount = item.unit_price
-        li.agreement.net.basis_quantity = (Decimal("1"), UNIT_CODES.get(item.unit, "C62"))
+        li.agreement.net.basis_quantity = (Decimal(1), UNIT_CODES.get(item.unit, "C62"))
         li.delivery.billed_quantity = (item.quantity, UNIT_CODES.get(item.unit, "C62"))
         li.settlement.trade_tax.type_code = "VAT"
         li.settlement.trade_tax.category_code = "S"
@@ -131,4 +131,5 @@ def build_xrechnung_xml(invoice: Invoice) -> bytes:
         pt.due = invoice.due_date
         doc.trade.settlement.terms.add(pt)
 
-    return doc.serialize()
+    xml: bytes = doc.serialize()
+    return xml

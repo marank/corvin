@@ -1,17 +1,19 @@
 from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
+from typing import Any
 
+from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from core.models import Invoice
+from core.models import BankAccount, CompanySettings, Invoice
 
 from .pdf import document_context
 
 
-def _sample_bank_account(owner):
-    company = getattr(owner, "company_settings", None)
+def _sample_bank_account(owner: User) -> BankAccount | SimpleNamespace:
+    company: CompanySettings | None = getattr(owner, "company_settings", None)
     if company and company.default_bank_account:
         return company.default_bank_account
     return SimpleNamespace(
@@ -23,7 +25,7 @@ def _sample_bank_account(owner):
     )
 
 
-def sample_template_context(owner, for_pdf=False) -> dict:
+def sample_template_context(owner: User, for_pdf: bool = False) -> dict[str, Any]:
     """The designer's preview data: the same variables as a real invoice, with sample values."""
     items = [
         SimpleNamespace(
@@ -36,8 +38,8 @@ def sample_template_context(owner, for_pdf=False) -> dict:
         )
         for position, (description, quantity, price) in enumerate(
             [
-                (_("Consulting"), Decimal("8"), Decimal("85")),
-                (_("On-site support"), Decimal("4"), Decimal("95")),
+                (_("Consulting"), Decimal(8), Decimal(85)),
+                (_("On-site support"), Decimal(4), Decimal(95)),
             ],
             start=1,
         )
@@ -64,11 +66,11 @@ def sample_template_context(owner, for_pdf=False) -> dict:
         due_date=today + timedelta(days=14),
         status=Invoice.Status.DRAFT,
         subtotal=subtotal,
-        vat_rate=Decimal("19"),
+        vat_rate=Decimal(19),
         vat_amount=vat_amount,
         total=subtotal + vat_amount,
         currency="EUR",
-        amount_paid=Decimal("0"),
+        amount_paid=Decimal(0),
         remaining=subtotal + vat_amount,
         notes="",
         customer=customer,

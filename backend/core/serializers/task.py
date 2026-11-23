@@ -5,7 +5,7 @@ from core.models import Task
 from .base import OwnedSerializer
 
 
-class TaskSerializer(OwnedSerializer):
+class TaskSerializer(OwnedSerializer[Task]):
     owner_fk_fields = ("customer", "project", "visit")
 
     customer_name = serializers.CharField(source="customer.name", read_only=True, default=None)

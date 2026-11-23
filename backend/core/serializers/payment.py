@@ -3,7 +3,7 @@ from core.models import Payment
 from .base import OwnedSerializer
 
 
-class PaymentSerializer(OwnedSerializer):
+class PaymentSerializer(OwnedSerializer[Payment]):
     owner_fk_fields = ("invoice",)
 
     class Meta:

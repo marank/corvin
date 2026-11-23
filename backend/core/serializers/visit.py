@@ -5,7 +5,7 @@ from core.models import OnSiteVisit
 from .base import OwnedSerializer
 
 
-class OnSiteVisitSerializer(OwnedSerializer):
+class OnSiteVisitSerializer(OwnedSerializer[OnSiteVisit]):
     owner_fk_fields = ("customer", "project")
 
     customer_name = serializers.CharField(source="customer.name", read_only=True)

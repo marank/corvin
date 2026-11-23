@@ -1,12 +1,14 @@
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from core.models import Project
-from core.services.budgets import budget_stats
+from core.services.budgets import BudgetStats, budget_stats
 
 from .base import OwnedSerializer
 
 
-class ProjectSerializer(OwnedSerializer):
+class ProjectSerializer(OwnedSerializer[Project]):
     owner_fk_fields = ("customer",)
 
     customer_name = serializers.CharField(source="customer.name", read_only=True)
@@ -37,19 +39,21 @@ class ProjectSerializer(OwnedSerializer):
         ]
         read_only_fields = ["number", "created_at", "updated_at"]
 
-    def _stats(self, obj) -> dict:
-        if not hasattr(obj, "_budget_stats"):
-            obj._budget_stats = budget_stats(obj)
-        return obj._budget_stats
+    def _stats(self, obj: Project) -> BudgetStats:
+        stats: BudgetStats | None = getattr(obj, "_budget_stats", None)
+        if stats is None:
+            stats = budget_stats(obj)
+            obj._budget_stats = stats  # type: ignore[attr-defined]  # per-instance cache
+        return stats
 
-    def get_used_hours(self, obj):
+    def get_used_hours(self, obj: Project) -> Decimal:
         return self._stats(obj)["used_hours"]
 
-    def get_used_amount(self, obj):
+    def get_used_amount(self, obj: Project) -> Decimal:
         return self._stats(obj)["used_amount"]
 
-    def get_budget_hours_percent(self, obj):
+    def get_budget_hours_percent(self, obj: Project) -> float | None:
         return self._stats(obj)["budget_hours_percent"]
 
-    def get_budget_amount_percent(self, obj):
+    def get_budget_amount_percent(self, obj: Project) -> float | None:
         return self._stats(obj)["budget_amount_percent"]

@@ -6,7 +6,7 @@ from .address import AddressSerializer
 from .base import OwnedSerializer
 
 
-class CustomerSerializer(OwnedSerializer):
+class CustomerSerializer(OwnedSerializer[Customer]):
     owner_fk_fields = ("bank_account",)
 
     project_count = serializers.IntegerField(read_only=True)

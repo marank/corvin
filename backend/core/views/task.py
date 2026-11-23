@@ -1,13 +1,16 @@
 from types import SimpleNamespace
 
+from rest_framework.serializers import BaseSerializer
+
 from core.models import Task
+from core.request_helpers import request_user
 from core.serializers import TaskSerializer
 from core.services.numbering import next_number
 
 from .base import OwnedViewSet
 
 
-class TaskViewSet(OwnedViewSet):
+class TaskViewSet(OwnedViewSet[Task]):
     queryset = Task.objects.select_related("project", "customer")
     serializer_class = TaskSerializer
     filterset_fields = ["customer", "project", "visit", "status", "priority"]
@@ -24,7 +27,7 @@ class TaskViewSet(OwnedViewSet):
         "created_at",
     ]
 
-    def perform_create(self, serializer):
+    def perform_create(self, serializer: BaseSerializer[Task]) -> None:
         project = serializer.validated_data.get("project")
         customer = serializer.validated_data.get("customer")
         if not customer and project:
@@ -33,7 +36,7 @@ class TaskViewSet(OwnedViewSet):
         task = SimpleNamespace(**task_data)
         serializer.save(
             number=next_number(
-                self.request.user,
+                request_user(self.request),
                 "task",
                 {
                     "customer": customer,

@@ -3,7 +3,7 @@ from core.models import BankAccount
 from .base import OwnedSerializer
 
 
-class BankAccountSerializer(OwnedSerializer):
+class BankAccountSerializer(OwnedSerializer[BankAccount]):
     class Meta:
         model = BankAccount
         fields = [

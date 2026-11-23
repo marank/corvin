@@ -5,7 +5,7 @@ from core.models import Contact
 from .base import OwnedSerializer
 
 
-class ContactSerializer(OwnedSerializer):
+class ContactSerializer(OwnedSerializer[Contact]):
     owner_fk_fields = ("customer",)
 
     name = serializers.CharField(read_only=True)

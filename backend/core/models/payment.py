@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import models
 
 from .base import OwnedModel
@@ -13,12 +15,12 @@ class Payment(OwnedModel):
     class Meta:
         ordering = ["-date"]
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         super().save(*args, **kwargs)
         invoice = self.invoice
         if invoice.amount_paid >= invoice.total and invoice.total > 0:
             invoice.status = Invoice.Status.PAID
             invoice.save(update_fields=["status", "updated_at"])
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.amount} on {self.date}"

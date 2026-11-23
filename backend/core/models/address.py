@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import models
 
 from .base import OwnedModel
@@ -20,13 +22,13 @@ class Address(OwnedModel):
     class Meta:
         ordering = ["-is_primary", "label", "city"]
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         super().save(*args, **kwargs)
         if self.is_primary:
             self.customer.addresses.exclude(pk=self.pk).filter(is_primary=True).update(
                 is_primary=False
             )
 
-    def __str__(self):
+    def __str__(self) -> str:
         parts = ", ".join(p for p in (self.street, f"{self.postal_code} {self.city}".strip()) if p)
         return f"{self.label or 'Address'}: {parts}"

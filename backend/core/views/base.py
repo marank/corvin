@@ -1,27 +1,36 @@
 import mimetypes
+from typing import Any
 
 from django.db import transaction
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, QuerySet
+from django.db.models.fields.files import FieldFile
 from django.http import FileResponse, Http404
 from django.utils.translation import gettext_lazy as _
 from rest_framework import viewsets
 from rest_framework.exceptions import ValidationError
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from core.models.base import OwnedModel
 
 
-class OwnedViewSet(viewsets.ModelViewSet):
+class OwnedViewSet[M: OwnedModel](viewsets.ModelViewSet[M]):
     """Scopes all queries to the requesting user."""
 
     # Shown when an on_delete=PROTECT relation blocks a delete; override per resource.
     protected_message = _("This entry is still used by other records and cannot be deleted.")
 
     @transaction.atomic
-    def create(self, request, *args, **kwargs):
+    def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         return super().create(request, *args, **kwargs)
 
-    def get_queryset(self):
-        return self.queryset.filter(owner=self.request.user)
+    def get_queryset(self) -> QuerySet[M]:
+        if getattr(self, "swagger_fake_view", False):
+            # The OpenAPI export inspects the view without a signed-in user.
+            return super().get_queryset().none()
+        return super().get_queryset().filter(owner=self.request.user)
 
-    def perform_destroy(self, instance):
+    def perform_destroy(self, instance: M) -> None:
         try:
             super().perform_destroy(instance)
         except ProtectedError as e:
@@ -39,7 +48,7 @@ INLINE_CONTENT_TYPES = {
 }
 
 
-def serve_file(field_file, filename: str) -> FileResponse:
+def serve_file(field_file: FieldFile, filename: str) -> FileResponse:
     """Stream an uploaded file after the caller has checked ownership."""
     if not field_file:
         raise Http404

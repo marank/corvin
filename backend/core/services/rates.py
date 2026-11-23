@@ -1,11 +1,13 @@
 from datetime import date
 from decimal import Decimal
 
+from django.contrib.auth.models import User
+
 from core.models import Customer, HourlyRate, Project
 
 
 def resolve_rate(
-    *, owner, customer: Customer, project: Project | None, on_date: date
+    *, owner: User, customer: Customer, project: Project | None, on_date: date
 ) -> Decimal | None:
     """Resolve the effective hourly rate for a date.
 

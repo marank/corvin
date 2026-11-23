@@ -14,8 +14,8 @@ def test_usage_counts_only_contract_entries(user, contract, make_entry):
     make_entry(d=date(2026, 9, 6))  # 2h not covered
     usage = contract_usage(contract)
     assert usage["used_hours"] == Decimal("2.00")
-    assert usage["included_hours"] == Decimal("10")
-    assert usage["overage_hours"] == Decimal("0")
+    assert usage["included_hours"] == Decimal(10)
+    assert usage["overage_hours"] == Decimal(0)
 
 
 @pytest.mark.django_db
@@ -37,7 +37,9 @@ def test_process_due_generates_and_advances(user, contract, make_entry):
     assert contract.next_billing_date == date(2026, 11, 1)
     # fixed line + overage line (overage_rate unset → resolved rate None → 0)
     assert inv.items.count() == 2
-    assert inv.items.first().unit_price == Decimal("750")
+    item = inv.items.first()
+    assert item is not None
+    assert item.unit_price == Decimal(750)
 
 
 @pytest.mark.django_db
@@ -47,7 +49,9 @@ def test_flat_contract_no_hours(user, customer, contract):
     contract.save()
     invoices = process_due(today=date(2026, 10, 2))
     assert invoices[0].items.count() == 1
-    assert invoices[0].items.first().total == Decimal("750")
+    item = invoices[0].items.first()
+    assert item is not None
+    assert item.total == Decimal(750)
 
 
 @pytest.mark.django_db
@@ -57,13 +61,13 @@ def test_wrong_customer_contract_rejected(user, customer, contract):
 
     other = Customer.objects.create(owner=user, name="Other GmbH")
     other_project = Project.objects.create(owner=user, customer=other, name="Other")
+    tz = timezone.get_current_timezone()
     with pytest.raises(ValidationError):
-        tz = timezone.get_current_timezone()
         TimeEntry.objects.create(
             owner=user,
             customer=customer,
             project=other_project,
             contract=contract,
-            start_datetime=timezone.make_aware(datetime(2026, 9, 1, 9, 0), tz),
-            end_datetime=timezone.make_aware(datetime(2026, 9, 1, 10, 0), tz),
+            start_datetime=datetime(2026, 9, 1, 9, 0, tzinfo=tz),
+            end_datetime=datetime(2026, 9, 1, 10, 0, tzinfo=tz),
         )

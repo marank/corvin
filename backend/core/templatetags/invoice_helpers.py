@@ -1,6 +1,9 @@
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
+from typing import Any
 
 from django import template
+from django.template import Context
 from django.utils import timezone
 
 register = template.Library()
@@ -21,11 +24,11 @@ CURRENCY_SYMBOLS = {
 }
 
 
-def _company(context):
+def _company(context: Context) -> Any:
     return context.get("company")
 
 
-def _date_pattern(pattern):
+def _date_pattern(pattern: str) -> str:
     result = pattern
     for source, target in (
         ("YYYY", "%Y"),
@@ -40,7 +43,7 @@ def _date_pattern(pattern):
     return result
 
 
-def _number(value, company, minimum=0, maximum=2):
+def _number(value: Any, company: Any, minimum: int = 0, maximum: int = 2) -> str:
     try:
         number = Decimal(str(value))
     except InvalidOperation, TypeError, ValueError:
@@ -56,34 +59,39 @@ def _number(value, company, minimum=0, maximum=2):
 
 
 @register.simple_tag(takes_context=True)
-def display_date(context, value, pattern=None):
+def display_date(context: Context, value: date | None, pattern: str | None = None) -> str:
     if not value:
         return "—"
     company = _company(context)
-    pattern = pattern or getattr(company, "date_format", "DD.MM.YYYY")
-    return value.strftime(_date_pattern(pattern))
+    default: str = getattr(company, "date_format", "DD.MM.YYYY")
+    fmt = pattern or default
+    return value.strftime(_date_pattern(fmt))
 
 
 @register.simple_tag(takes_context=True)
-def display_time(context, value, pattern=None):
+def display_time(context: Context, value: datetime | None, pattern: str | None = None) -> str:
     if not value:
         return "—"
     company = _company(context)
-    pattern = pattern or getattr(company, "time_format", "HH:mm")
+    default: str = getattr(company, "time_format", "HH:mm")
+    fmt = pattern or default
     if timezone.is_aware(value):
         value = timezone.localtime(value)
-    return value.strftime(_date_pattern(pattern))
+    return value.strftime(_date_pattern(fmt))
 
 
 @register.simple_tag(takes_context=True)
-def display_number(context, value, minimum=0, maximum=2):
+def display_number(
+    context: Context, value: Any, minimum: int | str = 0, maximum: int | str = 2
+) -> str:
     return _number(value, _company(context), int(minimum), int(maximum))
 
 
 @register.simple_tag(takes_context=True)
-def display_money(context, value, currency=None):
+def display_money(context: Context, value: Any, currency: str | None = None) -> str:
     company = _company(context)
-    code = currency or getattr(company, "currency", "EUR")
+    default: str = getattr(company, "currency", "EUR")
+    code = currency or default
     marker = (
         CURRENCY_SYMBOLS.get(code, code)
         if getattr(company, "currency_display", "symbol") == "symbol"
