@@ -132,6 +132,12 @@ def test_finalize_requires_bank_account(user, draft_invoice):
 
 
 @pytest.fixture
+def no_queue(settings):
+    """Jobs run in-process after the commit, as natively, whatever the test database."""
+    settings.JOB_QUEUE = False
+
+
+@pytest.fixture
 def issued_invoice(user, draft_invoice):
     c = APIClient()
     c.force_authenticate(user)
@@ -142,7 +148,7 @@ def issued_invoice(user, draft_invoice):
 
 @pytest.mark.django_db
 def test_send_email_sends_pdf_after_commit_and_marks_sent(
-    user, issued_invoice, mailoutbox, django_capture_on_commit_callbacks
+    no_queue, user, issued_invoice, mailoutbox, django_capture_on_commit_callbacks
 ):
     c = APIClient()
     c.force_authenticate(user)
@@ -172,7 +178,7 @@ def test_send_email_sends_pdf_after_commit_and_marks_sent(
 
 
 @pytest.mark.django_db
-def test_send_email_sends_nothing_before_commit(user, issued_invoice, mailoutbox):
+def test_send_email_sends_nothing_before_commit(no_queue, user, issued_invoice, mailoutbox):
     c = APIClient()
     c.force_authenticate(user)
     r = c.post(
@@ -210,7 +216,7 @@ def test_send_email_with_queue_defers_job_with_rendered_text(user, issued_invoic
 
 
 @pytest.mark.django_db
-def test_send_email_rejects_invalid_address(user, issued_invoice, mailoutbox):
+def test_send_email_rejects_invalid_address(no_queue, user, issued_invoice, mailoutbox):
     c = APIClient()
     c.force_authenticate(user)
     r = c.post(
@@ -225,7 +231,7 @@ def test_send_email_rejects_invalid_address(user, issued_invoice, mailoutbox):
     "state", [Invoice.Status.DRAFT, Invoice.Status.CANCELLED, Invoice.Status.PAID]
 )
 def test_send_email_refuses_invoices_that_are_not_finalized(
-    user, draft_invoice, state, mailoutbox, django_capture_on_commit_callbacks
+    no_queue, user, draft_invoice, state, mailoutbox, django_capture_on_commit_callbacks
 ):
     draft_invoice.status = state
     draft_invoice.save(update_fields=["status"])
