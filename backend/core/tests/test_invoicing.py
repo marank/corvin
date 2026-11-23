@@ -218,3 +218,30 @@ def test_send_email_rejects_invalid_address(user, issued_invoice, mailoutbox):
     )
     assert r.status_code == 400
     assert "to" in r.json()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "state", [Invoice.Status.DRAFT, Invoice.Status.CANCELLED, Invoice.Status.PAID]
+)
+def test_send_email_refuses_invoices_that_are_not_finalized(
+    user, draft_invoice, state, mailoutbox, django_capture_on_commit_callbacks
+):
+    draft_invoice.status = state
+    draft_invoice.save(update_fields=["status"])
+    c = APIClient()
+    c.force_authenticate(user)
+    with django_capture_on_commit_callbacks(execute=True):
+        r = c.post(
+            f"/api/v1/invoices/{draft_invoice.id}/send_email/",
+            {"to": "billing@acme.test"},
+            format="json",
+            HTTP_ACCEPT_LANGUAGE="en",
+        )
+    assert r.status_code == 400
+    assert r.json()["detail"] == ["Only finalized invoices can be sent."]
+    assert mailoutbox == []
+    # Nothing was archived: a draft stays editable.
+    assert not draft_invoice.documents.exists()
+    draft_invoice.refresh_from_db()
+    assert draft_invoice.status == state

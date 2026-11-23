@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Corvin\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 00:46+0100\n"
+"POT-Creation-Date: 2026-11-23 22:32+0100\n"
 "PO-Revision-Date: 2026-11-03 01:10+0100\n"
 "Last-Translator: Corvin\n"
 "Language-Team: German\n"
@@ -21,14 +21,14 @@ msgstr "Das Projekt gehört nicht zum ausgewählten Kunden."
 msgid "Project does not belong to the customer."
 msgstr "Das Projekt gehört nicht zu diesem Kunden."
 
+msgid "Visit does not belong to the entry's customer."
+msgstr "Der Termin gehört nicht zum Kunden des Eintrags."
+
 msgid "Contract does not belong to the entry's customer."
 msgstr "Der Vertrag gehört nicht zum Kunden des Eintrags."
 
 msgid "Contract is limited to a different project."
 msgstr "Der Vertrag gilt nur für ein anderes Projekt."
-
-msgid "Visit does not belong to the entry's customer."
-msgstr "Der Termin gehört nicht zum Kunden des Eintrags."
 
 #, python-format
 msgid "Invalid template: %(error)s"
@@ -40,22 +40,6 @@ msgstr "Ungültige Auswahl."
 msgid "A key is required."
 msgstr "Ein Schlüssel ist erforderlich."
 
-msgid "Invalid bank account."
-msgstr "Ungültiges Bankkonto."
-
-msgid "Must differ from decimal separator."
-msgstr "Muss sich vom Dezimaltrennzeichen unterscheiden."
-
-msgid "Must be a positive integer."
-msgstr "Muss eine positive ganze Zahl sein."
-
-msgid "Use a three-letter ISO currency code."
-msgstr "Bitte einen dreistelligen ISO-Währungscode angeben."
-
-#, python-format
-msgid "Unknown entities: %(names)s."
-msgstr "Unbekannte Objekttypen: %(names)s."
-
 msgid "Invalid counter scope."
 msgstr "Ungültiger Zählerbereich."
 
@@ -64,6 +48,22 @@ msgstr "Ein Format ist erforderlich."
 
 msgid "Maximum length is 200 characters."
 msgstr "Höchstens 200 Zeichen."
+
+msgid "Must be a positive integer."
+msgstr "Muss eine positive ganze Zahl sein."
+
+msgid "Invalid bank account."
+msgstr "Ungültiges Bankkonto."
+
+msgid "Must differ from decimal separator."
+msgstr "Muss sich vom Dezimaltrennzeichen unterscheiden."
+
+msgid "Use a three-letter ISO currency code."
+msgstr "Bitte einen dreistelligen ISO-Währungscode angeben."
+
+#, python-format
+msgid "Unknown entities: %(names)s."
+msgstr "Unbekannte Objekttypen: %(names)s."
 
 msgid "Must be an object."
 msgstr "Muss ein Objekt sein."
@@ -113,6 +113,9 @@ msgstr ""
 "Sehr geehrte Damen und Herren,\n"
 "\n"
 "anbei erhalten Sie unsere Rechnung."
+
+msgid "Only finalized invoices can be sent."
+msgstr "Nur finalisierte Rechnungen können versendet werden."
 
 msgid "Consulting"
 msgstr "Beratung"
