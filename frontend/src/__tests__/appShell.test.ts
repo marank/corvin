@@ -34,6 +34,17 @@ describe('AppShell', () => {
     expect(useFormattingStore(pinia).currencyPosition).toBe('before')
   })
 
+  it('requests the company settings only once for all stores', async () => {
+    const api = backend()
+    api.get('/time-tracking/active/', {
+      id: 'run-1',
+      start_datetime: '2026-11-23T08:00:00+01:00',
+      breaks: [],
+    })
+    await open()
+    expect(api.requests('GET', '/settings/')).toHaveLength(1)
+  })
+
   it('links every section in the sidebar', async () => {
     backend()
     await open()

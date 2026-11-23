@@ -17,9 +17,26 @@ export const useSettingsStore = defineStore('settings', () => {
     loaded.value = true
   }
 
+  // One request for every store that needs the company settings (this one and
+  // formatting): callers share it while it runs, and a failed one may be retried.
+  let pending: Promise<Record<string, unknown>> | null = null
+  function fetch(): Promise<Record<string, unknown>> {
+    pending ??= settingsApi.get().then(
+      (settings) => {
+        apply(settings)
+        return settings
+      },
+      (error: unknown) => {
+        pending = null
+        throw error
+      },
+    )
+    return pending
+  }
+
   async function load() {
     if (loaded.value) return
-    apply(await settingsApi.get())
+    await fetch()
   }
 
   return {
@@ -28,6 +45,7 @@ export const useSettingsStore = defineStore('settings', () => {
     openStoppedTimeEntry,
     loaded,
     apply,
+    fetch,
     load,
   }
 })

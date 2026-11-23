@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { settingsApi } from '../api'
+import { useSettingsStore } from './settings'
 
 // The settings are text fields; an empty (or missing) one falls back to the default.
 function textOr(value: unknown, fallback: string): string {
@@ -32,7 +32,8 @@ export const useFormattingStore = defineStore('formatting', () => {
 
   async function load() {
     if (loaded.value) return
-    apply(await settingsApi.get())
+    // Shares the request with the settings store.
+    apply(await useSettingsStore().fetch())
   }
 
   return {
