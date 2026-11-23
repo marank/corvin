@@ -67,9 +67,11 @@ compile-messages:
 # Everything CI checks; must pass before a push
 check: check-backend check-deploy check-frontend check-workflows
 
-# ruff, mypy, cognitive complexity, import layers, deptry, licenses, migrations, Django checks, OpenAPI, tests
+# ruff, mypy, cognitive complexity, import layers, deptry, licenses, migrations, Django checks, OpenAPI, tests.
+# manage.py runs with the test settings, like the tests: they need no .env (CI has none);
+# the production settings are check-deploy's job.
 [working-directory: 'backend']
-check-backend: check-backend-licenses
+check-backend $DJANGO_SETTINGS_MODULE="config.settings_test": check-backend-licenses
     uv sync --locked
     uv run ruff check --output-format=concise .
     uv run ruff format --check .
