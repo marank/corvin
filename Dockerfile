@@ -9,6 +9,9 @@
 ARG PG_MAJOR=18
 ARG SUPERVISOR_VERSION=4.3.0
 
+# uv, only to install the backend's packages; its own stage so Dependabot sees the pin.
+FROM ghcr.io/astral-sh/uv:0.13.9@sha256:d3b601f0c7b118bc1753febf7c41cc80981df678445e0254284eecf84db79a7d AS uv
+
 # --- 1. Build the SPA ------------------------------------------------------------------
 FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS frontend
 WORKDIR /frontend
@@ -62,7 +65,7 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY backend/pyproject.toml backend/uv.lock backend/.python-version ./
-RUN --mount=from=ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0,source=/uv,target=/usr/local/bin/uv \
+RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
     --mount=type=cache,target=/tmp/.cache/uv \
     uv sync --frozen --no-dev --no-install-project
 COPY backend/ ./
