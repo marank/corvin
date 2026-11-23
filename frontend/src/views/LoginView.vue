@@ -47,7 +47,7 @@ async function submit() {
       <div class="flex flex-col gap-4 px-6 pb-6 pt-3">
         <div class="flex flex-col items-center gap-2 py-2">
           <h1><AppLogo size="lg" /></h1>
-          <p class="text-sm text-surface-500 text-center">{{ t('auth.tagline') }}</p>
+          <p class="text-sm text-surface-500 text-center text-balance">{{ t('auth.tagline') }}</p>
         </div>
         <Message v-if="error" severity="error" size="small">{{ error }}</Message>
         <div class="flex flex-col gap-1">
@@ -69,7 +69,8 @@ async function submit() {
   </div>
 </template>
 
-<style scoped>
+<!-- Not scoped: Vue drops `:global(.dark) .login-page` in scoped styles, so the dark backdrop never applied. -->
+<style>
 /* Brand colors as a soft backdrop and an accent line on the card. */
 .login-page {
   background:
@@ -77,7 +78,7 @@ async function submit() {
     radial-gradient(40rem 24rem at 85% 90%, color-mix(in srgb, #a855f7 14%, transparent), transparent 70%),
     var(--p-surface-50);
 }
-:global(.dark) .login-page {
+.dark .login-page {
   background:
     radial-gradient(40rem 24rem at 15% 10%, color-mix(in srgb, #22d3ee 10%, transparent), transparent 70%),
     radial-gradient(40rem 24rem at 85% 90%, color-mix(in srgb, #a855f7 10%, transparent), transparent 70%),
