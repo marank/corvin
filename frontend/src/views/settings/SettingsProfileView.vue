@@ -264,6 +264,11 @@ async function uploadFixedImage(kind: string, event: Event) {
   }
 }
 
+function openAdditionalImage() {
+  additionalImage.value = { key: '', name: '', file: null }
+  imageModal.value?.open()
+}
+
 function selectAdditionalFile(event: Event) {
   additionalImage.value.file = (event.target as HTMLInputElement).files?.[0] ?? null
 }
@@ -279,7 +284,6 @@ async function uploadAdditionalImage() {
       file: data.file,
     })
     images.value = (await companyImagesApi.list()).results
-    additionalImage.value = { key: '', name: '', file: null }
     imageModal.value?.close()
     notify.ok(t('common.saved'))
   } catch (e) {
@@ -584,7 +588,7 @@ async function save() {
                   :label="t('settings.addImage')"
                   icon="pi pi-plus"
                   size="small"
-                  @click="imageModal?.open()"
+                  @click="openAdditionalImage"
                 />
               </div>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-3">

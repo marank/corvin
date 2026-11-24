@@ -66,6 +66,11 @@ async function confirmTotp() {
   }
 }
 
+function openDisableTotp() {
+  disablePassword.value = ''
+  disableModal.value?.open()
+}
+
 async function disableTotp() {
   try {
     await securityApi.totpDisable(disablePassword.value)
@@ -143,7 +148,7 @@ async function revokeOtherSessions() {
           :label="t('settings.totpDisable')"
           severity="danger"
           text
-          @click="disableModal?.open()"
+          @click="openDisableTotp"
         />
       </section>
 

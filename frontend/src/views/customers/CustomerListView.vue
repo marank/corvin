@@ -46,7 +46,7 @@ const activeFilters = computed<ActiveFilter[]>(() =>
 )
 const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
-const form = ref({
+const emptyForm = () => ({
   name: '',
   email: '',
   phone: '',
@@ -56,6 +56,12 @@ const form = ref({
   payment_terms_days: null as number | null,
   notes: '',
 })
+const form = ref(emptyForm())
+
+function openNew() {
+  form.value = emptyForm()
+  modal.value?.open()
+}
 const pagination = usePagination(load, 'name')
 const sortOptions = [
   { label: '#', value: 'number' },
@@ -80,16 +86,6 @@ async function save() {
   try {
     await customersApi.create(form.value)
     modal.value?.close()
-    form.value = {
-      name: '',
-      email: '',
-      phone: '',
-      website: '',
-      vat_id: '',
-      buyer_reference: '',
-      payment_terms_days: null,
-      notes: '',
-    }
     notify.ok(t('common.created'))
     void load()
   } catch (e) {
@@ -104,7 +100,7 @@ async function save() {
   <div>
     <AppPageHeader :title="t('customers.title')">
       <template #actions>
-        <Button :label="t('customers.new')" icon="pi pi-plus" @click="modal?.open()" />
+        <Button :label="t('customers.new')" icon="pi pi-plus" @click="openNew" />
       </template>
     </AppPageHeader>
 

@@ -67,7 +67,7 @@ const paymentForm = ref({ date: isoDate(), amount: 0, note: '' })
 
 function openPayment() {
   if (!invoice.value) return
-  paymentForm.value.amount = Number(invoice.value.remaining)
+  paymentForm.value = { date: isoDate(), amount: Number(invoice.value.remaining), note: '' }
   paymentModal.value?.open()
 }
 
@@ -97,16 +97,15 @@ async function load() {
 async function openEmail() {
   if (!invoice.value) return
   const [customer, draft] = await Promise.all([
-    emailForm.value.to ? null : customersApi.get(invoice.value.customer).catch(() => null),
-    emailForm.value.subject || emailForm.value.body
-      ? null
-      : invoicesApi.emailDraft(id).catch(() => null),
+    customersApi.get(invoice.value.customer).catch(() => null),
+    invoicesApi.emailDraft(id).catch(() => null),
   ])
-  if (!emailForm.value.to) {
-    emailForm.value.to =
-      invoice.value.contacts.find((contact) => contact.email)?.email ?? customer?.email ?? ''
+  emailForm.value = {
+    to: invoice.value.contacts.find((contact) => contact.email)?.email ?? customer?.email ?? '',
+    subject: '',
+    body: '',
+    ...draft,
   }
-  if (draft) emailForm.value = { ...emailForm.value, ...draft }
   emailModal.value?.open()
 }
 
@@ -219,7 +218,6 @@ async function addPayment() {
   await act(async () => {
     await paymentsApi.create({ ...paymentForm.value, invoice: id })
     paymentModal.value?.close()
-    paymentForm.value = { date: isoDate(), amount: 0, note: '' }
     notify.ok(t('invoices.paymentAdded'))
   })
 }
