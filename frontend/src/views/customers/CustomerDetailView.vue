@@ -133,15 +133,14 @@ function removeContact(c: Contact) {
   })
 }
 
-// One line per row in the table: the address's roles as text rather than stacked tags.
+// The address's roles as icons (named for screen readers and in the tooltip), so the
+// column stays narrow with all three set.
 function addressRoles(address: Address) {
   return [
-    address.is_primary && t('customers.primary'),
-    address.is_invoice_address && t('customers.invoiceAddress'),
-    address.is_delivery_address && t('customers.deliveryAddress'),
-  ]
-    .filter(Boolean)
-    .join(', ')
+    address.is_primary && { icon: 'pi pi-star-fill', label: t('customers.primary') },
+    address.is_invoice_address && { icon: 'pi pi-file', label: t('customers.invoiceAddress') },
+    address.is_delivery_address && { icon: 'pi pi-truck', label: t('customers.deliveryAddress') },
+  ].filter((role) => role !== false)
 }
 
 function openAddress(address?: Address) {
@@ -363,8 +362,19 @@ function removeAddress(a: Address) {
               <template #body="{ data }">{{ data.postal_code }} {{ data.city }}</template>
             </Column>
             <Column class="app-text" field="country" :header="t('customers.country')" sortable />
-            <Column class="app-text" :header="t('common.status')">
-              <template #body="{ data }">{{ addressRoles(data) }}</template>
+            <Column :header="t('common.status')">
+              <template #body="{ data }">
+                <span class="inline-flex gap-2 text-primary">
+                  <i
+                    v-for="role in addressRoles(data)"
+                    :key="role.icon"
+                    :class="role.icon"
+                    role="img"
+                    :aria-label="role.label"
+                    :title="role.label"
+                  />
+                </span>
+              </template>
             </Column>
             <Column :header="t('common.actions')" :reorderable-column="false">
               <template #body="{ data }">

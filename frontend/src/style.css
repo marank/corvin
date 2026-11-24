@@ -82,8 +82,8 @@ body {
 
 /* Compact tables; spacing and colors come from the datatable tokens in theme/preset.ts. */
 @layer components {
-  /* Headers stay on one line up to 8rem; longer ones wrap (hyphenated by the page's lang)
-     instead of widening a narrow column. PrimeVue's resizable tables keep them on one line. */
+  /* Headers of content-sized columns stay on one line up to 8rem; longer ones wrap
+     (hyphenated by the page's lang) instead of widening the column. PrimeVue's resizable tables keep them on one line. */
   .p-datatable-thead > tr > th {
     font-size: 0.8125rem;
     white-space: normal;
@@ -94,6 +94,12 @@ body {
     max-width: 8rem;
     hyphens: auto;
     text-wrap: balance;
+  }
+  /* Text columns get their width from their content, so their header only wraps when the
+     column really is too narrow. */
+  th.app-text .p-datatable-column-title {
+    width: auto;
+    max-width: none;
   }
   .p-datatable-tbody > tr > td {
     font-size: 0.875rem;

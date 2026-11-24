@@ -358,6 +358,21 @@ describe('CustomerDetailView', () => {
     expect(api.lastBody('PUT', '/customers/cus-1/')).toMatchObject({ notes: 'Call before visits' })
   })
 
+  it('shows the address roles as named icons', async () => {
+    const { state } = backend()
+    state.addresses = [
+      address({ is_primary: true, is_invoice_address: true, is_delivery_address: true }),
+    ]
+    await open()
+    await openTab(t('customers.addresses'))
+    const roles = [...screen.row('Hauptstr. 1').querySelectorAll('[role="img"]')]
+    expect(roles.map((icon) => icon.getAttribute('aria-label'))).toEqual([
+      t('customers.primary'),
+      t('customers.invoiceAddress'),
+      t('customers.deliveryAddress'),
+    ])
+  })
+
   it('deletes an address', async () => {
     const { api, state } = backend()
     api.delete('/addresses/adr-1/', () => {
