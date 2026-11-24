@@ -1588,11 +1588,12 @@ export interface components {
          * @enum {string}
          */
         CurrencyPositionEnum: "before" | "after";
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description Its number appears on invoices and locks once a finalized invoice shows it. */
         Customer: {
             /** Format: uuid */
             readonly id: string;
-            readonly number: string;
+            number?: string;
+            readonly number_locked: boolean;
             name: string;
             email?: string;
             phone?: string;
@@ -1622,8 +1623,9 @@ export interface components {
             /** Format: double */
             hours: number;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description Its number appears on invoices and locks once a finalized invoice shows it. */
         CustomerRequest: {
+            number?: string;
             name: string;
             email?: string;
             phone?: string;
@@ -1782,11 +1784,11 @@ export interface components {
             /** Format: date */
             valid_to?: string | null;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description A model with a `number` from a numbering scheme, which can be corrected by hand later. */
         Invoice: {
             /** Format: uuid */
             readonly id: string;
-            readonly number: string;
+            number?: string;
             /** Format: uuid */
             customer: string;
             readonly customer_name: string;
@@ -1864,8 +1866,9 @@ export interface components {
             /** Format: decimal */
             unit_price: string;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description A model with a `number` from a numbering scheme, which can be corrected by hand later. */
         InvoiceRequest: {
+            number?: string;
             /** Format: uuid */
             customer: string;
             contact_ids?: string[];
@@ -1942,11 +1945,11 @@ export interface components {
             scope?: components["schemas"]["ScopeEnum"][];
             start: number;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description A model with a `number` from a numbering scheme, which can be corrected by hand later. */
         OnSiteVisit: {
             /** Format: uuid */
             readonly id: string;
-            readonly number: string;
+            number?: string;
             /** Format: uuid */
             customer: string;
             readonly customer_name: string;
@@ -1966,8 +1969,9 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description A model with a `number` from a numbering scheme, which can be corrected by hand later. */
         OnSiteVisitRequest: {
+            number?: string;
             /** Format: uuid */
             customer: string;
             /** Format: uuid */
@@ -2331,8 +2335,9 @@ export interface components {
             phone?: string;
             is_invoice_contact?: boolean;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description Its number appears on invoices and locks once a finalized invoice shows it. */
         PatchedCustomerRequest: {
+            number?: string;
             name?: string;
             email?: string;
             phone?: string;
@@ -2404,8 +2409,9 @@ export interface components {
             /** Format: decimal */
             unit_price?: string;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description A model with a `number` from a numbering scheme, which can be corrected by hand later. */
         PatchedInvoiceRequest: {
+            number?: string;
             /** Format: uuid */
             customer?: string;
             contact_ids?: string[];
@@ -2428,8 +2434,9 @@ export interface components {
             /** Format: uuid */
             bank_account_override?: string | null;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description A model with a `number` from a numbering scheme, which can be corrected by hand later. */
         PatchedOnSiteVisitRequest: {
+            number?: string;
             /** Format: uuid */
             customer?: string;
             /** Format: uuid */
@@ -2453,8 +2460,9 @@ export interface components {
             amount?: string;
             note?: string;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description Its number appears on invoices and locks once a finalized invoice shows it. */
         PatchedProjectRequest: {
+            number?: string;
             /** Format: uuid */
             customer?: string;
             name?: string;
@@ -2466,8 +2474,9 @@ export interface components {
             budget_amount?: string | null;
             rounding_increment_minutes?: number | null;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description Its number appears on invoices and locks once a finalized invoice shows it. */
         PatchedSupportContractRequest: {
+            number?: string;
             /** Format: uuid */
             customer?: string;
             /**
@@ -2501,8 +2510,9 @@ export interface components {
             /** Format: uuid */
             template?: string | null;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description A model with a `number` from a numbering scheme, which can be corrected by hand later. */
         PatchedTaskRequest: {
+            number?: string;
             /** Format: uuid */
             customer?: string | null;
             /** Format: uuid */
@@ -2590,11 +2600,12 @@ export interface components {
          * @enum {string}
          */
         PriorityEnum: "low" | "medium" | "high";
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description Its number appears on invoices and locks once a finalized invoice shows it. */
         Project: {
             /** Format: uuid */
             readonly id: string;
-            readonly number: string;
+            number?: string;
+            readonly number_locked: boolean;
             /** Format: uuid */
             customer: string;
             readonly customer_name: string;
@@ -2619,8 +2630,9 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description Its number appears on invoices and locks once a finalized invoice shows it. */
         ProjectRequest: {
+            number?: string;
             /** Format: uuid */
             customer: string;
             name: string;
@@ -2651,11 +2663,12 @@ export interface components {
          * @enum {string}
          */
         ScopeEnum: "year" | "customer" | "project";
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description Its number appears on invoices and locks once a finalized invoice shows it. */
         SupportContract: {
             /** Format: uuid */
             readonly id: string;
-            readonly number: string;
+            number?: string;
+            readonly number_locked: boolean;
             /** Format: uuid */
             customer: string;
             readonly customer_name: string;
@@ -2695,8 +2708,9 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description Its number appears on invoices and locks once a finalized invoice shows it. */
         SupportContractRequest: {
+            number?: string;
             /** Format: uuid */
             customer: string;
             /**
@@ -2730,11 +2744,11 @@ export interface components {
             /** Format: uuid */
             template?: string | null;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description A model with a `number` from a numbering scheme, which can be corrected by hand later. */
         Task: {
             /** Format: uuid */
             readonly id: string;
-            readonly number: string;
+            number?: string;
             /** Format: uuid */
             customer?: string | null;
             readonly customer_name: string;
@@ -2755,8 +2769,9 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
-        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        /** @description A model with a `number` from a numbering scheme, which can be corrected by hand later. */
         TaskRequest: {
+            number?: string;
             /** Format: uuid */
             customer?: string | null;
             /** Format: uuid */

@@ -240,6 +240,24 @@ describe('CustomerDetailView', () => {
     expect(toasts()).toContain(t('common.saved'))
   })
 
+  it('corrects the number', async () => {
+    const { api } = backend()
+    api.put('/customers/cus-1/', (call) => call.body)
+    await open()
+    await openTab(t('overview.masterData'))
+    await type(screen.input(t('common.number')), 'K-1000')
+    await click(screen.button(t('common.save')))
+    expect(api.lastBody('PUT', '/customers/cus-1/')).toMatchObject({ number: 'K-1000' })
+  })
+
+  it('locks the number once a finalized invoice shows it', async () => {
+    backend(customer({ number_locked: true }))
+    await open()
+    await openTab(t('overview.masterData'))
+    expect(screen.input(t('common.number')).disabled).toBe(true)
+    expect(screen.field(t('common.number')).textContent).toContain(t('common.numberLocked'))
+  })
+
   it('offers only active bank accounts', async () => {
     backend()
     await open()

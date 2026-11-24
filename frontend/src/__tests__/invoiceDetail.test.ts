@@ -154,10 +154,13 @@ describe('InvoiceDetailView', () => {
       await choose(modal.field(t('invoices.eInvoice')), t('invoices.eInvoiceFormats.xrechnung'))
       await choose(modal.field(t('invoices.contacts')), 'Erika Muster')
       await type(modal.input(t('invoices.dueDate')), '15.12.26')
+      expect(modal.input(t('common.number')).value).toBe('RE-2026-001')
+      await type(modal.input(t('common.number')), 'RE-2026-007')
       await click(modal.button(t('common.save')))
 
       expect(api.requests('GET', '/contacts/')[0]!.query.get('customer')).toBe('cus-1')
       expect(api.lastBody('PATCH', '/invoices/inv-1/')).toEqual({
+        number: 'RE-2026-007',
         issue_date: '2026-11-20',
         due_date: '2026-12-15',
         vat_rate: 19,

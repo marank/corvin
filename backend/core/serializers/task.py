@@ -2,10 +2,10 @@ from rest_framework import serializers
 
 from core.models import Task
 
-from .base import OwnedSerializer
+from .base import NumberedSerializer
 
 
-class TaskSerializer(OwnedSerializer[Task]):
+class TaskSerializer(NumberedSerializer[Task]):
     owner_fk_fields = ("customer", "project", "visit")
 
     customer_name = serializers.CharField(source="customer.name", read_only=True, default=None)
@@ -30,4 +30,4 @@ class TaskSerializer(OwnedSerializer[Task]):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["number", "created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at"]

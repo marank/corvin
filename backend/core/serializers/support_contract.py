@@ -2,10 +2,10 @@ from rest_framework import serializers
 
 from core.models import SupportContract
 
-from .base import OwnedSerializer
+from .base import LockableNumberSerializer
 
 
-class SupportContractSerializer(OwnedSerializer[SupportContract]):
+class SupportContractSerializer(LockableNumberSerializer[SupportContract]):
     owner_fk_fields = ("customer", "project", "template")
 
     customer_name = serializers.CharField(source="customer.name", read_only=True)
@@ -16,6 +16,7 @@ class SupportContractSerializer(OwnedSerializer[SupportContract]):
         fields = [
             "id",
             "number",
+            "number_locked",
             "customer",
             "customer_name",
             "project",
@@ -34,4 +35,4 @@ class SupportContractSerializer(OwnedSerializer[SupportContract]):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["number", "created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at"]

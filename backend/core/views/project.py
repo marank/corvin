@@ -1,10 +1,12 @@
 from types import SimpleNamespace
 
+from django.db.models import QuerySet
 from rest_framework.serializers import BaseSerializer
 
 from core.models import Project
 from core.request_helpers import request_user
 from core.serializers import ProjectSerializer
+from core.services.number_changes import number_locked_annotation
 from core.services.numbering import next_number
 
 from .base import OwnedViewSet
@@ -22,6 +24,9 @@ class ProjectViewSet(OwnedViewSet[Project]):
         "status",
         "created_at",
     ]
+
+    def get_queryset(self) -> QuerySet[Project]:
+        return super().get_queryset().annotate(number_locked=number_locked_annotation(Project))
 
     def perform_create(self, serializer: BaseSerializer[Project]) -> None:
         customer = serializer.validated_data["customer"]

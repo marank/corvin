@@ -18,6 +18,7 @@ import Tag from 'primevue/tag'
 import AppLoadState from '../../components/ui/AppLoadState.vue'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
+import NumberField from '../../components/NumberField.vue'
 import AppCheckboxField from '../../components/ui/AppCheckboxField.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
@@ -229,6 +230,7 @@ function removeAddress(a: Address) {
             <fieldset class="border-t border-surface-200 dark:border-surface-700 pt-4">
               <legend class="ml-4 px-2 font-medium">{{ t('customers.groups.masterData') }}</legend>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <NumberField v-model="form.number" :locked="customer?.number_locked" />
                 <AppFormField field="name" :label="t('common.name')"
                   ><InputText v-model="form.name" class="w-full"
                 /></AppFormField>

@@ -78,6 +78,7 @@
     "saved": "Saved",
     "created": "Created",
     "numberShort": "No.",
+    "numberLocked": "Appears on a finalized invoice and can no longer be changed.",
     "amount": "Amount",
     "hoursUnit": "h"
   },

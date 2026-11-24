@@ -3,10 +3,10 @@ from rest_framework import serializers
 from core.models import Customer
 
 from .address import AddressSerializer
-from .base import OwnedSerializer
+from .base import LockableNumberSerializer
 
 
-class CustomerSerializer(OwnedSerializer[Customer]):
+class CustomerSerializer(LockableNumberSerializer[Customer]):
     owner_fk_fields = ("bank_account",)
 
     project_count = serializers.IntegerField(read_only=True)
@@ -19,6 +19,7 @@ class CustomerSerializer(OwnedSerializer[Customer]):
         fields = [
             "id",
             "number",
+            "number_locked",
             "name",
             "email",
             "phone",
@@ -37,4 +38,4 @@ class CustomerSerializer(OwnedSerializer[Customer]):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["number", "created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at"]

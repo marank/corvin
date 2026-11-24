@@ -7,13 +7,13 @@ from rest_framework.fields import Field
 from core.models import Contact, Invoice
 
 from .bank_account import BankAccountSerializer
-from .base import OwnedSerializer
+from .base import NumberedSerializer
 from .contact import ContactSerializer
 from .invoice_line_item import InvoiceLineItemSerializer
 from .payment import PaymentSerializer
 
 
-class InvoiceSerializer(OwnedSerializer[Invoice]):
+class InvoiceSerializer(NumberedSerializer[Invoice]):
     owner_fk_fields = (
         "customer",
         "project",
@@ -94,7 +94,6 @@ class InvoiceSerializer(OwnedSerializer[Invoice]):
             "updated_at",
         ]
         read_only_fields = [
-            "number",
             "subtotal",
             "vat_amount",
             "total",

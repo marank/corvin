@@ -20,6 +20,7 @@ import type {
 export const customer = (over: Partial<Customer> = {}): Customer => ({
   id: 'cus-1',
   number: 'K-001',
+  number_locked: false,
   name: 'Acme GmbH',
   email: 'billing@acme.example',
   phone: '',
@@ -41,6 +42,7 @@ export const customer = (over: Partial<Customer> = {}): Customer => ({
 export const project = (over: Partial<Project> = {}): Project => ({
   id: 'prj-1',
   number: 'P-001',
+  number_locked: false,
   customer: 'cus-1',
   customer_name: 'Acme GmbH',
   name: 'Website',
@@ -173,6 +175,7 @@ export const runningEntry = (over: Partial<RunningEntry> = {}): RunningEntry => 
 export const contract = (over: Partial<SupportContract> = {}): SupportContract => ({
   id: 'ctr-1',
   number: 'V-001',
+  number_locked: false,
   customer: 'cus-1',
   customer_name: 'Acme GmbH',
   project: null,

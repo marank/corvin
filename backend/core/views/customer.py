@@ -11,6 +11,7 @@ from core.serializers import (
     ContactSerializer,
     CustomerSerializer,
 )
+from core.services.number_changes import number_locked_annotation
 from core.services.numbering import next_number
 
 from .base import OwnedViewSet
@@ -46,6 +47,7 @@ class CustomerViewSet(OwnedViewSet[Customer]):
             .get_queryset()
             .prefetch_related("addresses")
             .annotate(
+                number_locked=number_locked_annotation(Customer),
                 project_count=Count("projects", distinct=True),
                 uninvoiced_hours=Sum(
                     "time_entries__duration_minutes",

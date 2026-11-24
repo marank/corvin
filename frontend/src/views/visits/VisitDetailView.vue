@@ -18,6 +18,7 @@ import Column from 'primevue/column'
 import AppLoadState from '../../components/ui/AppLoadState.vue'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
+import NumberField from '../../components/NumberField.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
 import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
@@ -91,6 +92,7 @@ async function save() {
 
     <div class="flex flex-wrap items-start gap-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl flex-[1_1_48rem]">
+        <NumberField v-model="form.number" />
         <AppFormField field="customer" :label="t('projects.customer')"
           ><CustomerSelect v-model="form.customer"
         /></AppFormField>

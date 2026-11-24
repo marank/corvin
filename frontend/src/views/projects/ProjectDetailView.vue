@@ -17,6 +17,7 @@ import TabPanel from 'primevue/tabpanel'
 import AppLoadState from '../../components/ui/AppLoadState.vue'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
+import NumberField from '../../components/NumberField.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
@@ -145,6 +146,7 @@ async function save() {
         </TabPanel>
         <TabPanel value="details">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl pt-4">
+            <NumberField v-model="form.number" :locked="project?.number_locked" />
             <AppFormField field="customer" :label="t('projects.customer')"
               ><CustomerSelect v-model="form.customer"
             /></AppFormField>

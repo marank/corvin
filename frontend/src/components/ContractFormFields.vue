@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import AppFormField from './ui/AppFormField.vue'
+import NumberField from './NumberField.vue'
 import AppCheckboxField from './ui/AppCheckboxField.vue'
 import AppDateInput from './ui/AppDateInput.vue'
 import CustomerSelect from './CustomerSelect.vue'
@@ -18,6 +19,7 @@ const { t } = useI18n()
 
 <template>
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <NumberField v-if="form.id" v-model="form.number" :locked="form.number_locked" />
     <AppFormField field="name" :label="t('common.name')" required
       ><InputText v-model="form.name" class="w-full"
     /></AppFormField>

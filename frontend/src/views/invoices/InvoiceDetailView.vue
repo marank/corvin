@@ -24,6 +24,7 @@ import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppModal from '../../components/ui/AppModal.vue'
+import NumberField from '../../components/NumberField.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
@@ -121,6 +122,7 @@ async function openHeader() {
   if (!invoice.value) return
   const { issue_date, due_date, vat_rate, notes, e_invoice_format, contacts } = invoice.value
   headerForm.value = {
+    number: invoice.value.number,
     issue_date,
     due_date,
     vat_rate: Number(vat_rate),
@@ -546,6 +548,7 @@ async function addPayment() {
       @confirm="saveHeader"
     >
       <div class="flex flex-col gap-4">
+        <NumberField v-model="headerForm.number" />
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <AppFormField field="issue_date" :label="t('invoices.issueDate')" required
             ><AppDateInput v-model="headerForm.issue_date as any"

@@ -8220,7 +8220,7 @@
             },
             "Customer": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "Its number appears on invoices and locks once a finalized invoice shows it.",
                 "properties": {
                     "id": {
                         "type": "string",
@@ -8229,6 +8229,10 @@
                     },
                     "number": {
                         "type": "string",
+                        "maxLength": 50
+                    },
+                    "number_locked": {
+                        "type": "boolean",
                         "readOnly": true
                     },
                     "name": {
@@ -8339,7 +8343,7 @@
                     "created_at",
                     "id",
                     "name",
-                    "number",
+                    "number_locked",
                     "primary_address",
                     "project_count",
                     "uninvoiced_hours",
@@ -8364,8 +8368,12 @@
             },
             "CustomerRequest": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "Its number appears on invoices and locks once a finalized invoice shows it.",
                 "properties": {
+                    "number": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
                     "name": {
                         "type": "string",
                         "minLength": 1,
@@ -8871,7 +8879,7 @@
             },
             "Invoice": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "A model with a `number` from a numbering scheme, which can be corrected by hand later.",
                 "properties": {
                     "id": {
                         "type": "string",
@@ -8880,7 +8888,7 @@
                     },
                     "number": {
                         "type": "string",
-                        "readOnly": true
+                        "maxLength": 50
                     },
                     "customer": {
                         "type": "string",
@@ -9036,7 +9044,6 @@
                     "id",
                     "issue_date",
                     "items",
-                    "number",
                     "partially_paid",
                     "payments",
                     "project_name",
@@ -9150,8 +9157,12 @@
             },
             "InvoiceRequest": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "A model with a `number` from a numbering scheme, which can be corrected by hand later.",
                 "properties": {
+                    "number": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
                     "customer": {
                         "type": "string",
                         "format": "uuid"
@@ -9378,7 +9389,7 @@
             },
             "OnSiteVisit": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "A model with a `number` from a numbering scheme, which can be corrected by hand later.",
                 "properties": {
                     "id": {
                         "type": "string",
@@ -9387,7 +9398,7 @@
                     },
                     "number": {
                         "type": "string",
-                        "readOnly": true
+                        "maxLength": 50
                     },
                     "customer": {
                         "type": "string",
@@ -9444,15 +9455,18 @@
                     "customer_name",
                     "date",
                     "id",
-                    "number",
                     "project_name",
                     "updated_at"
                 ]
             },
             "OnSiteVisitRequest": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "A model with a `number` from a numbering scheme, which can be corrected by hand later.",
                 "properties": {
+                    "number": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
                     "customer": {
                         "type": "string",
                         "format": "uuid"
@@ -10271,8 +10285,12 @@
             },
             "PatchedCustomerRequest": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "Its number appears on invoices and locks once a finalized invoice shows it.",
                 "properties": {
+                    "number": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
                     "name": {
                         "type": "string",
                         "minLength": 1,
@@ -10515,8 +10533,12 @@
             },
             "PatchedInvoiceRequest": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "A model with a `number` from a numbering scheme, which can be corrected by hand later.",
                 "properties": {
+                    "number": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
                     "customer": {
                         "type": "string",
                         "format": "uuid"
@@ -10582,8 +10604,12 @@
             },
             "PatchedOnSiteVisitRequest": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "A model with a `number` from a numbering scheme, which can be corrected by hand later.",
                 "properties": {
+                    "number": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
                     "customer": {
                         "type": "string",
                         "format": "uuid"
@@ -10641,8 +10667,12 @@
             },
             "PatchedProjectRequest": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "Its number appears on invoices and locks once a finalized invoice shows it.",
                 "properties": {
+                    "number": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
                     "customer": {
                         "type": "string",
                         "format": "uuid"
@@ -10680,8 +10710,12 @@
             },
             "PatchedSupportContractRequest": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "Its number appears on invoices and locks once a finalized invoice shows it.",
                 "properties": {
+                    "number": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
                     "customer": {
                         "type": "string",
                         "format": "uuid"
@@ -10747,8 +10781,12 @@
             },
             "PatchedTaskRequest": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "A model with a `number` from a numbering scheme, which can be corrected by hand later.",
                 "properties": {
+                    "number": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
                     "customer": {
                         "type": "string",
                         "format": "uuid",
@@ -10969,7 +11007,7 @@
             },
             "Project": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "Its number appears on invoices and locks once a finalized invoice shows it.",
                 "properties": {
                     "id": {
                         "type": "string",
@@ -10978,6 +11016,10 @@
                     },
                     "number": {
                         "type": "string",
+                        "maxLength": 50
+                    },
+                    "number_locked": {
+                        "type": "boolean",
                         "readOnly": true
                     },
                     "customer": {
@@ -11057,7 +11099,7 @@
                     "customer_name",
                     "id",
                     "name",
-                    "number",
+                    "number_locked",
                     "updated_at",
                     "used_amount",
                     "used_hours"
@@ -11065,8 +11107,12 @@
             },
             "ProjectRequest": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "Its number appears on invoices and locks once a finalized invoice shows it.",
                 "properties": {
+                    "number": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
                     "customer": {
                         "type": "string",
                         "format": "uuid"
@@ -11157,7 +11203,7 @@
             },
             "SupportContract": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "Its number appears on invoices and locks once a finalized invoice shows it.",
                 "properties": {
                     "id": {
                         "type": "string",
@@ -11166,6 +11212,10 @@
                     },
                     "number": {
                         "type": "string",
+                        "maxLength": 50
+                    },
+                    "number_locked": {
+                        "type": "boolean",
                         "readOnly": true
                     },
                     "customer": {
@@ -11255,7 +11305,7 @@
                     "id",
                     "name",
                     "next_billing_date",
-                    "number",
+                    "number_locked",
                     "project_name",
                     "start_date",
                     "updated_at"
@@ -11263,8 +11313,12 @@
             },
             "SupportContractRequest": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "Its number appears on invoices and locks once a finalized invoice shows it.",
                 "properties": {
+                    "number": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
                     "customer": {
                         "type": "string",
                         "format": "uuid"
@@ -11337,7 +11391,7 @@
             },
             "Task": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "A model with a `number` from a numbering scheme, which can be corrected by hand later.",
                 "properties": {
                     "id": {
                         "type": "string",
@@ -11346,7 +11400,7 @@
                     },
                     "number": {
                         "type": "string",
-                        "readOnly": true
+                        "maxLength": 50
                     },
                     "customer": {
                         "type": "string",
@@ -11409,7 +11463,6 @@
                     "created_at",
                     "customer_name",
                     "id",
-                    "number",
                     "project_name",
                     "title",
                     "updated_at"
@@ -11417,8 +11470,12 @@
             },
             "TaskRequest": {
                 "type": "object",
-                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "description": "A model with a `number` from a numbering scheme, which can be corrected by hand later.",
                 "properties": {
+                    "number": {
+                        "type": "string",
+                        "maxLength": 50
+                    },
                     "customer": {
                         "type": "string",
                         "format": "uuid",

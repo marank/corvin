@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+from django.db.models import QuerySet
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +10,7 @@ from core.models import SupportContract
 from core.request_helpers import request_user
 from core.serializers import InvoiceSerializer, SupportContractSerializer
 from core.services.contracts import contract_usage, generate_invoice
+from core.services.number_changes import number_locked_annotation
 from core.services.numbering import next_number
 
 from .base import OwnedViewSet
@@ -28,6 +30,11 @@ class SupportContractViewSet(OwnedViewSet[SupportContract]):
         "fixed_price",
         "created_at",
     ]
+
+    def get_queryset(self) -> QuerySet[SupportContract]:
+        return (
+            super().get_queryset().annotate(number_locked=number_locked_annotation(SupportContract))
+        )
 
     def perform_create(self, serializer: BaseSerializer[SupportContract]) -> None:
         customer = serializer.validated_data["customer"]

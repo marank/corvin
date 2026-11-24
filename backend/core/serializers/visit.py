@@ -2,10 +2,10 @@ from rest_framework import serializers
 
 from core.models import OnSiteVisit
 
-from .base import OwnedSerializer
+from .base import NumberedSerializer
 
 
-class OnSiteVisitSerializer(OwnedSerializer[OnSiteVisit]):
+class OnSiteVisitSerializer(NumberedSerializer[OnSiteVisit]):
     owner_fk_fields = ("customer", "project")
 
     customer_name = serializers.CharField(source="customer.name", read_only=True)
@@ -28,4 +28,4 @@ class OnSiteVisitSerializer(OwnedSerializer[OnSiteVisit]):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["number", "created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at"]

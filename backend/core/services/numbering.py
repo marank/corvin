@@ -9,10 +9,28 @@ from django.db import transaction
 from django.template import Variable, VariableDoesNotExist
 from django.utils import timezone
 
-from core.models import NumberSequence
+from core.models import (
+    Customer,
+    Invoice,
+    NumberSequence,
+    OnSiteVisit,
+    Project,
+    SupportContract,
+    Task,
+)
+from core.models.base import OwnedModel
 from core.models.company_settings import NUMBERING_SCHEMES
 
 TOKEN_PATTERN = re.compile(r"\{([^{}]+)\}")
+# The model whose `number` each numbering scheme fills.
+NUMBERED_MODELS: dict[str, type[OwnedModel]] = {
+    "customer": Customer,
+    "project": Project,
+    "invoice": Invoice,
+    "contract": SupportContract,
+    "visit": OnSiteVisit,
+    "task": Task,
+}
 
 
 @dataclass
@@ -125,6 +143,30 @@ def _scope_key(scope: Any, values: dict[str, Any], today: date) -> str:
     return ":".join(parts) or "global"
 
 
+def _is_taken(owner: User, entity: str, number: str) -> bool:
+    manager = NUMBERED_MODELS[entity]._default_manager
+    return manager.filter(**{"owner": owner, "number": number}).exists()
+
+
+def _next_free(
+    owner: User,
+    entity: str,
+    format_string: str,
+    sequence: NumberSequence,
+    values: dict[str, Any],
+    today: date,
+) -> str:
+    """Advance the counter past numbers already given by hand."""
+    previous: str | None = None
+    while True:
+        sequence.last_number += 1
+        result = render_number(format_string, sequence.last_number, values, today)
+        # A format without {counter} renders the same number every time; skipping cannot help.
+        if result == previous or not _is_taken(owner, entity, result):
+            return result
+        previous = result
+
+
 def next_number(owner: User, entity: str, values: dict[str, Any] | None = None) -> str:
     values = values or {}
     scheme = get_scheme(owner, entity)
@@ -138,8 +180,7 @@ def next_number(owner: User, entity: str, values: dict[str, Any] | None = None) 
             scope_key=scope_key,
             defaults={"last_number": start - 1},
         )
-        sequence.last_number += 1
-        result = render_number(scheme["format"], sequence.last_number, values, today)
+        result = _next_free(owner, entity, scheme["format"], sequence, values, today)
         if len(result) > 50:
             raise ValueError(f"Generated {entity} number exceeds 50 characters.")
         sequence.save(update_fields=["last_number"])

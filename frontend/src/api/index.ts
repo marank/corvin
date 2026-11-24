@@ -26,6 +26,8 @@ export interface BankAccount {
 export interface Customer {
   id: string
   number: string
+  // Set once a finalized invoice shows the number; it can no longer be changed.
+  number_locked: boolean
   name: string
   email: string
   phone: string
@@ -46,6 +48,8 @@ export interface Customer {
 export interface Project {
   id: string
   number: string
+  // Set once a finalized invoice shows the number; it can no longer be changed.
+  number_locked: boolean
   customer: string
   customer_name: string
   name: string
@@ -145,6 +149,8 @@ export interface HourlyRate {
 export interface SupportContract {
   id: string
   number: string
+  // Set once a finalized invoice shows the number; it can no longer be changed.
+  number_locked: boolean
   customer: string
   customer_name: string
   project: string | null

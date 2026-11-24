@@ -5,10 +5,10 @@ from rest_framework import serializers
 from core.models import Project
 from core.services.budgets import BudgetStats, budget_stats
 
-from .base import OwnedSerializer
+from .base import LockableNumberSerializer
 
 
-class ProjectSerializer(OwnedSerializer[Project]):
+class ProjectSerializer(LockableNumberSerializer[Project]):
     owner_fk_fields = ("customer",)
 
     customer_name = serializers.CharField(source="customer.name", read_only=True)
@@ -22,6 +22,7 @@ class ProjectSerializer(OwnedSerializer[Project]):
         fields = [
             "id",
             "number",
+            "number_locked",
             "customer",
             "customer_name",
             "name",
@@ -37,7 +38,7 @@ class ProjectSerializer(OwnedSerializer[Project]):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["number", "created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at"]
 
     def _stats(self, obj: Project) -> BudgetStats:
         stats: BudgetStats | None = getattr(obj, "_budget_stats", None)

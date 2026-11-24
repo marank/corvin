@@ -12,6 +12,7 @@ import AppIconButton from '../components/ui/AppIconButton.vue'
 import AppStatusTag from '../components/ui/AppStatusTag.vue'
 import AppPriority from '../components/ui/AppPriority.vue'
 import AppModal from '../components/ui/AppModal.vue'
+import NumberField from '../components/NumberField.vue'
 import AppFormField from '../components/ui/AppFormField.vue'
 import AppFilterBar, { type ActiveFilter } from '../components/ui/AppFilterBar.vue'
 import { useQueryFilters } from '../composables/useQueryFilters'
@@ -269,6 +270,7 @@ async function toggleDone(task: Task) {
       @confirm="save"
     >
       <div class="flex flex-col gap-4">
+        <NumberField v-if="editing" v-model="form.number" />
         <AppFormField field="title" :label="t('tasks.task')" required
           ><InputText v-model="form.title" class="w-full"
         /></AppFormField>
