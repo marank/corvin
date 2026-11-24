@@ -19,11 +19,10 @@ Node 26 LTS with pnpm in the version of `frontend/package.json`'s `packageManage
 stack.
 
 On Windows run `scripts/setup-windows-dev.ps1` once: it installs MSYS2 + Pango (WeasyPrint's
-native dependencies). Custom path? Set `MSYS2_BIN_DIR` in `.env`. On Linux and macOS install
-Pango from the package manager.
+native dependencies). On Linux and macOS install Pango from the package manager.
 
 ```bash
-cp .env.example .env     # set DEBUG=true for native development
+cp .env.example .env     # then add DEBUG=true for native development
 just setup               # uv sync + pnpm install
 just migrate             # SQLite database + the admin from ADMIN_* in .env
 just dev-backend         # Django on :8000
@@ -35,6 +34,21 @@ jobs (`core/tasks.py`) run in-process right after the request's transaction, and
 jobs (recurring invoices, backups) don't run — `uv run python manage.py process_recurring`
 runs the recurring invoices by hand. PDFs work once Pango is
 installed (`uv run python -c "import weasyprint"` verifies).
+
+### `.env` for development
+
+`.env.example` is the template for docker compose; natively `backend/config/settings.py`
+reads the same `.env` in the repository root (values already in the environment win). Add
+`DEBUG=true`; these settings matter only for development or are fixed by docker compose:
+
+| Variable | Natively | Note |
+|---|---|---|
+| `DEBUG` | `true` (required) | fixed development `SECRET_KEY`, localhost:8000/:5173 allowed, `APP_URLS` optional, mails on the console |
+| `DB_TYPE` | `sqlite` (default) | `postgres` uses `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST` (default `localhost`), `DB_PORT` (default 5432); docker compose sets `postgres`, `db`, 5432 |
+| `EMAIL_BACKEND` | console (default with `DEBUG`) | a Django mail backend path; SMTP without `DEBUG` |
+| `MSYS2_BIN_DIR` | only on Windows | where MSYS2 (Pango for WeasyPrint) lives, if not `C:\msys64\ucrt64\bin` |
+
+Every setting from `.env.example` works natively too.
 
 ## Checks
 

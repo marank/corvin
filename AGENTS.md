@@ -23,7 +23,7 @@ The `justfile` holds every command (`just` lists them); CI (`.github/workflows/b
 - Business logic goes in `services/`, not in views or `save()`.
 - User-facing API messages go through `gettext` (`_()`); German lives in `core/locale/de/LC_MESSAGES/django.po`. After changing messages run `uv run python ../manage.py makemessages -l de --no-location` in `backend/core`, translate, compile with `msgfmt` (or `compilemessages`) and commit `.po` and `.mo`. API responses follow `Accept-Language`; documents (PDF, previews, mail) always render in `LANGUAGE_CODE`.
 - API under `/api/v1/`, session auth + CSRF (the anonymous auth views opt in with `csrf_protect`). `/api/v1/health` stays unauthenticated at exactly that path (Docker healthcheck).
-- Configuration only via environment variables, read through `config/env.py` (strict parsers) in the single `config/settings.py`; every new variable gets a commented entry in `.env.example`.
+- Configuration only via environment variables, read through `config/env.py` (strict parsers) in the single `config/settings.py`; every new variable gets a commented entry in `.env.example` (the docker compose template for self-hosters), or in the `.env` table of `docs/development.md` if only development or compose's fixed values need it.
 - Coverage must not drop below `fail_under` in `pyproject.toml`; raise it when you add tests. The app is AGPL-3.0-or-later: production dependencies must be compatible with it — GPL/AGPL/LGPL are fine, GPL-2.0-only, SSPL and proprietary licenses are not (CI license check, backend and frontend).
 - GoBD: a finalized invoice's archived PDF/XML (`DocumentArchive`) is immutable. Don't add code paths that rewrite it.
 

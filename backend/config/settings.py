@@ -14,8 +14,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Values already in the environment (docker compose, CI) win.
 load_dotenv(BASE_DIR.parent / ".env")
 
-# Off unless set: .env.example turns it on for native development, docker compose
-# switches it off explicitly.
+# Off unless set: native development sets it in .env (docs/development.md), docker
+# compose switches it off explicitly.
 DEBUG = env_bool("DEBUG", False)
 SECRET_KEY = secret_key(DEBUG)  # >= 40 chars, else refuse to start (DEBUG: fixed dev key)
 REGISTRATION_ENABLED = env_bool("REGISTRATION_ENABLED", False)

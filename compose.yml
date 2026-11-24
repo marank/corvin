@@ -1,5 +1,5 @@
-# Production: PostgreSQL and Corvin. Works with a .env next to it and nothing else from the
-# repository: copy this file and .env.example to the server, fill in .env, `docker compose up -d`.
+# Corvin and PostgreSQL. Needs only a .env next to it: save .env.example as .env, fill it
+# in, `docker compose up -d`.
 name: corvin
 
 # Hardened: unprivileged, without capabilities, nothing but the volumes and /tmp writable.
@@ -12,8 +12,7 @@ x-hardened: &hardened
   cap_drop:
     - ALL
 
-# The image CI pushes; APP_IMAGE pins a version (ghcr.io/marank/corvin:1.2) or points at a
-# local build (`just docker-up`, which builds `corvin` from the checkout).
+# Settings compose fixes for app and worker; everything else comes from .env.
 x-app-environment: &app-environment
   DEBUG: "false"
   DB_TYPE: postgres
@@ -42,6 +41,7 @@ services:
   # Migrates and creates the ADMIN_USERNAME account on start.
   app:
     <<: *hardened
+    # Published image; APP_IMAGE in .env pins a version (ghcr.io/marank/corvin:1.2).
     image: ${APP_IMAGE:-ghcr.io/marank/corvin:latest}
     restart: unless-stopped
     env_file: .env
@@ -68,9 +68,7 @@ services:
     environment: *app-environment
     volumes:
       - media:/app/media
-      # Database dump + uploads tarball every night. Manual backup:
-      #   docker compose exec worker python manage.py backup
-      # Copy off the host: docker compose cp worker:/backups ./backups
+      # Database dump + uploads tarball every night (docs/operations.md).
       - backups:/backups
     healthcheck:
       # The image's HTTP health check is for the app; this checks the worker's database link.

@@ -89,7 +89,8 @@ and ideas are welcome as issues. See [CONTRIBUTING.md](CONTRIBUTING.md).
 To run Corvin from source (details in [docs/development.md](docs/development.md)):
 
 ```bash
-cp .env.example .env && just setup && just migrate
+cp .env.example .env    # then add DEBUG=true to .env
+just setup && just migrate
 just dev-backend     # second terminal: just dev-frontend → http://localhost:5173
 ```
 
