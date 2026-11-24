@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { useColumnWidths } from '../components/ui/columnWidths'
+import { fairShares, useColumnWidths } from '../components/ui/columnWidths'
 
 const saved = (key: string) => JSON.parse(localStorage.getItem(key) ?? 'null') as unknown
 
@@ -38,5 +38,25 @@ describe('useColumnWidths', () => {
     widths.reset()
     expect(widths.custom.value).toBe(false)
     expect(localStorage.length).toBe(0)
+  })
+})
+
+describe('fairShares', () => {
+  const round = (shares: number[]) => shares.map(Math.round)
+
+  it('gives short columns all they need and cuts the long ones', () => {
+    // Label, street, postal code / city, country, roles in 1163 px.
+    expect(round(fairShares([381, 324, 191, 103, 235], 1163))).toEqual([330, 304, 191, 103, 235])
+  })
+
+  it('gives longer text more room when every column is too long', () => {
+    const [name, city, email] = fairShares([443, 214, 285], 536)
+    expect(name! + city! + email!).toBeCloseTo(536)
+    expect(name).toBeGreaterThan(email!)
+    expect(email).toBeGreaterThan(city!)
+  })
+
+  it('leaves other columns at zero', () => {
+    expect(round(fairShares([0, 300, 0, 100], 200))).toEqual([0, 127, 0, 73])
   })
 })

@@ -14,7 +14,6 @@ import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import Column from 'primevue/column'
-import Tag from 'primevue/tag'
 import AppLoadState from '../../components/ui/AppLoadState.vue'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
@@ -132,6 +131,17 @@ function removeContact(c: Contact) {
     await contactsApi.remove(c.id)
     contacts.value = (await contactsApi.list(id)).results
   })
+}
+
+// One line per row in the table: the address's roles as text rather than stacked tags.
+function addressRoles(address: Address) {
+  return [
+    address.is_primary && t('customers.primary'),
+    address.is_invoice_address && t('customers.invoiceAddress'),
+    address.is_delivery_address && t('customers.deliveryAddress'),
+  ]
+    .filter(Boolean)
+    .join(', ')
 }
 
 function openAddress(address?: Address) {
@@ -311,12 +321,13 @@ function removeAddress(a: Address) {
             :state-key="tableStateKeys.customerContacts"
             @row-click="openContact"
           >
-            <Column field="first_name" :header="t('customers.firstName')" sortable />
-            <Column field="last_name" :header="t('customers.lastName')" sortable />
+            <Column class="app-text" field="last_name" :header="t('common.name')" sortable>
+              <template #body="{ data }">{{ data.first_name }} {{ data.last_name }}</template>
+            </Column>
             <Column class="app-text" field="role" :header="t('customers.role')" sortable />
             <Column class="app-text" field="email" :header="t('common.email')" sortable />
-            <Column field="phone" :header="t('common.phone')" sortable />
-            <Column :header="t('customers.invoiceContact')">
+            <Column class="app-text" field="phone" :header="t('common.phone')" sortable />
+            <Column :header="t('customers.forInvoices')">
               <template #body="{ data }"
                 ><i v-if="data.is_invoice_contact" class="pi pi-check"
               /></template>
@@ -345,26 +356,15 @@ function removeAddress(a: Address) {
           <AppDataTable :rows="addresses" :state-key="tableStateKeys.customerAddresses">
             <Column class="app-text" field="label" :header="t('customers.addressLabel')" sortable />
             <Column class="app-text" field="street" :header="t('customers.street')" sortable />
-            <Column :header="t('customers.postalCode') + ' / ' + t('customers.city')">
+            <Column
+              class="app-text"
+              :header="t('customers.postalCode') + ' / ' + t('customers.city')"
+            >
               <template #body="{ data }">{{ data.postal_code }} {{ data.city }}</template>
             </Column>
-            <Column field="country" :header="t('customers.country')" sortable />
-            <Column :header="t('common.status')">
-              <template #body="{ data }">
-                <div class="flex flex-wrap gap-1">
-                  <Tag v-if="data.is_primary" :value="t('customers.primary')" severity="info" />
-                  <Tag
-                    v-if="data.is_invoice_address"
-                    :value="t('customers.invoiceAddress')"
-                    severity="info"
-                  />
-                  <Tag
-                    v-if="data.is_delivery_address"
-                    :value="t('customers.deliveryAddress')"
-                    severity="info"
-                  />
-                </div>
-              </template>
+            <Column class="app-text" field="country" :header="t('customers.country')" sortable />
+            <Column class="app-text" :header="t('common.status')">
+              <template #body="{ data }">{{ addressRoles(data) }}</template>
             </Column>
             <Column :header="t('common.actions')" :reorderable-column="false">
               <template #body="{ data }">

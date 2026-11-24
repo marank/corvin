@@ -535,11 +535,12 @@ async function save() {
               :state-key="tableStateKeys.settingsCompanyContacts"
               @row-click="openContact"
             >
-              <Column field="first_name" :header="t('customers.firstName')" sortable />
-              <Column field="last_name" :header="t('customers.lastName')" sortable />
+              <Column class="app-text" field="last_name" :header="t('common.name')" sortable>
+                <template #body="{ data }">{{ data.first_name }} {{ data.last_name }}</template>
+              </Column>
               <Column class="app-text" field="role" :header="t('customers.role')" sortable />
               <Column class="app-text" field="email" :header="t('common.email')" sortable />
-              <Column field="phone" :header="t('common.phone')" sortable />
+              <Column class="app-text" field="phone" :header="t('common.phone')" sortable />
               <Column :header="t('common.actions')" :reorderable-column="false">
                 <template #body="{ data }"
                   ><AppIconButton

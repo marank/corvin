@@ -4,7 +4,6 @@ import {
   computed,
   getCurrentInstance,
   nextTick,
-  onMounted,
   onUnmounted,
   ref,
   shallowRef,
@@ -92,7 +91,6 @@ const density = useTableDensity()
 const columnWidths = useColumnWidths(props.stateKey)
 const root = ref<HTMLElement>()
 const textShares = useTextColumnShares(root)
-onMounted(textShares.update)
 watch(
   () => [props.rows, isDesktop.value, columnWidths.tableKey.value],
   () => nextTick(textShares.update),

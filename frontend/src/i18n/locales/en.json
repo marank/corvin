@@ -150,6 +150,7 @@
     "paymentTerms": "Payment terms (days)",
     "paymentTermsDefault": "Use default",
     "invoiceContact": "Default for invoices",
+    "forInvoices": "For invoices",
     "groups": {
       "masterData": "Master data",
       "contact": "Contact details",

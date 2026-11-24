@@ -150,6 +150,7 @@
     "paymentTerms": "Zahlungsziel (Tage)",
     "paymentTermsDefault": "Standard verwenden",
     "invoiceContact": "Standard für Rechnungen",
+    "forInvoices": "Für Rechnungen",
     "groups": {
       "masterData": "Stammdaten",
       "contact": "Kontaktdaten",

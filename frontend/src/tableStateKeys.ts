@@ -1,5 +1,5 @@
-// Bump a key's version when a table's columns or cell spacing change, so stale
-// saved column widths don't squeeze the new layout. Last bump: compact table redesign.
+// Bump a key's version when a table's columns change, so a saved column order or
+// hand-set widths don't land on the wrong columns.
 export const tableStateKeys = {
   customers: 'customers-v2',
   projects: 'projects-v2',
@@ -10,12 +10,12 @@ export const tableStateKeys = {
   invoices: 'invoices-v2',
   documentTemplates: 'document-templates-v3',
   textBlocks: 'text-blocks-v2',
-  customerContacts: 'customer-contacts-v2',
-  customerAddresses: 'customer-addresses-v2',
+  customerContacts: 'customer-contacts-v3',
+  customerAddresses: 'customer-addresses-v3',
   customerRates: 'customer-rates-v3',
   defaultRates: 'default-rates-v1',
   settingsBankAccounts: 'settings-bank-accounts-v2',
-  settingsCompanyContacts: 'settings-company-contacts-v2',
+  settingsCompanyContacts: 'settings-company-contacts-v3',
   visitTimeEntries: 'visit-time-entries-v2',
   contractTimeEntries: 'contract-time-entries-v2',
   contractInvoices: 'contract-invoices-v2',
