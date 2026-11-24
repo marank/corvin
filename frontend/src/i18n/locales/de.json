@@ -78,7 +78,7 @@
     "saved": "Gespeichert",
     "created": "Angelegt",
     "numberShort": "Nr.",
-    "numberLocked": "Steht auf einer finalisierten Rechnung und kann nicht mehr geändert werden.",
+    "numberLocked": "Gesperrt durch finalisierte Rechnung.",
     "amount": "Betrag",
     "hoursUnit": "h"
   },
