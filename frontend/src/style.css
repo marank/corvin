@@ -95,11 +95,12 @@ body {
     hyphens: auto;
     text-wrap: balance;
   }
-  /* Text columns get their width from their content, so their header only wraps when the
-     column really is too narrow. */
+  /* Text columns get their width from their content and header (columnWidths.ts), so their
+     header stays on one line. */
   th.app-text .p-datatable-column-title {
     width: auto;
     max-width: none;
+    white-space: nowrap;
   }
   .p-datatable-tbody > tr > td {
     font-size: 0.875rem;

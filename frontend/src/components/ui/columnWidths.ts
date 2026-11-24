@@ -74,10 +74,23 @@ export function fairShares(needs: number[], available: number): number[] {
 }
 
 interface Measured {
-  // Width the text of each app-text column needs, padding included; 0 for other columns.
+  // Width each app-text column needs for its text and header, padding included; 0 for others.
   needs: number[]
   // Width left for the app-text columns once the others took theirs.
   available: number
+}
+
+// Title and sort icon side by side; not the header box itself, which already holds the width
+// this column was given.
+function headerWidth(header: HTMLTableCellElement): number {
+  const content = header.querySelector<HTMLElement>('.p-datatable-column-header-content')
+  if (!content) return 0
+  const items = [...content.children] as HTMLElement[]
+  const gap = parseFloat(getComputedStyle(content).columnGap) || 0
+  const style = getComputedStyle(header)
+  const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+  const inner = items.reduce((sum, item) => sum + item.offsetWidth, 0)
+  return Math.ceil(inner + gap * Math.max(0, items.length - 1) + padding)
 }
 
 function measureColumns(table: HTMLTableElement): Measured {
@@ -92,7 +105,8 @@ function measureColumns(table: HTMLTableElement): Measured {
       available -= header.offsetWidth
       return 0
     }
-    let width = 0
+    // The header counts too: an empty column still needs room for its title.
+    let width = headerWidth(header)
     for (const row of rows) {
       const cell = row.cells[index]!
       range.selectNodeContents(cell)
