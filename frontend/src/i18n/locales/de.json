@@ -109,7 +109,8 @@
     "descending": "Absteigend",
     "pageReport": "{first}–{last} von {totalRecords}",
     "comfortable": "Mehr Abstand",
-    "compact": "Kompakt"
+    "compact": "Kompakt",
+    "resetWidths": "Spaltenbreiten automatisch"
   },
   "customers": {
     "newContact": "Neuer Ansprechpartner",

@@ -109,7 +109,8 @@
     "descending": "Descending",
     "pageReport": "{first}–{last} of {totalRecords}",
     "comfortable": "More spacing",
-    "compact": "Compact"
+    "compact": "Compact",
+    "resetWidths": "Automatic column widths"
   },
   "customers": {
     "newContact": "New contact",

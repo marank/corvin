@@ -313,8 +313,8 @@ function removeAddress(a: Address) {
           >
             <Column field="first_name" :header="t('customers.firstName')" sortable />
             <Column field="last_name" :header="t('customers.lastName')" sortable />
-            <Column field="role" :header="t('customers.role')" sortable />
-            <Column field="email" :header="t('common.email')" sortable />
+            <Column class="app-text" field="role" :header="t('customers.role')" sortable />
+            <Column class="app-text" field="email" :header="t('common.email')" sortable />
             <Column field="phone" :header="t('common.phone')" sortable />
             <Column :header="t('customers.invoiceContact')">
               <template #body="{ data }"
@@ -343,8 +343,8 @@ function removeAddress(a: Address) {
             />
           </div>
           <AppDataTable :rows="addresses" :state-key="tableStateKeys.customerAddresses">
-            <Column field="label" :header="t('customers.addressLabel')" sortable />
-            <Column field="street" :header="t('customers.street')" sortable />
+            <Column class="app-text" field="label" :header="t('customers.addressLabel')" sortable />
+            <Column class="app-text" field="street" :header="t('customers.street')" sortable />
             <Column :header="t('customers.postalCode') + ' / ' + t('customers.city')">
               <template #body="{ data }">{{ data.postal_code }} {{ data.city }}</template>
             </Column>

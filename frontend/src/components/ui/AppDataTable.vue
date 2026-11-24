@@ -3,6 +3,8 @@ import {
   Fragment,
   computed,
   getCurrentInstance,
+  nextTick,
+  onMounted,
   onUnmounted,
   ref,
   shallowRef,
@@ -21,6 +23,7 @@ import DataTable, {
 import Paginator, { type PageState } from 'primevue/paginator'
 import Select from 'primevue/select'
 import AppEmptyState from './AppEmptyState.vue'
+import { useColumnWidths, useTextColumnShares } from './columnWidths'
 import { useConfirm } from 'primevue/useconfirm'
 import { useNotify } from '../../composables/useNotify'
 import { useTableDensity } from '../../composables/useTableDensity'
@@ -86,6 +89,14 @@ const deleting = ref(false)
 const desktopQuery = window.matchMedia('(min-width: 768px)')
 const isDesktop = ref(desktopQuery.matches)
 const density = useTableDensity()
+const columnWidths = useColumnWidths(props.stateKey)
+const root = ref<HTMLElement>()
+const textShares = useTextColumnShares(root)
+onMounted(textShares.update)
+watch(
+  () => [props.rows, isDesktop.value, columnWidths.tableKey.value],
+  () => nextTick(textShares.update),
+)
 const onMediaChange = (e: MediaQueryListEvent) => {
   isDesktop.value = e.matches
 }
@@ -350,7 +361,7 @@ function toggleSortOrder() {
 
 <template>
   <!-- eslint-disable-next-line vuejs-accessibility/no-static-element-interactions -- not interactive: hover/focus only fill the native title tooltip of truncated cells. -->
-  <div @mouseover="showTruncatedText" @focusin="showTruncatedText">
+  <div :id="textShares.id" ref="root" @mouseover="showTruncatedText" @focusin="showTruncatedText">
     <div v-if="selectable || $slots.toolbar" class="flex flex-wrap min-h-9 items-center gap-2 mb-2">
       <div class="flex-1 min-w-0"><slot name="toolbar" /></div>
       <template v-if="selectable && selectionMode">
@@ -387,6 +398,16 @@ function toggleSortOrder() {
         @click="startSelection"
       />
       <Button
+        v-if="isDesktop && columnWidths.custom.value"
+        icon="pi pi-arrows-h"
+        size="small"
+        text
+        severity="secondary"
+        :aria-label="t('table.resetWidths')"
+        :title="t('table.resetWidths')"
+        @click="columnWidths.reset"
+      />
+      <Button
         v-if="isDesktop"
         :icon="density === 'compact' ? 'pi pi-expand' : 'pi pi-compress'"
         size="small"
@@ -400,6 +421,7 @@ function toggleSortOrder() {
 
     <DataTable
       v-if="isDesktop"
+      :key="columnWidths.tableKey.value"
       :value="rows"
       :loading="loading"
       :lazy="lazy"
@@ -430,6 +452,9 @@ function toggleSortOrder() {
       @page="handlePage"
       @sort="handleSort"
       @state-restore="handleStateRestore"
+      @state-save="columnWidths.dropSavedWidths"
+      @column-resize-end="columnWidths.markResized"
+      @column-reorder="nextTick(textShares.update)"
     >
       <Column
         v-if="selectionMode"

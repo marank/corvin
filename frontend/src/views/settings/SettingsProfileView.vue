@@ -483,8 +483,18 @@ async function save() {
               @row-click="openBankAccount"
             >
               <Column class="app-text" field="name" :header="t('common.name')" sortable />
-              <Column field="bank_name" :header="t('settings.bankName')" sortable />
-              <Column field="account_holder" :header="t('settings.accountHolder')" sortable />
+              <Column
+                class="app-text"
+                field="bank_name"
+                :header="t('settings.bankName')"
+                sortable
+              />
+              <Column
+                class="app-text"
+                field="account_holder"
+                :header="t('settings.accountHolder')"
+                sortable
+              />
               <Column field="iban" :header="t('settings.iban')" sortable />
               <Column field="bic" :header="t('settings.bic')" sortable />
               <Column :header="t('settings.defaultBankAccount')" :reorderable-column="false">
@@ -527,8 +537,8 @@ async function save() {
             >
               <Column field="first_name" :header="t('customers.firstName')" sortable />
               <Column field="last_name" :header="t('customers.lastName')" sortable />
-              <Column field="role" :header="t('customers.role')" sortable />
-              <Column field="email" :header="t('common.email')" sortable />
+              <Column class="app-text" field="role" :header="t('customers.role')" sortable />
+              <Column class="app-text" field="email" :header="t('common.email')" sortable />
               <Column field="phone" :header="t('common.phone')" sortable />
               <Column :header="t('common.actions')" :reorderable-column="false">
                 <template #body="{ data }"

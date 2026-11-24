@@ -145,21 +145,16 @@ async function save() {
       </template>
       <Column field="number" :header="t('common.numberShort')" sortable />
       <Column class="app-text" field="name" :header="t('common.name')" sortable />
-      <Column :header="t('customers.place')">
+      <Column class="app-text" :header="t('customers.place')">
         <template #body="{ data }">{{
           data.primary_address
             ? `${data.primary_address.postal_code} ${data.primary_address.city}`
             : '—'
         }}</template>
       </Column>
-      <Column field="email" :header="t('common.email')" sortable />
+      <Column class="app-text" field="email" :header="t('common.email')" sortable />
       <Column field="project_count" :header="t('nav.projects')" sortable />
-      <Column
-        class="app-num"
-        field="uninvoiced_hours"
-        :header="t('customers.uninvoicedHours')"
-        sortable
-      >
+      <Column class="app-num" field="uninvoiced_hours" :header="t('overview.uninvoiced')" sortable>
         <template #body="{ data }"
           ><AppDurationDisplay :minutes="(data.uninvoiced_hours ?? 0) * 60"
         /></template>
