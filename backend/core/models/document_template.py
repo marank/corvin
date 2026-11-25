@@ -27,6 +27,9 @@ class DocumentTemplate(OwnedModel):
     margin_right = models.PositiveIntegerField(default=20, help_text="mm")
     margin_bottom = models.PositiveIntegerField(default=20, help_text="mm")
     margin_left = models.PositiveIntegerField(default=25, help_text="mm")
+    # Room header and footer get inside the margins; the content flows in between.
+    header_height = models.PositiveIntegerField(default=0, help_text="mm")
+    footer_height = models.PositiveIntegerField(default=0, help_text="mm")
     font_size = models.DecimalField(max_digits=5, decimal_places=2, default=10)
     primary_font = models.CharField(max_length=255, default="Arial")
     secondary_font = models.CharField(max_length=255, default="Helvetica")

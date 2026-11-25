@@ -298,6 +298,20 @@ describe('InvoiceDesignerView', () => {
     )
   })
 
+  it('saves the room for header and footer', async () => {
+    const api = backend()
+    api.put('/document-templates/tpl-1/', (call) => call.body)
+    await open()
+    expect(screen.text()).toContain(t('designer.marginsHint').slice(0, 30))
+    await type(screen.input(t('designer.headerHeight')), '24')
+    await type(screen.input(t('designer.footerHeight')), '28')
+    await click(screen.button(t('common.save')))
+    expect(api.lastBody('PUT', '/document-templates/tpl-1/')).toMatchObject({
+      header_height: 24,
+      footer_height: 28,
+    })
+  })
+
   it('shows save errors on the field', async () => {
     const api = backend()
     api.put(

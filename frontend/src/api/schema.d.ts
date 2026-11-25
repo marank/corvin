@@ -1676,6 +1676,10 @@ export interface components {
             margin_bottom?: number;
             /** @description mm */
             margin_left?: number;
+            /** @description mm */
+            header_height?: number;
+            /** @description mm */
+            footer_height?: number;
             /** Format: decimal */
             font_size?: string;
             primary_font?: string;
@@ -1711,6 +1715,10 @@ export interface components {
             margin_bottom?: number;
             /** @description mm */
             margin_left?: number;
+            /** @description mm */
+            header_height?: number;
+            /** @description mm */
+            footer_height?: number;
             /** Format: decimal */
             font_size?: string;
             primary_font?: string;
@@ -2365,6 +2373,10 @@ export interface components {
             margin_bottom?: number;
             /** @description mm */
             margin_left?: number;
+            /** @description mm */
+            header_height?: number;
+            /** @description mm */
+            footer_height?: number;
             /** Format: decimal */
             font_size?: string;
             primary_font?: string;

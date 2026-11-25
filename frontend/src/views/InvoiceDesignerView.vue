@@ -170,6 +170,8 @@ const variableGroups = computed<VariableGroup[]>(() => [
       'margin_right',
       'margin_bottom',
       'margin_left',
+      'header_height',
+      'footer_height',
       'font_size',
       'primary_font',
       'secondary_font',
@@ -179,6 +181,16 @@ const variableGroups = computed<VariableGroup[]>(() => [
       'background_color',
       'text_color',
     ].map((field) => ({ label: field, code: `{{ page.${field} }}` })),
+  },
+  {
+    label: t('designer.variableGroups.pages'),
+    entries: [
+      { label: 'page_count', code: '{{ page_count }}' },
+      {
+        label: 'page x of y',
+        code: '{% if page_count > 1 %}Seite <span class="page-number"></span> von {{ page_count }}{% endif %}',
+      },
+    ],
   },
   {
     label: t('designer.variableGroups.customer'),
@@ -421,6 +433,15 @@ async function save() {
                 <AppFormField field="margin_left" :label="t('designer.marginLeft')"
                   ><InputNumber v-model="template.margin_left" :min="0" fluid
                 /></AppFormField>
+                <AppFormField field="header_height" :label="t('designer.headerHeight')"
+                  ><InputNumber v-model="template.header_height" :min="0" fluid
+                /></AppFormField>
+                <AppFormField field="footer_height" :label="t('designer.footerHeight')"
+                  ><InputNumber v-model="template.footer_height" :min="0" fluid
+                /></AppFormField>
+                <p class="col-span-full text-sm text-surface-500">
+                  {{ t('designer.marginsHint') }}
+                </p>
                 <AppFormField field="font_size" :label="t('designer.fontSize')"
                   ><InputNumber
                     v-model="template.font_size"

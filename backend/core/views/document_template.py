@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from core.models import DocumentTemplate
 from core.request_helpers import request_user
 from core.serializers import DocumentTemplateSerializer
-from core.services.pdf import render_document_html, write_pdf
+from core.services.pdf import render_document_html, write_document_pdf
 from core.services.sample_invoice import sample_template_context
 from core.services.templates import ensure_default_template, forget_template_assignments
 
@@ -88,16 +88,14 @@ class DocumentTemplateViewSet(OwnedViewSet[DocumentTemplate]):
             status=status.HTTP_201_CREATED,
         )
 
-    def _preview_html(
-        self, request: Request, template: DocumentTemplate, for_pdf: bool = False
-    ) -> str:
-        """The template rendered with sample data; images from disk for PDFs, else via the API."""
+    def _preview_data(self, request: Request, for_pdf: bool = False) -> dict[str, Any]:
+        """Sample data; images from disk for PDFs, else via the API."""
         data = sample_template_context(request_user(request), for_pdf)
         if not for_pdf:
             data["images"] = {
                 key: request.build_absolute_uri(url) for key, url in data["images"].items()
             }
-        return render_document_html(template, data, request_user(request))
+        return data
 
     def _preview_template(self, request: Request) -> DocumentTemplate:
         """The stored template; a POST previews unsaved designer changes without storing them."""
@@ -114,16 +112,18 @@ class DocumentTemplateViewSet(OwnedViewSet[DocumentTemplate]):
     @override(settings.LANGUAGE_CODE)
     def preview(self, request: Request, pk: str | None = None) -> HttpResponse:
         """Render the template with sample data (HTML)."""
-        html = self._preview_html(request, self._preview_template(request))
+        template = self._preview_template(request)
+        html = render_document_html(template, self._preview_data(request), request_user(request))
         return HttpResponse(html, content_type="text/html")
 
     @action(detail=True, methods=["get", "post"], url_path="preview-pdf")
     @override(settings.LANGUAGE_CODE)
     def preview_pdf(self, request: Request, pk: str | None = None) -> HttpResponse:
         """Render the template with sample data as a PDF (inline)."""
-        html = self._preview_html(request, self._preview_template(request), for_pdf=True)
+        template = self._preview_template(request)
+        data = self._preview_data(request, for_pdf=True)
         return HttpResponse(
-            write_pdf(html, request_user(request)),
+            write_document_pdf(template, data, request_user(request)),
             content_type="application/pdf",
             headers={"Content-Disposition": "inline"},
         )

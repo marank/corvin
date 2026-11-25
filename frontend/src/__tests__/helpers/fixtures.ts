@@ -246,6 +246,8 @@ export const template = (over: Partial<DocumentTemplate> = {}): DocumentTemplate
   margin_right: 20,
   margin_bottom: 20,
   margin_left: 20,
+  header_height: 0,
+  footer_height: 0,
   font_size: 10,
   primary_font: 'Inter',
   secondary_font: 'Inter',

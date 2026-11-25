@@ -241,6 +241,8 @@ export interface DocumentTemplate {
   margin_right: number
   margin_bottom: number
   margin_left: number
+  header_height: number
+  footer_height: number
   font_size: number
   primary_font: string
   secondary_font: string

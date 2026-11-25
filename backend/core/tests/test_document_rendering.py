@@ -255,3 +255,61 @@ def test_default_template_uses_the_company_date_format(user, invoice_template):
     )
 
     assert timezone.localdate().isoformat() in r.content.decode()
+
+
+def _footer_boxes(html, user):
+    """Each page's height and its footer's top and bottom edge, in mm."""
+    from weasyprint import HTML
+
+    def boxes(box):
+        yield box
+        for child in getattr(box, "children", None) or ():
+            yield from boxes(child)
+
+    mm = 96 / 25.4
+    document = HTML(string=html, url_fetcher=OwnerResourceFetcher(user)).render()
+    found = []
+    for page in document.pages:
+        for box in boxes(page._page_box):
+            element = getattr(box, "element", None)
+            if element is not None and element.get("id") == "page-footer":
+                top = box.position_y + box.margin_top
+                found.append((page.height / mm, top / mm, (top + box.border_height()) / mm))
+    return found
+
+
+@pytest.mark.django_db
+def test_footer_height_from_css_is_reserved_inside_the_margins(user):
+    template = DocumentTemplate(
+        owner=user,
+        margin_top=10,
+        margin_bottom=10,
+        footer_height=30,
+        css="#page-footer { height: 30mm; }",
+        footer_html="<div>Firma<br>Straße 1<br>12345 Ort<br>IBAN DE00<br>USt-IdNr. DE1</div>",
+        body_html="".join(f"<p>Zeile {n}</p>" for n in range(120)),
+    )
+
+    footers = _footer_boxes(render_document_html(template, {}, user), user)
+
+    assert len(footers) > 1  # repeated on every page of the long body
+    for page_height, top, bottom in footers:
+        assert top == pytest.approx(page_height - 40, abs=0.5)
+        assert bottom == pytest.approx(page_height - 10, abs=0.5)
+
+
+@pytest.mark.django_db
+def test_footer_background_can_reach_the_page_edges(user):
+    template = DocumentTemplate(
+        owner=user,
+        margin_bottom=10,
+        footer_height=20,
+        css="#page-footer { box-sizing: border-box; height: 30mm; margin-bottom: -10mm; }",
+        footer_html="<div>Firma</div>",
+        body_html="<p>x</p>",
+    )
+
+    [(page_height, top, bottom)] = _footer_boxes(render_document_html(template, {}, user), user)
+
+    assert top == pytest.approx(page_height - 30, abs=0.5)
+    assert bottom == pytest.approx(page_height, abs=0.5)

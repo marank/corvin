@@ -35,6 +35,8 @@ class DocumentTemplateSerializer(OwnedSerializer[DocumentTemplate]):
             "margin_right",
             "margin_bottom",
             "margin_left",
+            "header_height",
+            "footer_height",
             "font_size",
             "primary_font",
             "secondary_font",

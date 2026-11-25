@@ -49,7 +49,7 @@ DEFAULT_CSS = """body { font-family: sans-serif; font-size: 10pt; }
 .items td:nth-child(n+3), .items th:nth-child(n+3) { text-align: right; }
 .totals { margin-left: auto; margin-top: 4mm; }
 .totals td { padding: 2px 0 2px 8mm; text-align: right; }
-#page-footer { font-size: 8pt; color: #666; }"""
+#page-footer { padding-top: 4mm; font-size: 8pt; color: #666; }"""
 
 DEFAULT_FOOTER = (
     "{{ company.company_name }} · {{ company.street }} · "
@@ -57,6 +57,7 @@ DEFAULT_FOOTER = (
     "{% if invoice.bank_account.iban %} · IBAN {{ invoice.bank_account.iban }}{% endif %}"
     "{% if company.vat_id %} · USt-IdNr. {{ company.vat_id }}{% endif %}"
     "{% if company.tax_id %} · St.-Nr. {{ company.tax_id }}{% endif %}"
+    '{% if page_count > 1 %} · Seite <span class="page-number"></span> von {{ page_count }}{% endif %}'
 )
 
 
@@ -73,6 +74,7 @@ def ensure_default_template(owner: User) -> DocumentTemplate:
                 body_html=DEFAULT_BODY,
                 css=DEFAULT_CSS,
                 footer_html=DEFAULT_FOOTER,
+                footer_height=10,
             )
     return template
 

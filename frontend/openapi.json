@@ -8559,6 +8559,18 @@
                         "minimum": 0,
                         "description": "mm"
                     },
+                    "header_height": {
+                        "type": "integer",
+                        "maximum": 2147483647,
+                        "minimum": 0,
+                        "description": "mm"
+                    },
+                    "footer_height": {
+                        "type": "integer",
+                        "maximum": 2147483647,
+                        "minimum": 0,
+                        "description": "mm"
+                    },
                     "font_size": {
                         "type": "string",
                         "format": "decimal",
@@ -8670,6 +8682,18 @@
                         "description": "mm"
                     },
                     "margin_left": {
+                        "type": "integer",
+                        "maximum": 2147483647,
+                        "minimum": 0,
+                        "description": "mm"
+                    },
+                    "header_height": {
+                        "type": "integer",
+                        "maximum": 2147483647,
+                        "minimum": 0,
+                        "description": "mm"
+                    },
+                    "footer_height": {
                         "type": "integer",
                         "maximum": 2147483647,
                         "minimum": 0,
@@ -10392,6 +10416,18 @@
                         "description": "mm"
                     },
                     "margin_left": {
+                        "type": "integer",
+                        "maximum": 2147483647,
+                        "minimum": 0,
+                        "description": "mm"
+                    },
+                    "header_height": {
+                        "type": "integer",
+                        "maximum": 2147483647,
+                        "minimum": 0,
+                        "description": "mm"
+                    },
+                    "footer_height": {
                         "type": "integer",
                         "maximum": 2147483647,
                         "minimum": 0,
