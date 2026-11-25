@@ -437,10 +437,10 @@
     "companyContacts": "Ansprechpartner",
     "images": "Bilder",
     "imageKinds": {
-      "logo_light": "Vollständiges Logo – hell",
-      "logo_dark": "Vollständiges Logo – dunkel",
-      "icon_light": "Symbol – hell",
-      "icon_dark": "Symbol – dunkel"
+      "logo_light": "Vollständiges Logo – für hellen Hintergrund",
+      "logo_dark": "Vollständiges Logo – für dunklen Hintergrund",
+      "icon_light": "Symbol – für hellen Hintergrund",
+      "icon_dark": "Symbol – für dunklen Hintergrund"
     },
     "uploadImage": "Bild hochladen",
     "additionalImages": "Weitere Bilder",

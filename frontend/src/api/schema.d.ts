@@ -1914,10 +1914,10 @@ export interface components {
             count: number;
         };
         /**
-         * @description * `logo_light` - Full logo light
-         *     * `logo_dark` - Full logo dark
-         *     * `icon_light` - Icon light
-         *     * `icon_dark` - Icon dark
+         * @description * `logo_light` - Full logo for light backgrounds
+         *     * `logo_dark` - Full logo for dark backgrounds
+         *     * `icon_light` - Icon for light backgrounds
+         *     * `icon_dark` - Icon for dark backgrounds
          *     * `additional` - Additional
          * @enum {string}
          */
@@ -3743,10 +3743,10 @@ export interface operations {
         parameters: {
             query?: {
                 /**
-                 * @description * `logo_light` - Full logo light
-                 *     * `logo_dark` - Full logo dark
-                 *     * `icon_light` - Icon light
-                 *     * `icon_dark` - Icon dark
+                 * @description * `logo_light` - Full logo for light backgrounds
+                 *     * `logo_dark` - Full logo for dark backgrounds
+                 *     * `icon_light` - Icon for light backgrounds
+                 *     * `icon_dark` - Icon for dark backgrounds
                  *     * `additional` - Additional
                  */
                 kind?: "additional" | "icon_dark" | "icon_light" | "logo_dark" | "logo_light";

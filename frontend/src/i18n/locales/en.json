@@ -437,10 +437,10 @@
     "companyContacts": "Company contacts",
     "images": "Images",
     "imageKinds": {
-      "logo_light": "Full logo – light",
-      "logo_dark": "Full logo – dark",
-      "icon_light": "Icon – light",
-      "icon_dark": "Icon – dark"
+      "logo_light": "Full logo – for light backgrounds",
+      "logo_dark": "Full logo – for dark backgrounds",
+      "icon_light": "Icon – for light backgrounds",
+      "icon_dark": "Icon – for dark backgrounds"
     },
     "uploadImage": "Upload image",
     "additionalImages": "Additional images",

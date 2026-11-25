@@ -7,10 +7,10 @@ from .base import OwnedModel
 
 class CompanyImage(OwnedModel):
     class Kind(models.TextChoices):
-        LOGO_LIGHT = "logo_light", "Full logo light"
-        LOGO_DARK = "logo_dark", "Full logo dark"
-        ICON_LIGHT = "icon_light", "Icon light"
-        ICON_DARK = "icon_dark", "Icon dark"
+        LOGO_LIGHT = "logo_light", "Full logo for light backgrounds"
+        LOGO_DARK = "logo_dark", "Full logo for dark backgrounds"
+        ICON_LIGHT = "icon_light", "Icon for light backgrounds"
+        ICON_DARK = "icon_dark", "Icon for dark backgrounds"
         ADDITIONAL = "additional", "Additional"
 
     kind = models.CharField(max_length=20, choices=Kind.choices)

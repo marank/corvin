@@ -1462,7 +1462,7 @@
                                 "logo_light"
                             ]
                         },
-                        "description": "* `logo_light` - Full logo light\n* `logo_dark` - Full logo dark\n* `icon_light` - Icon light\n* `icon_dark` - Icon dark\n* `additional` - Additional"
+                        "description": "* `logo_light` - Full logo for light backgrounds\n* `logo_dark` - Full logo for dark backgrounds\n* `icon_light` - Icon for light backgrounds\n* `icon_dark` - Icon for dark backgrounds\n* `additional` - Additional"
                     },
                     {
                         "name": "ordering",
@@ -9292,7 +9292,7 @@
                     "additional"
                 ],
                 "type": "string",
-                "description": "* `logo_light` - Full logo light\n* `logo_dark` - Full logo dark\n* `icon_light` - Icon light\n* `icon_dark` - Icon dark\n* `additional` - Additional"
+                "description": "* `logo_light` - Full logo for light backgrounds\n* `logo_dark` - Full logo for dark backgrounds\n* `icon_light` - Icon for light backgrounds\n* `icon_dark` - Icon for dark backgrounds\n* `additional` - Additional"
             },
             "LoginFailed": {
                 "type": "object",
