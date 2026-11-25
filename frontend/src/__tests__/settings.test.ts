@@ -190,11 +190,12 @@ describe('SettingsProfileView', () => {
   })
 
   describe('bank accounts', () => {
-    it('opens directly from the invoice hint, without the Save button', async () => {
+    it('opens directly from the invoice hint, with the Save button hidden', async () => {
       backend()
       await open('/settings?tab=bankAccounts')
       expect(activeTab().row('Hausbank')).toBeTruthy()
-      expect(screen.hasButton(t('common.save'))).toBe(false)
+      // Hidden rather than removed, so the header keeps its height across tabs.
+      expect(screen.button(t('common.save')).classList).toContain('invisible')
     })
 
     it('adds an account and shows an invalid IBAN on its field', async () => {

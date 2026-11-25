@@ -320,8 +320,9 @@ async function save() {
   <div>
     <AppPageHeader :title="t('settings.title')">
       <template #actions>
+        <!-- Hidden, not removed, on the list tabs: keeps the header height when switching tabs. -->
         <Button
-          v-if="formTabs.includes(tab)"
+          :class="{ invisible: !formTabs.includes(tab) }"
           :label="t('common.save')"
           :loading="saving"
           @click="save"
