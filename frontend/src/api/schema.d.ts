@@ -759,6 +759,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/{id}/time-report/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The time entries the invoice bills, line by line, as a PDF (Leistungsnachweis). */
+        get: operations["invoices_time_report_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices/{id}/xrechnung/": {
         parameters: {
             query?: never;
@@ -1607,6 +1624,7 @@ export interface components {
             payment_terms_days?: number | null;
             /** Format: uuid */
             bank_account?: string | null;
+            e_invoice_format?: components["schemas"]["EInvoiceFormatEnum"];
             is_active?: boolean;
             readonly project_count: number;
             /** Format: decimal */
@@ -1639,6 +1657,7 @@ export interface components {
             payment_terms_days?: number | null;
             /** Format: uuid */
             bank_account?: string | null;
+            e_invoice_format?: components["schemas"]["EInvoiceFormatEnum"];
             is_active?: boolean;
         };
         DashboardStats: {
@@ -1828,6 +1847,7 @@ export interface components {
             /** Format: decimal */
             readonly remaining: string;
             readonly partially_paid: boolean;
+            readonly has_time_entries: boolean;
             /** Format: date-time */
             readonly sent_at: string | null;
             /** Format: uuid */
@@ -2359,6 +2379,7 @@ export interface components {
             payment_terms_days?: number | null;
             /** Format: uuid */
             bank_account?: string | null;
+            e_invoice_format?: components["schemas"]["EInvoiceFormatEnum"];
             is_active?: boolean;
         };
         /** @description Sets owner from the request and scopes FK fields to the owner. */
@@ -5196,6 +5217,28 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["InvoiceRequest"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+        };
+    };
+    invoices_time_report_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der invoice identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

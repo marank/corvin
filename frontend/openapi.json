@@ -4256,6 +4256,44 @@
                 }
             }
         },
+        "/api/v1/invoices/{id}/time-report/": {
+            "get": {
+                "operationId": "invoices_time_report_retrieve",
+                "description": "The time entries the invoice bills, line by line, as a PDF (Leistungsnachweis).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der invoice identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "invoices"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Invoice"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/invoices/{id}/xrechnung/": {
             "get": {
                 "operationId": "invoices_xrechnung_retrieve",
@@ -8299,6 +8337,9 @@
                         "format": "uuid",
                         "nullable": true
                     },
+                    "e_invoice_format": {
+                        "$ref": "#/components/schemas/EInvoiceFormatEnum"
+                    },
                     "is_active": {
                         "type": "boolean"
                     },
@@ -8438,6 +8479,9 @@
                         "type": "string",
                         "format": "uuid",
                         "nullable": true
+                    },
+                    "e_invoice_format": {
+                        "$ref": "#/components/schemas/EInvoiceFormatEnum"
                     },
                     "is_active": {
                         "type": "boolean"
@@ -9008,6 +9052,10 @@
                         "type": "boolean",
                         "readOnly": true
                     },
+                    "has_time_entries": {
+                        "type": "boolean",
+                        "readOnly": true
+                    },
                     "sent_at": {
                         "type": "string",
                         "format": "date-time",
@@ -9065,6 +9113,7 @@
                     "created_at",
                     "customer",
                     "customer_name",
+                    "has_time_entries",
                     "id",
                     "issue_date",
                     "items",
@@ -10379,6 +10428,9 @@
                         "type": "string",
                         "format": "uuid",
                         "nullable": true
+                    },
+                    "e_invoice_format": {
+                        "$ref": "#/components/schemas/EInvoiceFormatEnum"
                     },
                     "is_active": {
                         "type": "boolean"

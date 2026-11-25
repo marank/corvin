@@ -1,6 +1,6 @@
 import re
 from collections import defaultdict
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from datetime import date, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
@@ -39,6 +39,23 @@ class Line(TypedDict):
     unit: str
     unit_price: Decimal
     total: NotRequired[Decimal]
+
+
+class EntryLine(TypedDict):
+    """A line built from time entries: the line and the entries it bills. Grouped lines
+    also carry their group's key and generated text."""
+
+    line: Line
+    entries: list[TimeEntry]
+    key: NotRequired[str]
+    default_description: NotRequired[str]
+
+
+class EntryLineSpec(TypedDict):
+    """A line the user put together: these entries, billed under this text."""
+
+    entry_ids: list[Any]
+    description: str
 
 
 def _format_date(d: date, pattern: str) -> str:
@@ -101,6 +118,26 @@ def _default_vat_rate(company: CompanySettings | None) -> Decimal:
     return company.default_vat_rate if company.vat_enabled else Decimal(0)
 
 
+def header_defaults(
+    customer: Customer, company: CompanySettings | None, issue_date: date
+) -> dict[str, Any]:
+    """What an invoice gets for the fields left open: due after the customer's (else the
+    company's) payment terms, the company's VAT rate and currency, the customer's e-invoice."""
+    payment_terms_days = (
+        customer.payment_terms_days
+        if customer.payment_terms_days is not None
+        else company.payment_terms_days
+        if company
+        else 14
+    )
+    return {
+        "due_date": issue_date + timedelta(days=payment_terms_days),
+        "vat_rate": _default_vat_rate(company),
+        "currency": company.currency if company else "EUR",
+        "e_invoice_format": customer.e_invoice_format,
+    }
+
+
 def billable_entries(
     *,
     owner: User,
@@ -131,7 +168,7 @@ def billable_entries(
     return qs.order_by("start_datetime")
 
 
-# What puts entries on the same line, per `group_by`.
+# What puts entries on the same line, per `group_by`; also the line's key (as text).
 _GROUP_KEYS: dict[str, Callable[[TimeEntry], tuple[Any, ...]]] = {
     "entry": lambda e: (e.id,),
     "day": lambda e: (e.project_id, timezone.localdate(e.start_datetime)),
@@ -152,37 +189,108 @@ def _group_entries(
 
 
 def _line_description(group_by: str, first: TimeEntry, scope: str, work_date: str) -> str:
+    """Per entry its date and text, per day the date, per project the project's name;
+    the entries behind a line are listed in the invoice's time report."""
     # Line texts end up on the document, which always renders in LANGUAGE_CODE.
     with override(settings.LANGUAGE_CODE):
         if group_by == "entry":
             return f"{work_date} — {_entry_text(first.description, scope)}"
         if group_by == "day":
-            return f"{work_date} — {scope}"
-        services = _("Services")
-        return f"{scope} — {services}"
+            return work_date
+        return scope
 
 
 def build_lines(
     *, owner: User, customer: Customer, entries: list[TimeEntry], group_by: str
-) -> list[tuple[Line, list[TimeEntry]]]:
-    """Group entries into line-item dicts. Returns [(line, entries_on_that_line), ...]."""
+) -> list[EntryLine]:
+    """Group entries into lines, chronologically, with generated texts."""
     groups = _group_entries(entries, group_by)
     company: CompanySettings | None = getattr(owner, "company_settings", None)
-    lines = []
-    # Chronological lines, whatever order the entries were created in.
-    for group in sorted(groups.values(), key=lambda g: min(e.start_datetime for e in g)):
+    lines: list[EntryLine] = []
+    for group_key, group in sorted(
+        groups.items(), key=lambda item: min(e.start_datetime for e in item[1])
+    ):
         first = group[0]
         scope = first.project.name if first.project else customer.name
         work_date = _format_date(
             timezone.localdate(first.start_datetime),
             company.date_format if company else "DD.MM.YYYY",
         )
-        desc = _line_description(group_by, first, scope, work_date)
-        lines.append((_line_for_entries(owner, customer, group, desc), group))
+        key = ":".join([group_by, *(str(part) for part in group_key)])
+        default = _line_description(group_by, first, scope, work_date)
+        lines.append(
+            {
+                "line": _line_for_entries(owner, customer, group, default),
+                "entries": group,
+                "key": key,
+                "default_description": default,
+            }
+        )
     return lines
 
 
-def _line_total(line: Line) -> Decimal:
+def lines_from_specs(
+    *, owner: User, customer: Customer, entries: list[TimeEntry], specs: list[EntryLineSpec]
+) -> list[EntryLine]:
+    """The user's lines: each bills the given entries (open ones of the customer, each on
+    one line only) under the given text; hours and prices come from the entries."""
+    by_id = {str(e.id): e for e in entries}
+    used: set[str] = set()
+    lines: list[EntryLine] = []
+    for spec in specs:
+        ids = [str(entry_id) for entry_id in spec["entry_ids"]]
+        if not ids or any(i not in by_id or i in used for i in ids):
+            raise ValidationError(_("A line bills time entries that are not open or twice."))
+        used.update(ids)
+        group = [by_id[i] for i in ids]
+        lines.append(
+            {
+                "line": _line_for_entries(owner, customer, group, spec["description"]),
+                "entries": group,
+            }
+        )
+    return lines
+
+
+def _entry_lines(
+    *,
+    owner: User,
+    customer: Customer,
+    entries: list[TimeEntry],
+    group_by: str,
+    entry_lines: list[EntryLineSpec] | None,
+) -> list[EntryLine]:
+    if entry_lines is None:
+        return build_lines(owner=owner, customer=customer, entries=entries, group_by=group_by)
+    return lines_from_specs(owner=owner, customer=customer, entries=entries, specs=entry_lines)
+
+
+def _spec_entry_ids(entry_lines: list[EntryLineSpec] | None, entry_ids: Any) -> Any:
+    """With explicit lines, the entries are the ones they name."""
+    if entry_lines is None:
+        return entry_ids
+    return [entry_id for spec in entry_lines for entry_id in spec["entry_ids"]]
+
+
+def _line_context(entries: list[TimeEntry]) -> dict[str, Any]:
+    """What a preview shows next to a line: its entries, project and period."""
+    days = [timezone.localdate(e.start_datetime) for e in entries]
+    projects = {e.project.name for e in entries if e.project}
+    return {
+        "entry_ids": [e.id for e in entries],
+        "project_name": projects.pop() if len(projects) == 1 else None,
+        "date_from": min(days),
+        "date_to": max(days),
+    }
+
+
+def _only_project(lines: list[EntryLine]) -> Project | None:
+    """The project all lines bill, if they bill exactly one."""
+    projects = {e.project_id: e.project for built in lines for e in built["entries"]}
+    return next(iter(projects.values())) if len(projects) == 1 else None
+
+
+def _line_total(line: Mapping[str, Any]) -> Decimal:
     return (Decimal(line["quantity"]) * Decimal(line["unit_price"])).quantize(Decimal("0.01"))
 
 
@@ -195,9 +303,13 @@ def preview(
     date_to: date | None = None,
     entry_ids: list[Any] | None = None,
     group_by: str = "entry",
+    entry_lines: list[EntryLineSpec] | None = None,
     extra_lines: list[Line] | None = None,
+    vat_rate: Decimal | None = None,
 ) -> dict[str, Any]:
-    """What `consolidate` would create, without writing anything."""
+    """What `consolidate` would create, without writing anything. Lines built from entries
+    carry their entries (and, grouped, their key and generated text), so a client can take
+    them over and edit their text."""
     entries = list(
         billable_entries(
             owner=owner,
@@ -205,20 +317,27 @@ def preview(
             project=project,
             date_from=date_from,
             date_to=date_to,
-            entry_ids=entry_ids,
+            entry_ids=_spec_entry_ids(entry_lines, entry_ids),
         )
     )
-    lines = [
-        line
-        for line, _group in build_lines(
-            owner=owner, customer=customer, entries=entries, group_by=group_by
-        )
+    built = _entry_lines(
+        owner=owner, customer=customer, entries=entries, group_by=group_by, entry_lines=entry_lines
+    )
+    lines: list[dict[str, Any]] = [
+        {
+            **item["line"],
+            **_line_context(item["entries"]),
+            "key": item.get("key"),
+            "default_description": item.get("default_description", item["line"]["description"]),
+        }
+        for item in built
     ]
-    lines += [Line(**line) for line in extra_lines or []]
+    lines += [{**line, "key": None, "entry_ids": []} for line in extra_lines or []]
     for line in lines:
         line["total"] = _line_total(line)
     subtotal = sum((line["total"] for line in lines), Decimal(0))
-    vat_rate = _default_vat_rate(getattr(owner, "company_settings", None))
+    if vat_rate is None:
+        vat_rate = _default_vat_rate(getattr(owner, "company_settings", None))
     vat_amount = (subtotal * vat_rate / 100).quantize(Decimal("0.01"))
     return {
         "lines": lines,
@@ -240,12 +359,16 @@ def consolidate(
     date_to: date | None = None,
     entry_ids: list[Any] | None = None,
     group_by: str = "entry",
+    entry_lines: list[EntryLineSpec] | None = None,
     vat_rate: Decimal | None = None,
     template: DocumentTemplate | None = None,
     contacts: Iterable[Contact] | None = None,
     bank_account: BankAccount | None = None,
-    e_invoice_format: str = Invoice.EInvoiceFormat.NONE,
+    e_invoice_format: str | None = None,
     extra_lines: list[Line] | None = None,
+    issue_date: date | None = None,
+    due_date: date | None = None,
+    notes: str = "",
 ) -> Invoice:
     qs = billable_entries(
         owner=owner,
@@ -253,22 +376,20 @@ def consolidate(
         project=project,
         date_from=date_from,
         date_to=date_to,
-        entry_ids=entry_ids,
+        entry_ids=_spec_entry_ids(entry_lines, entry_ids),
     )
     entries = list(qs)
     if not entries and not extra_lines:
         raise ValidationError(_("No billable, uninvoiced time entries found."))
-    lines = build_lines(owner=owner, customer=customer, entries=entries, group_by=group_by)
+    lines = _entry_lines(
+        owner=owner, customer=customer, entries=entries, group_by=group_by, entry_lines=entry_lines
+    )
+    # Without a project of its own, an invoice that bills one project belongs to it.
+    project = project or _only_project(lines)
 
     company: CompanySettings | None = getattr(owner, "company_settings", None)
-    issue_date = timezone.localdate()
-    payment_terms_days = (
-        customer.payment_terms_days
-        if customer.payment_terms_days is not None
-        else company.payment_terms_days
-        if company
-        else 14
-    )
+    issue_date = issue_date or timezone.localdate()
+    defaults = header_defaults(customer, company, issue_date)
     invoice = Invoice.objects.create(
         owner=owner,
         number=next_number(
@@ -285,10 +406,11 @@ def consolidate(
         customer=customer,
         project=project,
         issue_date=issue_date,
-        due_date=issue_date + timedelta(days=payment_terms_days),
-        vat_rate=vat_rate if vat_rate is not None else _default_vat_rate(company),
-        currency=company.currency if company else "EUR",
-        e_invoice_format=e_invoice_format,
+        due_date=due_date or defaults["due_date"],
+        vat_rate=vat_rate if vat_rate is not None else defaults["vat_rate"],
+        notes=notes,
+        currency=defaults["currency"],
+        e_invoice_format=e_invoice_format or defaults["e_invoice_format"],
         template=template,
         bank_account_override=bank_account,
     )
@@ -298,12 +420,12 @@ def consolidate(
     )
 
     position = 0
-    for line, group in lines:
+    for built in lines:
         position += 1
         item = InvoiceLineItem.objects.create(
-            owner=owner, invoice=invoice, position=position, **line
+            owner=owner, invoice=invoice, position=position, **built["line"]
         )
-        TimeEntry.objects.filter(id__in=[e.id for e in group]).update(
+        TimeEntry.objects.filter(id__in=[e.id for e in built["entries"]]).update(
             invoice=invoice, invoice_item=item
         )
 

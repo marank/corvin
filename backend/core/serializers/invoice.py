@@ -39,6 +39,12 @@ class InvoiceSerializer(NumberedSerializer[Invoice]):
     amount_paid = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     remaining = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     partially_paid = serializers.BooleanField(read_only=True)
+    # Whether it bills time entries (then a time report exists).
+    has_time_entries = serializers.SerializerMethodField()
+
+    def get_has_time_entries(self, obj: Invoice) -> bool:
+        annotated = getattr(obj, "time_entries_billed", None)
+        return bool(annotated) if annotated is not None else obj.time_entries.exists()
 
     def get_fields(self) -> dict[str, Field[Any, Any, Any, Any]]:
         fields = super().get_fields()
@@ -84,6 +90,7 @@ class InvoiceSerializer(NumberedSerializer[Invoice]):
             "amount_paid",
             "remaining",
             "partially_paid",
+            "has_time_entries",
             "sent_at",
             "template",
             "bank_account_override",

@@ -25,6 +25,8 @@ import HourlyRateList from '../../components/HourlyRateList.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
 import RelatedOverview from '../../components/RelatedOverview.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
+import AppEnumSelect from '../../components/ui/AppEnumSelect.vue'
+import { eInvoiceFormatValues as eInvoiceFormats } from '../../utils/enums'
 import {
   addressesApi,
   bankAccountsApi,
@@ -291,6 +293,14 @@ function removeAddress(a: Address) {
                     :placeholder="t('settings.companyDefault')"
                     class="w-full"
                 /></AppFormField>
+                <AppFormField field="e_invoice_format" :label="t('invoices.eInvoice')">
+                  <AppEnumSelect
+                    v-model="form.e_invoice_format"
+                    :options="eInvoiceFormats"
+                    label-prefix="invoices.eInvoiceFormats"
+                    class="w-full"
+                  />
+                </AppFormField>
               </div>
             </fieldset>
 

@@ -64,7 +64,7 @@ def make_entry(user, project):
         return TimeEntry.objects.create(
             owner=user,
             customer=kw.pop("customer", project.customer),
-            project=project,
+            project=kw.pop("project", project),
             start_datetime=datetime(d.year, d.month, d.day, h1, m1, tzinfo=tz),
             end_datetime=datetime(d.year, d.month, d.day, h2, m2, tzinfo=tz),
             **kw,

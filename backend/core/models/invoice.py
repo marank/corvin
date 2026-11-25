@@ -6,7 +6,7 @@ from django.db import models
 from .bank_account import BankAccount
 from .base import OwnedModel
 from .contact import Contact
-from .customer import Customer
+from .customer import Customer, EInvoiceFormat
 from .document_template import DocumentTemplate
 from .project import Project
 from .support_contract import SupportContract
@@ -20,10 +20,8 @@ class Invoice(OwnedModel):
         PAID = "paid", "Paid"
         CANCELLED = "cancelled", "Cancelled"
 
-    class EInvoiceFormat(models.TextChoices):
-        NONE = "none", "None"
-        ZUGFERD = "zugferd", "ZUGFeRD (PDF/A-3 + XML)"
-        XRECHNUNG = "xrechnung", "XRechnung (XML only)"
+    # Shared with Customer, whose e_invoice_format is the default for its invoices.
+    EInvoiceFormat = EInvoiceFormat
 
     number = models.CharField(max_length=50, blank=True, db_index=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="invoices")

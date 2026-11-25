@@ -30,6 +30,7 @@ class CustomerSerializer(LockableNumberSerializer[Customer]):
             "rounding_increment_minutes",
             "payment_terms_days",
             "bank_account",
+            "e_invoice_format",
             "is_active",
             "project_count",
             "uninvoiced_hours",

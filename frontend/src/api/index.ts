@@ -38,6 +38,8 @@ export interface Customer {
   rounding_increment_minutes: number | null
   payment_terms_days: number | null
   bank_account: string | null
+  // Default for the customer's invoices.
+  e_invoice_format: string
   is_active: boolean
   project_count: number
   uninvoiced_hours: number | null
@@ -216,6 +218,8 @@ export interface Invoice {
   amount_paid: number
   remaining: number
   partially_paid: boolean
+  // Bills time entries, so a time report (Leistungsnachweis) exists.
+  has_time_entries: boolean
   sent_at: string | null
   template: string | null
   bank_account_override: string | null
@@ -418,12 +422,34 @@ export interface ConsolidateRequest {
   date_to?: string | null
   entry_ids?: string[]
   group_by: string
+  // Lines put together from entries (the entries and their text); replaces the grouping.
+  entry_lines?: { entry_ids: string[]; description: string }[]
   e_invoice_format?: string
   extra_lines?: Partial<LineItem>[]
+  // Omitted: today, issue date + payment terms, the company's rate, the assigned template.
+  issue_date?: string
+  due_date?: string
+  vat_rate?: number
+  template_id?: string | null
+  notes?: string
+}
+
+export interface ConsolidatePreviewLine extends Pick<
+  LineItem,
+  'description' | 'quantity' | 'unit' | 'unit_price' | 'total'
+> {
+  // Lines built from entries: their entries (grouped: key, generated text); own: null, [].
+  key: string | null
+  entry_ids: string[]
+  default_description?: string
+  // Lines from entries: their project (one) and period.
+  project_name?: string | null
+  date_from?: string
+  date_to?: string
 }
 
 export interface ConsolidatePreview {
-  lines: Pick<LineItem, 'description' | 'quantity' | 'unit' | 'unit_price' | 'total'>[]
+  lines: ConsolidatePreviewLine[]
   entry_count: number
   subtotal: string
   vat_rate: string
@@ -449,6 +475,7 @@ export const invoicesApi = {
     api.post<Invoice>(`${base}/invoices/${id}/send_email/`, d),
   pdfUrl: (id: string) => `${base}/invoices/${id}/pdf/`,
   xmlUrl: (id: string) => `${base}/invoices/${id}/xrechnung/`,
+  timeReportUrl: (id: string) => `${base}/invoices/${id}/time-report/`,
   previewUrl: (id: string) => `${base}/invoices/${id}/preview/`,
 }
 

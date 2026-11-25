@@ -1,11 +1,10 @@
-from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
 
 import django_filters
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db.models import QuerySet
+from django.db.models import Exists, OuterRef, QuerySet
 from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -22,10 +21,11 @@ from core.request_helpers import request_user
 from core.serializers import InvoiceSerializer
 from core.serializers.base import validate_template_syntax
 from core.services.archiving import archive_invoice
-from core.services.consolidation import consolidate, preview
+from core.services.consolidation import consolidate, header_defaults, preview
 from core.services.erechnung import build_xrechnung_xml
 from core.services.mailer import queue_invoice_email, render_invoice_email
 from core.services.pdf import render_invoice_html, render_invoice_pdf
+from core.services.time_report import render_time_report_pdf
 
 from .base import OwnedViewSet
 
@@ -35,6 +35,11 @@ class ManualLineSerializer(serializers.Serializer[Any]):
     quantity = serializers.DecimalField(max_digits=10, decimal_places=2, default=Decimal(1))
     unit = serializers.ChoiceField(choices=["hours", "flat", "piece"], default="flat")
     unit_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+
+class EntryLineSerializer(serializers.Serializer[Any]):
+    entry_ids = serializers.ListField(child=serializers.UUIDField(), min_length=1)
+    description = serializers.CharField(max_length=500)
 
 
 class ConsolidateSerializer(serializers.Serializer[Any]):
@@ -48,13 +53,34 @@ class ConsolidateSerializer(serializers.Serializer[Any]):
     date_from = serializers.DateField(required=False, allow_null=True)
     date_to = serializers.DateField(required=False, allow_null=True)
     group_by = serializers.ChoiceField(choices=["entry", "day", "project"], default="entry")
+    # Lines the user put together from entries (each: the entries and the text); replaces
+    # the grouping. Omitted: lines are grouped by `group_by`.
+    entry_lines = EntryLineSerializer(many=True, required=False)
+    # Omitted: today, issue date + payment terms, the company's rate, the assigned template.
+    issue_date = serializers.DateField(required=False, allow_null=True)
+    due_date = serializers.DateField(required=False, allow_null=True)
+    vat_rate = serializers.DecimalField(
+        max_digits=5, decimal_places=2, min_value=Decimal(0), required=False, allow_null=True
+    )
+    template_id = serializers.UUIDField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_blank=True)
+    # Omitted: the customer's default.
     e_invoice_format = serializers.ChoiceField(
-        choices=["none", "zugferd", "xrechnung"], default="none"
+        choices=["none", "zugferd", "xrechnung"], required=False
     )
 
 
 class PreviewLineSerializer(ManualLineSerializer):
     total = serializers.DecimalField(max_digits=12, decimal_places=2)
+    # Lines built from entries: their entries, and when grouped their key and generated
+    # text. Own lines have no key and no entries.
+    key = serializers.CharField(allow_null=True)
+    entry_ids = serializers.ListField(child=serializers.UUIDField())
+    default_description = serializers.CharField(required=False)
+    # Shown next to lines from entries: their project (one) and period.
+    project_name = serializers.CharField(allow_null=True, required=False)
+    date_from = serializers.DateField(required=False)
+    date_to = serializers.DateField(required=False)
 
 
 class ConsolidatePreviewSerializer(serializers.Serializer[Any]):
@@ -113,6 +139,14 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
     ).prefetch_related("contacts", "items", "payments")
     serializer_class = InvoiceSerializer
     filterset_class = InvoiceFilter
+
+    def get_queryset(self) -> QuerySet[Invoice]:
+        from core.models import TimeEntry
+
+        # For the time report link; one query for the whole list.
+        billed = TimeEntry.objects.filter(invoice=OuterRef("pk"))
+        return super().get_queryset().annotate(time_entries_billed=Exists(billed))
+
     search_fields = ["number", "customer__name", "notes"]
     ordering_fields = [
         "issue_date",
@@ -129,15 +163,9 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
         owner = request_user(self.request)
         company: CompanySettings | None = getattr(owner, "company_settings", None)
         customer = serializer.validated_data["customer"]
-        issue_date = serializer.validated_data["issue_date"]
-        payment_terms_days = (
-            customer.payment_terms_days
-            if customer.payment_terms_days is not None
-            else company.payment_terms_days
-            if company
-            else 14
-        )
+        open_fields = header_defaults(customer, company, serializer.validated_data["issue_date"])
         defaults: dict[str, Any] = {
+            **{k: v for k, v in open_fields.items() if k not in serializer.validated_data},
             "owner": owner,
             "number": next_number(
                 owner,
@@ -150,18 +178,6 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
                 },
             ),
         }
-        if "due_date" not in serializer.validated_data:
-            defaults["due_date"] = issue_date + timedelta(days=payment_terms_days)
-        if "currency" not in serializer.validated_data:
-            defaults["currency"] = company.currency if company else "EUR"
-        if "vat_rate" not in serializer.validated_data:
-            defaults["vat_rate"] = (
-                company.default_vat_rate
-                if company and company.vat_enabled
-                else Decimal(0)
-                if company
-                else Decimal(19)
-            )
         invoice = serializer.save(**defaults)
         if "contacts" not in serializer.validated_data:
             invoice.contacts.set(customer.contacts.filter(is_invoice_contact=True))
@@ -183,7 +199,7 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
 
     def _consolidation_args(self, request: Request) -> dict[str, Any]:
         """Validate a consolidate/preview request and resolve its ids to owned objects."""
-        from core.models import BankAccount, Contact, Customer, Project
+        from core.models import BankAccount, Contact, Customer, DocumentTemplate, Project
 
         ser = ConsolidateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -213,6 +229,11 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
             bank_account = BankAccount.objects.filter(owner=owner, pk=d["bank_account_id"]).first()
             if not bank_account:
                 raise ValidationError({"bank_account_id": _("Invalid bank account.")})
+        template = None
+        if d.get("template_id"):
+            template = DocumentTemplate.objects.filter(owner=owner, pk=d["template_id"]).first()
+            if not template:
+                raise ValidationError({"template_id": _("Invalid template.")})
         return {
             "owner": owner,
             "customer": customer,
@@ -221,10 +242,16 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
             "date_to": d.get("date_to"),
             "entry_ids": d.get("entry_ids"),
             "group_by": d["group_by"],
+            "entry_lines": d.get("entry_lines"),
             "contacts": contacts,
             "bank_account": bank_account,
-            "e_invoice_format": d["e_invoice_format"],
+            "e_invoice_format": d.get("e_invoice_format"),
             "extra_lines": d.get("extra_lines"),
+            "vat_rate": d.get("vat_rate"),
+            "template": template,
+            "issue_date": d.get("issue_date"),
+            "due_date": d.get("due_date"),
+            "notes": d.get("notes", ""),
         }
 
     @action(detail=False, methods=["post"])
@@ -243,7 +270,15 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
     def consolidate_preview(self, request: Request) -> Response:
         """Line items and totals `consolidate` would create, without creating anything."""
         args = self._consolidation_args(request)
-        for key in ("contacts", "bank_account", "e_invoice_format"):
+        for key in (
+            "contacts",
+            "bank_account",
+            "e_invoice_format",
+            "template",
+            "issue_date",
+            "due_date",
+            "notes",
+        ):
             args.pop(key)
         try:
             result = preview(**args)
@@ -304,6 +339,17 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
             pdf_bytes,
             content_type="application/pdf",
             headers={"Content-Disposition": f'attachment; filename="{invoice.number}.pdf"'},
+        )
+
+    @action(detail=True, methods=["get"], url_path="time-report")
+    def time_report(self, request: Request, pk: str | None = None) -> HttpResponse:
+        """The time entries the invoice bills, line by line, as a PDF (Leistungsnachweis)."""
+        invoice = self.get_object()
+        filename = f"{_('Time report')} {invoice.number}.pdf"
+        return HttpResponse(
+            render_time_report_pdf(invoice),
+            content_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
     @action(detail=True, methods=["get"])

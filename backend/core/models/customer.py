@@ -9,6 +9,12 @@ if TYPE_CHECKING:
     from .address import Address
 
 
+class EInvoiceFormat(models.TextChoices):
+    NONE = "none", "None"
+    ZUGFERD = "zugferd", "ZUGFeRD (PDF/A-3 + XML)"
+    XRECHNUNG = "xrechnung", "XRechnung (XML only)"
+
+
 class Customer(OwnedModel):
     number = models.CharField(max_length=50, blank=True, db_index=True)
     name = models.CharField(max_length=255)
@@ -30,6 +36,10 @@ class Customer(OwnedModel):
         related_name="customers",
         null=True,
         blank=True,
+    )
+    # What the customer's invoices default to; each invoice can still choose.
+    e_invoice_format = models.CharField(
+        max_length=15, choices=EInvoiceFormat.choices, default=EInvoiceFormat.NONE
     )
     is_active = models.BooleanField(default=True)
 

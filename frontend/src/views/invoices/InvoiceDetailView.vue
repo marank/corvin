@@ -77,6 +77,7 @@ const previewVersion = ref(0)
 const previewUrl = computed(() => `${invoicesApi.previewUrl(id)}?v=${previewVersion.value}`)
 const pdfUrl = computed(() => invoicesApi.pdfUrl(id))
 const xmlUrl = computed(() => invoicesApi.xmlUrl(id))
+const timeReportUrl = computed(() => invoicesApi.timeReportUrl(id))
 const isDraft = computed(() => invoice.value?.status === 'draft')
 const statusKey = computed(() =>
   invoice.value?.partially_paid ? 'partially_paid' : (invoice.value?.status ?? ''),
@@ -471,6 +472,16 @@ async function addPayment() {
             target="_blank"
             :label="t('invoices.downloadXml')"
             icon="pi pi-code"
+            size="small"
+            severity="secondary"
+          />
+          <Button
+            v-if="invoice.has_time_entries"
+            as="a"
+            :href="timeReportUrl"
+            target="_blank"
+            :label="t('invoices.downloadTimeReport')"
+            icon="pi pi-list"
             size="small"
             severity="secondary"
           />

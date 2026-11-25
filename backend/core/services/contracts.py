@@ -88,6 +88,7 @@ def generate_invoice(contract: SupportContract) -> Invoice:
         due_date=issue_date + timedelta(days=payment_terms_days),
         vat_rate=vat_rate,
         currency=company.currency if company else "EUR",
+        e_invoice_format=contract.customer.e_invoice_format,
         template=contract.template,
     )
 

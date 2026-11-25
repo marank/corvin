@@ -1,18 +1,28 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import InvoiceCreateView from '../views/invoices/InvoiceCreateView.vue'
-import type { ConsolidateRequest } from '../api'
+import type { ApiCall } from './helpers/api'
+import type { ConsolidatePreviewLine, ConsolidateRequest } from '../api'
 import { mockApi, page, reply, type ApiMock } from './helpers/api'
 import {
   answerConfirm,
   choose,
   click,
   confirmText,
+  dialog,
   screen,
   toasts,
   toggleCheckbox,
   type,
 } from './helpers/dom'
-import { bankAccount, contact, customer, invoice, project, timeEntry } from './helpers/fixtures'
+import {
+  bankAccount,
+  contact,
+  customer,
+  invoice,
+  project,
+  template,
+  timeEntry,
+} from './helpers/fixtures'
 import { render, settle, t } from './helpers/render'
 import { NOW } from './helpers/time'
 
@@ -21,32 +31,79 @@ const entries = [
   timeEntry({
     id: 'te-2',
     description: 'Hosting',
+    project: 'prj-2',
+    project_name: 'Shop',
     start_datetime: '2026-11-21T09:00:00+01:00',
     end_datetime: '2026-11-21T10:00:00+01:00',
     duration_minutes: 60,
   }),
 ]
 
-const preview = {
-  lines: [{ description: 'Homepage', quantity: 2, unit: 'hours', unit_price: 100, total: 200 }],
-  entry_count: 1,
-  subtotal: '200.00',
-  vat_rate: '19.00',
-  vat_amount: '38.00',
-  total: '238.00',
+/** The server's grouping, cut down: one line per entry, or all entries on one line. */
+function previewOf(call: ApiCall) {
+  const body = call.body as ConsolidateRequest
+  const ids = body.entry_ids ?? []
+  const groups = body.group_by === 'entry' ? ids.map((id) => [id]) : ids.length ? [ids] : []
+  const lines: ConsolidatePreviewLine[] = groups.map((group) => {
+    const minutes = group.reduce(
+      (sum, id) => sum + entries.find((entry) => entry.id === id)!.duration_minutes,
+      0,
+    )
+    return {
+      key: `${body.group_by}:${group.join(',')}`,
+      entry_ids: group,
+      description: `Lines ${group.join(',')}`,
+      default_description: `Lines ${group.join(',')}`,
+      project_name: 'Website',
+      date_from: '2026-11-20',
+      date_to: '2026-11-21',
+      quantity: minutes / 60,
+      unit: 'hours',
+      unit_price: 100,
+      total: (minutes / 60) * 100,
+    }
+  })
+  for (const own of body.extra_lines ?? [])
+    lines.push({
+      key: null,
+      entry_ids: [],
+      description: own.description!,
+      quantity: own.quantity!,
+      unit: own.unit!,
+      unit_price: own.unit_price!,
+      total: own.quantity! * own.unit_price!,
+    })
+  const subtotal = lines.reduce((sum, line) => sum + line.total, 0)
+  return {
+    lines,
+    entry_count: ids.length,
+    subtotal,
+    vat_rate: body.vat_rate,
+    vat_amount: 0,
+    total: subtotal,
+  }
 }
 
 function backend() {
   const api = mockApi()
   api.get('/customers/', page([customer(), customer({ id: 'cus-2', name: 'Beta AG' })]))
-  api.get('/projects/', page([project()]))
+  api.get('/customers/cus-1/', customer({ e_invoice_format: 'zugferd' }))
+  api.get('/customers/cus-2/', customer({ id: 'cus-2', name: 'Beta AG', payment_terms_days: 30 }))
+  api.get('/projects/', page([project(), project({ id: 'prj-2', name: 'Shop' })]))
   api.get(
     '/contacts/',
     page([contact(), contact({ id: 'con-2', name: 'Max Other', is_invoice_contact: false })]),
   )
   api.get('/bank-accounts/', page([bankAccount()]))
+  api.get('/document-templates/', page([template()]))
+  api.get('/settings/', {
+    payment_terms_days: 14,
+    vat_enabled: true,
+    default_vat_rate: '19.00',
+    default_bank_account: null,
+  })
   api.get('/time-tracking/', page(entries))
-  api.post('/invoices/consolidate_preview/', preview)
+  api.post('/invoices/consolidate_preview/', previewOf)
   return api
 }
 
@@ -54,184 +111,242 @@ async function open(url = '/invoices/new?customer=cus-1') {
   return render(InvoiceCreateView, { path: '/invoices/new', url })
 }
 
-/** The preview request waits 300 ms for more changes. */
+/** The preview request waits 200 ms for more changes. */
 async function waitForPreview() {
   await vi.advanceTimersByTimeAsync(300)
   await settle()
 }
 
+/** "Positionen holen" with every offered entry ticked, then "Übernehmen". */
+async function fetchAll() {
+  await click(screen.button(t('invoices.fetchPositions')))
+  await click(dialog(t('invoices.fetchPositions')).button(t('invoices.takeOver')))
+  await waitForPreview()
+}
+
 const lastPreview = (api: ApiMock) =>
   api.lastBody('POST', '/invoices/consolidate_preview/') as ConsolidateRequest
+
+/** The text field of the line that reads `text`. */
+function lineText(text: string) {
+  const field = [...screen.root.querySelectorAll<HTMLTextAreaElement>('tbody textarea')].find(
+    (el) => el.value === text,
+  )
+  if (!field) throw new Error(`no line reads "${text}"`)
+  return field
+}
 
 describe('InvoiceCreateView', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], now: NOW })
   })
 
-  it('needs a customer before going on', async () => {
+  it('needs a customer before fetching lines', async () => {
     const api = backend()
     await open('/invoices/new')
-    expect(screen.button(t('common.next')).hasAttribute('disabled')).toBe(true)
-    expect(api.requests('GET', '/time-tracking/')).toHaveLength(0)
+    expect(screen.text()).toContain(t('invoices.pickCustomer'))
+    expect(screen.button(t('invoices.fetchPositions')).hasAttribute('disabled')).toBe(true)
+    expect(screen.button(t('invoices.createDraft')).hasAttribute('disabled')).toBe(true)
 
     await choose(screen.field(t('projects.customer')), 'Beta AG')
-    expect(screen.button(t('common.next')).hasAttribute('disabled')).toBe(false)
-    expect(api.requests('GET', '/time-tracking/')[0]!.query.get('customer')).toBe('cus-2')
+    expect(screen.button(t('invoices.fetchPositions')).hasAttribute('disabled')).toBe(false)
+    expect(api.requests('GET', '/time-tracking/')).toHaveLength(0)
   })
 
-  it('loads only billable, uninvoiced, finished entries outside contracts', async () => {
+  it('offers only billable, uninvoiced, finished entries outside contracts', async () => {
     const api = backend()
-    await open('/invoices/new?customer=cus-1&project=prj-1')
-    const query = api.requests('GET', '/time-tracking/').at(-1)!.query
-    expect(Object.fromEntries(query)).toEqual({
+    await open()
+    await click(screen.button(t('invoices.fetchPositions')))
+    const modal = dialog(t('invoices.fetchPositions'))
+    await type(modal.input(t('invoices.dateFrom')), '1.11.')
+    await type(modal.input(t('invoices.dateTo')), '301126')
+    expect(Object.fromEntries(api.requests('GET', '/time-tracking/').at(-1)!.query)).toEqual({
       customer: 'cus-1',
-      project: 'prj-1',
       billable: 'true',
       invoice__isnull: 'true',
       contract__isnull: 'true',
       end_datetime__isnull: 'false',
       ordering: 'start_datetime',
+      start_datetime__date__gte: '2026-11-01',
+      start_datetime__date__lte: '2026-11-30',
       page_size: '500',
     })
+    expect(modal.text()).toContain(t('invoices.selectedEntries', { selected: 2, total: 2 }))
+    expect(modal.text()).toContain('3:00 h')
   })
 
-  it('narrows the entries to the service period typed in', async () => {
+  it('takes over the ticked entries and groups them on the invoice', async () => {
     const api = backend()
     await open()
-    await type(screen.input(t('invoices.dateFrom')), '1.11.')
-    await type(screen.input(t('invoices.dateTo')), '301126')
-    const query = api.requests('GET', '/time-tracking/').at(-1)!.query
-    expect(query.get('start_datetime__date__gte')).toBe('2026-11-01')
-    expect(query.get('start_datetime__date__lte')).toBe('2026-11-30')
-  })
-
-  it("preselects the customer's invoice contacts", async () => {
-    const api = backend()
-    await open()
-    await click(screen.button(t('common.next')))
+    await click(screen.button(t('invoices.fetchPositions')))
+    await toggleCheckbox(dialog(t('invoices.fetchPositions')).row('Hosting'))
+    await click(dialog(t('invoices.fetchPositions')).button(t('invoices.takeOver')))
     await waitForPreview()
-    expect(lastPreview(api).contact_ids).toEqual(['con-1'])
-  })
+    expect(lastPreview(api)).toMatchObject({ entry_ids: ['te-1'], group_by: 'day', vat_rate: 19 })
+    expect(lineText('Lines te-1').value).toBe('Lines te-1')
 
-  it('bills the ticked entries and shows the server-side subtotal', async () => {
-    const api = backend()
-    await open()
-    await click(screen.button(t('common.next')))
-    await waitForPreview()
-
-    expect(screen.text()).toContain(t('invoices.selectedEntries', { selected: 2, total: 2 }))
-    expect(screen.text()).toContain('3:00 h')
-    expect(lastPreview(api).entry_ids).toEqual(['te-1', 'te-2'])
-    expect(screen.text()).toContain(`${t('invoices.subtotal')}: 200,00 €`)
-
-    await toggleCheckbox(screen.row('Hosting'))
-    await waitForPreview()
-    expect(screen.text()).toContain(t('invoices.selectedEntries', { selected: 1, total: 2 }))
-    expect(screen.text()).toContain('2:00 h')
-    expect(lastPreview(api).entry_ids).toEqual(['te-1'])
-
-    // A click on the row toggles the entry as well.
-    await click(screen.row('Hosting'))
+    // Fetched later: joins the invoice; entries already on it are not offered again.
+    await click(screen.button(t('invoices.fetchPositions')))
+    expect(dialog(t('invoices.fetchPositions')).rows()).toHaveLength(1)
+    await click(dialog(t('invoices.fetchPositions')).button(t('invoices.takeOver')))
     await waitForPreview()
     expect(lastPreview(api).entry_ids).toEqual(['te-1', 'te-2'])
+
+    await click(screen.button(t('invoices.groupBys.entry')))
+    await waitForPreview()
+    expect(lastPreview(api).group_by).toBe('entry')
+    expect(screen.rows().filter((row) => row[0] !== '')).toHaveLength(2)
   })
 
-  it('cannot go on with nothing to bill', async () => {
-    const api = backend()
-    await open()
-    await click(screen.button(t('common.next')))
-    await waitForPreview()
-    const previews = api.requests('POST', '/invoices/consolidate_preview/').length
-
-    await toggleCheckbox(screen.root.querySelector('thead')!)
-    await waitForPreview()
-    expect(screen.text()).toContain(t('invoices.selectedEntries', { selected: 0, total: 2 }))
-    expect(screen.button(t('common.next')).hasAttribute('disabled')).toBe(true)
-    expect(api.requests('POST', '/invoices/consolidate_preview/')).toHaveLength(previews)
-  })
-
-  it('adds manual lines to the invoice', async () => {
-    const api = backend()
-    api.get('/time-tracking/', page([]))
-    await open()
-    await click(screen.button(t('common.next')))
-    expect(screen.button(t('invoices.addLine')).hasAttribute('disabled')).toBe(true)
-
-    await type(screen.input(t('time.description')), 'Domain')
-    await type(screen.input(t('invoices.quantity')), '2')
-    await type(screen.input(t('invoices.unitPrice')), '12.5')
-    await click(screen.button(t('invoices.addLine')))
-    await waitForPreview()
-
-    expect(screen.row('Domain')).toBeTruthy()
-    expect(screen.text()).toContain('25,00 €')
-    expect(lastPreview(api).extra_lines).toEqual([
-      expect.objectContaining({
-        description: 'Domain',
-        quantity: 2,
-        unit: 'flat',
-        unit_price: 12.5,
-      }),
-    ])
-    // The form is empty again for the next line.
-    expect(screen.input(t('time.description')).value).toBe('')
-    expect(screen.button(t('common.next')).hasAttribute('disabled')).toBe(false)
-
-    await click(screen.row('Domain').querySelector('button')!)
-    expect(screen.text()).not.toContain('Domain')
-    expect(screen.button(t('common.next')).hasAttribute('disabled')).toBe(true)
-  })
-
-  it('shows why the invoice could not be calculated and holds it back', async () => {
-    const api = backend()
-    api.post('/invoices/consolidate_preview/', reply(400, { detail: 'No hourly rate for Acme.' }))
-    await open()
-    await click(screen.button(t('common.next')))
-    await waitForPreview()
-    expect(screen.text()).toContain('No hourly rate for Acme.')
-    expect(screen.button(t('common.next')).hasAttribute('disabled')).toBe(true)
-  })
-
-  it('creates the invoice with the chosen options and opens it', async () => {
+  it('creates the draft with the texts as edited and the general fields', async () => {
     const api = backend()
     api.post('/invoices/consolidate/', invoice({ id: 'inv-9' }))
     const { router } = await open()
-    await click(screen.button(t('common.next')))
-    await waitForPreview()
-    await click(screen.button(t('common.next')))
-
-    expect(screen.text()).toContain(`${t('common.total')}238,00 €`)
-    expect(screen.text()).not.toContain(t('invoices.noIbanHint'))
-    await choose(screen.field(t('invoices.groupBy')), t('invoices.groupBys.day'))
-    await choose(screen.field(t('invoices.eInvoice')), t('invoices.eInvoiceFormats.xrechnung'))
-    await choose(screen.field(t('settings.bankAccount')), 'Hausbank')
-    await click(screen.button(t('common.create')))
+    await fetchAll()
+    await type(lineText('Lines te-1,te-2'), 'Website work')
+    await click(screen.button(t('invoices.createDraft')))
 
     expect(api.lastBody('POST', '/invoices/consolidate/')).toEqual({
       customer_id: 'cus-1',
       project_id: null,
       contact_ids: ['con-1'],
-      bank_account_id: 'bank-1',
-      date_from: null,
-      date_to: null,
+      bank_account_id: null,
+      e_invoice_format: 'zugferd',
       entry_ids: ['te-1', 'te-2'],
       group_by: 'day',
-      e_invoice_format: 'xrechnung',
+      vat_rate: 19,
+      issue_date: '2026-11-23',
+      due_date: '2026-12-07',
+      template_id: null,
+      notes: '',
       extra_lines: [],
+      entry_lines: [{ entry_ids: ['te-1', 'te-2'], description: 'Website work' }],
     })
     expect(router.currentRoute.value.path).toBe('/invoices/inv-9')
     // Created: leaving needs no confirmation.
     expect(confirmText()).toBe('')
   })
 
-  it('stays on the review step when creating fails', async () => {
+  it('keeps edited texts until regrouping, and asks before that', async () => {
+    const api = backend()
+    await open()
+    await fetchAll()
+    await type(lineText('Lines te-1,te-2'), 'Website work')
+    expect(screen.hasButton(t('invoices.resetText'))).toBe(true)
+
+    await click(screen.button(t('invoices.groupBys.entry')))
+    expect(confirmText()).toContain(t('invoices.regroupMessage'))
+    await answerConfirm(t('common.cancel'))
+    await waitForPreview()
+    expect(lastPreview(api).group_by).toBe('day')
+
+    await click(screen.button(t('invoices.groupBys.entry')))
+    await answerConfirm(t('invoices.regroup'))
+    await waitForPreview()
+    expect(lastPreview(api).group_by).toBe('entry')
+    expect(screen.hasButton(t('invoices.resetText'))).toBe(false)
+  })
+
+  it('removes lines of other projects once the invoice gets a project', async () => {
+    const api = backend()
+    await open()
+    await fetchAll()
+    await choose(screen.field(t('projects.project')), 'Website')
+    expect(confirmText()).toContain(t('invoices.otherProjectsMessage', 1))
+    await answerConfirm(t('invoices.removeOtherProjects'))
+    await waitForPreview()
+    expect(lastPreview(api).entry_ids).toEqual(['te-1'])
+  })
+
+  it('keeps the project and the lines when removing is cancelled', async () => {
+    const api = backend()
+    await open()
+    await fetchAll()
+    await choose(screen.field(t('projects.project')), 'Website')
+    await answerConfirm(t('common.cancel'))
+    await waitForPreview()
+    expect(lastPreview(api).entry_ids).toEqual(['te-1', 'te-2'])
+    expect(screen.field(t('projects.project')).textContent).not.toContain('Website')
+  })
+
+  it('lets the due date follow the issue date and the payment terms', async () => {
+    backend()
+    await open('/invoices/new')
+    expect(screen.input(t('invoices.issueDate')).value).toBe('23.11.2026')
+    expect(screen.input(t('invoices.dueDate')).value).toBe('07.12.2026')
+
+    // The customer's own terms win over the company's.
+    await choose(screen.field(t('projects.customer')), 'Beta AG')
+    expect(screen.input(t('invoices.dueDate')).value).toBe('23.12.2026')
+    await type(screen.input(t('invoices.issueDate')), '1.12.2026')
+    expect(screen.input(t('invoices.dueDate')).value).toBe('31.12.2026')
+
+    // A date of the user's own stays put.
+    await type(screen.input(t('invoices.dueDate')), '15.1.2027')
+    await type(screen.input(t('invoices.issueDate')), '2.12.2026')
+    expect(screen.input(t('invoices.dueDate')).value).toBe('15.01.2027')
+  })
+
+  it('hides rarely needed fields until asked, and shows them once set', async () => {
+    const api = backend()
+    api.post('/invoices/consolidate/', invoice({ id: 'inv-9' }))
+    await open()
+    expect(() => screen.field(t('invoices.template'))).toThrow()
+    await click(screen.button(t('invoices.showMore')))
+    // The customer's defaults are preselected.
+    expect(screen.field(t('invoices.eInvoice')).textContent).toContain(
+      t('invoices.eInvoiceFormats.zugferd'),
+    )
+    expect(screen.input(t('invoices.vatRate')).value).toBe('19 %')
+
+    await choose(screen.field(t('invoices.template')), template().name)
+    await type(screen.input(t('common.notes')), 'Thanks!')
+    // Set fields can't be hidden any more.
+    expect(screen.hasButton(t('invoices.showLess'))).toBe(false)
+
+    await fetchAll()
+    await click(screen.button(t('invoices.createDraft')))
+    expect(api.lastBody('POST', '/invoices/consolidate/')).toMatchObject({
+      template_id: template().id,
+      notes: 'Thanks!',
+    })
+  })
+
+  it('adds own lines to the invoice', async () => {
+    const api = backend()
+    await open()
+    await click(screen.button(t('invoices.addLine')))
+    const row = screen.root.querySelector<HTMLElement>('tbody tr')!
+    await type(row.querySelector('textarea')!, 'Domain')
+    await type(row.querySelectorAll('input')[0]!, '2')
+    await type(row.querySelectorAll('input')[1]!, '12.5')
+    await waitForPreview()
+
+    expect(lastPreview(api).extra_lines).toEqual([
+      { description: 'Domain', quantity: 2, unit: 'flat', unit_price: 12.5 },
+    ])
+    expect(screen.text()).toContain('25,00 €')
+    expect(screen.button(t('invoices.createDraft')).hasAttribute('disabled')).toBe(false)
+
+    await click(screen.row('25,00 €').querySelector(`[aria-label="${t('common.delete')}"]`)!)
+    expect(screen.text()).toContain(t('invoices.noLinesYet'))
+  })
+
+  it('shows why the invoice could not be calculated and holds it back', async () => {
+    const api = backend()
+    api.post('/invoices/consolidate_preview/', reply(400, { detail: 'No hourly rate for Acme.' }))
+    await open()
+    await fetchAll()
+    expect(screen.text()).toContain('No hourly rate for Acme.')
+    expect(screen.button(t('invoices.createDraft')).hasAttribute('disabled')).toBe(true)
+  })
+
+  it('stays on the page when creating fails', async () => {
     const api = backend()
     api.post('/invoices/consolidate/', reply(400, { detail: 'Customer has no address.' }))
     const { router } = await open()
-    await click(screen.button(t('common.next')))
-    await waitForPreview()
-    await click(screen.button(t('common.next')))
-    await click(screen.button(t('common.create')))
+    await fetchAll()
+    await click(screen.button(t('invoices.createDraft')))
     expect(toasts().join()).toContain('Customer has no address.')
     expect(router.currentRoute.value.path).toBe('/invoices/new')
   })
@@ -240,17 +355,13 @@ describe('InvoiceCreateView', () => {
     const api = backend()
     api.get('/bank-accounts/', page([bankAccount({ iban: '' })]))
     await open()
-    await click(screen.button(t('common.next')))
-    await waitForPreview()
-    await click(screen.button(t('common.next')))
     expect(screen.text()).toContain(t('invoices.noIbanHint'))
   })
 
   it('asks before leaving a started invoice', async () => {
     backend()
     const { router } = await open()
-    await click(screen.button(t('common.next')))
-    await waitForPreview()
+    await fetchAll()
 
     await click(screen.button(t('nav.invoices')))
     expect(confirmText()).toContain(t('common.unsavedMessage'))
@@ -262,7 +373,7 @@ describe('InvoiceCreateView', () => {
     expect(router.currentRoute.value.path).toBe('/invoices')
   })
 
-  it('leaves the first step without asking', async () => {
+  it('leaves an untouched page without asking', async () => {
     backend()
     const { router } = await open()
     await click(screen.button(t('common.cancel')))

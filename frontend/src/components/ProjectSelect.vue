@@ -3,12 +3,23 @@ import Select from 'primevue/select'
 import { ref, watch } from 'vue'
 import { projectsApi, type Project } from '../api'
 
-const props = defineProps<{ customerId?: string | null; placeholder?: string }>()
+// `customerOnly`: without a customer, offer no projects rather than everyone's.
+const props = defineProps<{
+  customerId?: string | null
+  placeholder?: string
+  customerOnly?: boolean
+  disabled?: boolean
+}>()
 const emit = defineEmits<{ select: [project: Project | null] }>()
 const model = defineModel<string | null>()
 const projects = ref<Project[]>([])
 
 async function load() {
+  if (props.customerOnly && !props.customerId) {
+    projects.value = []
+    model.value = null
+    return
+  }
   const params = props.customerId ? `customer=${props.customerId}&` : ''
   projects.value = (await projectsApi.list(`${params}page_size=500`)).results
   // A project of another customer can't stay selected once the customer changes.
@@ -31,6 +42,7 @@ watch(() => props.customerId, load, { immediate: true })
     option-label="name"
     option-value="id"
     :placeholder="placeholder"
+    :disabled="disabled"
     filter
     show-clear
     class="w-full"
