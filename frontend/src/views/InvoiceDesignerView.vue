@@ -224,7 +224,10 @@ const variableGroups = computed<VariableGroup[]>(() => [
       'iban',
       'bic',
       'currency',
-    ].map((field) => ({ label: field, code: `{{ company.${field} }}` })),
+    ]
+      .map((field) => ({ label: field, code: `{{ company.${field} }}` }))
+      // The public address: the first entry in APP_URLS.
+      .concat({ label: 'app_url', code: '{{ app_url }}' }),
   },
   {
     label: t('designer.variableGroups.bankAccount'),

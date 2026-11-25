@@ -47,6 +47,8 @@ def test_https_urls_enable_secure_cookies_but_no_redirect_or_hsts(load_settings)
         "https://pay.example.com",
         "https://alt.example.com:8443",
     ]
+    # The first URL is the public one.
+    assert settings.PUBLIC_URL == "https://pay.example.com"
     assert settings.SESSION_COOKIE_SECURE
     assert settings.CSRF_COOKIE_SECURE
     # TLS, redirect and HSTS are the TLS proxy's job.
@@ -77,6 +79,8 @@ def test_debug_runs_without_secrets_and_allows_localhost(load_settings):
     settings = load_settings(DEBUG="true", APP_URLS="https://pay.example.com")
 
     assert settings.DEBUG
+    # The configured URL stays the public one; the localhost ones only come after it.
+    assert settings.PUBLIC_URL == "https://pay.example.com"
     assert settings.SECRET_KEY.startswith("django-insecure-dev-only-")
     assert "localhost" in settings.ALLOWED_HOSTS
     assert "http://localhost:8000" in settings.CSRF_TRUSTED_ORIGINS

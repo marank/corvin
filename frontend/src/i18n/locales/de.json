@@ -384,7 +384,7 @@
     "css": "CSS",
     "contactLoop": "Alle Kontakte (Schleife)",
     "mail": "E-Mail",
-    "mailHint": "Betreff und Text der Rechnungs-E-Mail. Leer lassen für den Standardtext. Verfügbar sind {'{'}{'{'} invoice {'}'}{'}'}, {'{'}{'{'} customer {'}'}{'}'} und {'{'}{'{'} company {'}'}{'}'}.",
+    "mailHint": "Betreff und Text der Rechnungs-E-Mail. Leer lassen für den Standardtext. Verfügbar sind {'{'}{'{'} invoice {'}'}{'}'}, {'{'}{'{'} customer {'}'}{'}'}, {'{'}{'{'} company {'}'}{'}'} und {'{'}{'{'} app_url {'}'}{'}'} (die öffentliche Adresse, der erste Eintrag in APP_URLS).",
     "previewStale": "Vorschau nicht aktualisiert: {error}",
     "exportSaveFirst": "Erst speichern – exportiert wird der gespeicherte Stand."
   },

@@ -384,7 +384,7 @@
     "css": "CSS",
     "contactLoop": "All contacts (loop)",
     "mail": "Email",
-    "mailHint": "Subject and body of the invoice email. Leave empty for the default text. Available: {'{'}{'{'} invoice {'}'}{'}'}, {'{'}{'{'} customer {'}'}{'}'} and {'{'}{'{'} company {'}'}{'}'}.",
+    "mailHint": "Subject and body of the invoice email. Leave empty for the default text. Available: {'{'}{'{'} invoice {'}'}{'}'}, {'{'}{'{'} customer {'}'}{'}'} , {'{'}{'{'} company {'}'}{'}'} and {'{'}{'{'} app_url {'}'}{'}'} (the public address, the first entry in APP_URLS).",
     "previewStale": "Preview not updated: {error}",
     "exportSaveFirst": "Save first – the export contains the saved template."
   },

@@ -25,6 +25,9 @@ REGISTRATION_ENABLED = env_bool("REGISTRATION_ENABLED", False)
 APP_URLS = parse_app_urls(env_list("APP_URLS"))
 if not APP_URLS and not DEBUG:
     raise ImproperlyConfigured("APP_URLS is empty, see .env.example.")
+# The first entry is the public address, by definition: links that leave the browser
+# (mails, documents) use it, whatever address a request came in under.
+PUBLIC_URL = APP_URLS[0].origin if APP_URLS else "http://localhost:8000"
 APP_HTTPS_ONLY = bool(APP_URLS) and all(url.scheme == "https" for url in APP_URLS)
 if DEBUG:
     # runserver and Vite on localhost besides whatever APP_URLS lists (e.g. the Docker

@@ -22,6 +22,7 @@ def render_invoice_email(invoice: Invoice, subject: str = "", body: str = "") ->
             "invoice": invoice,
             "customer": invoice.customer,
             "company": getattr(invoice.owner, "company_settings", None),
+            "app_url": settings.PUBLIC_URL,
         }
     )
     subject = subject or template.mail_subject or _("Invoice {{ invoice.number }}")

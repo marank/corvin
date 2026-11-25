@@ -240,3 +240,24 @@ def test_receivable_filter_matches_dashboard(client, customer, user):
 
     assert numbers("open") == ["R1", "R2"]
     assert numbers("overdue") == ["R2"]
+
+
+@pytest.mark.django_db
+def test_mail_and_document_get_the_public_url(client, customer, two_entries, settings):
+    from core.models import DocumentTemplate
+    from core.services.pdf import render_invoice_html
+
+    settings.PUBLIC_URL = "https://corvin.example.com"
+    invoice = _consolidate(client, customer)
+    invoice.template = DocumentTemplate.objects.create(
+        owner=invoice.owner,
+        name="Link",
+        mail_body="Online: {{ app_url }}",
+        footer_html="<p>{{ app_url }}</p>",
+    )
+    invoice.save(update_fields=["template"])
+
+    r = client.get(f"/api/v1/invoices/{invoice.id}/email_draft/")
+
+    assert r.json()["body"] == "Online: https://corvin.example.com"
+    assert "<p>https://corvin.example.com</p>" in render_invoice_html(invoice)

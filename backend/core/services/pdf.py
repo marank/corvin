@@ -78,6 +78,7 @@ def document_context(
         "amount_paid": invoice.amount_paid,
         "remaining": invoice.remaining,
         "now": timezone.now(),
+        "app_url": settings.PUBLIC_URL,
         "images": company_image_context(owner, for_pdf),
         "company_contacts": list(CompanyContact.objects.filter(owner=owner)),
         "invoice_contacts": contacts,
