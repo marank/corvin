@@ -27,9 +27,9 @@ class CompanyImageSerializer(OwnedSerializer[CompanyImage]):
         read_only_fields = ["created_at", "updated_at", "url"]
 
     def get_url(self, obj: CompanyImage) -> str:
-        request = self.context.get("request")
-        url = reverse("company-image-file", args=[obj.pk])
-        return request.build_absolute_uri(url) if request else url
+        # Relative: the browser resolves it against the address Corvin was opened under;
+        # behind nginx the request's Host has no port, so an absolute URL would point elsewhere.
+        return reverse("company-image-file", args=[obj.pk])
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         attrs = super().validate(attrs)

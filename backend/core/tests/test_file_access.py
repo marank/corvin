@@ -74,6 +74,16 @@ def test_attachment_pdf_inline_html_forced_download(user, customer, other_user):
 
 
 @pytest.mark.django_db
+def test_attachment_url_is_relative(user, customer):
+    attach(user, customer, "report.pdf", b"%PDF-1.7")
+
+    response = client_for(user).get(f"/api/v1/attachments/?model=customer&object_id={customer.id}")
+
+    [attachment] = response.json()["results"]
+    assert attachment["url"] == f"/api/v1/attachments/{attachment['id']}/file/"
+
+
+@pytest.mark.django_db
 def test_login_requires_csrf_token(user):
     client = APIClient(enforce_csrf_checks=True)
     credentials = {"username": "alice", "password": "testpass123"}

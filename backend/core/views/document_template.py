@@ -89,13 +89,9 @@ class DocumentTemplateViewSet(OwnedViewSet[DocumentTemplate]):
         )
 
     def _preview_data(self, request: Request, for_pdf: bool = False) -> dict[str, Any]:
-        """Sample data; images from disk for PDFs, else via the API."""
-        data = sample_template_context(request_user(request), for_pdf)
-        if not for_pdf:
-            data["images"] = {
-                key: request.build_absolute_uri(url) for key, url in data["images"].items()
-            }
-        return data
+        """Sample data; images from disk for PDFs, else relative API URLs, which the
+        designer's preview frame (srcdoc) resolves against the page it sits in."""
+        return sample_template_context(request_user(request), for_pdf)
 
     def _preview_template(self, request: Request) -> DocumentTemplate:
         """The stored template; a POST previews unsaved designer changes without storing them."""

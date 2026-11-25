@@ -23,6 +23,6 @@ class AttachmentSerializer(OwnedSerializer[Attachment]):
         read_only_fields = ["name", "uploaded_at"]
 
     def get_url(self, obj: Attachment) -> str:
-        request = self.context.get("request")
-        url = reverse("attachment-file", args=[obj.pk])
-        return request.build_absolute_uri(url) if request else url
+        # Relative: the browser resolves it against the address Corvin was opened under;
+        # behind nginx the request's Host has no port, so an absolute URL would point elsewhere.
+        return reverse("attachment-file", args=[obj.pk])

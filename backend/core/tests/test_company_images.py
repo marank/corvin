@@ -61,3 +61,36 @@ def test_invoice_template_formatting_helpers(user):
         Context({"amount": "1234.5", "company": company})
     )
     assert rendered == "1.234,50|1.234,50 €"
+
+
+@pytest.mark.django_db
+def test_image_url_is_relative_so_it_works_behind_a_proxy(user, settings):
+    # nginx passes Host without the port (corvin.example for corvin.example:8012); an absolute
+    # URL built from it would point to port 80 and the image would not load.
+    settings.ALLOWED_HOSTS = ["corvin.example"]
+    client = APIClient(HTTP_HOST="corvin.example")
+    client.force_authenticate(user)
+    created = client.post(
+        "/api/v1/company-images/",
+        {"kind": "logo_light", "key": "logo_light", "name": "Logo", "image": image_file()},
+        format="multipart",
+    ).json()
+
+    listed = client.get("/api/v1/company-images/").json()["results"]
+
+    assert created["url"] == f"/api/v1/company-images/{created['id']}/file/"
+    assert [image["url"] for image in listed] == [created["url"]]
+    assert client.get(created["url"]).status_code == 200
+
+
+@pytest.mark.django_db
+def test_designer_preview_loads_images_from_relative_urls(user, invoice_template):
+    image = CompanyImage.objects.create(owner=user, kind="logo_light", image=image_file())
+    invoice_template.header_html = '<img src="{{ images.logo_light }}">'
+    invoice_template.save(update_fields=["header_html"])
+    client = APIClient()
+    client.force_authenticate(user)
+
+    html = client.get(f"/api/v1/document-templates/{invoice_template.id}/preview/").content
+
+    assert f'<img src="/api/v1/company-images/{image.id}/file/">'.encode() in html
