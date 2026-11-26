@@ -1,22 +1,26 @@
-# Build context: only what the Dockerfile copies needs to be here; the image installs its own
-# dependencies and builds the SPA itself.
 .git
-.github
-.env
-.env.*
-!.env.example
-*.local
+# Secrets of any folder (backend/.env, frontend/.env.local, …), but not the documented example.
+**/.env
+**/.env.*
+!**/.env.example
 **/__pycache__
 **/*.pyc
+backend/.venv
 **/.mypy_cache
 **/.ruff_cache
 **/.pytest_cache
 **/.coverage
 **/htmlcov
-backend/.venv
-backend/db.sqlite3*
-backend/media
 backend/staticfiles
 frontend/node_modules
+backend/data
 frontend/dist
+docs/node_modules
+docs/.vitepress/dist
+docs/.vitepress/cache
+# --- project: ignored ---
+.github
+*.local
+backend/db.sqlite3*
 frontend/coverage
+# --- end ---

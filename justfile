@@ -33,6 +33,10 @@ dev-backend:
 dev-frontend:
     pnpm dev
 
+# Optional PostgreSQL for native development (then DB_HOST=localhost in .env)
+db-up:
+    docker compose -f compose.dev.yml up -d
+
 # Apply migrations and create the first admin
 [working-directory: 'backend']
 migrate:
@@ -135,6 +139,9 @@ docker-up $APP_IMAGE="corvin":
 docker-down:
     docker compose down
 
-# Dump the database and uploads now (the backup service does it nightly)
+# Dump the database and uploads now (the worker does it nightly)
 docker-backup:
-    docker compose exec backup sh /usr/local/bin/backup now
+    docker compose exec worker python manage.py backup_database
+
+docker-logs:
+    docker compose logs -f app worker

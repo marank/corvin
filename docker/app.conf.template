@@ -1,0 +1,73 @@
+# Corvin's site. Rendered by start-nginx (envsubst) into /tmp/nginx/app.conf; only the two
+# ${…} placeholders are replaced. A TLS proxy in front must be listed in TRUSTED_PROXIES
+# (.env); without it X-Forwarded-For/-Proto from clients are ignored.
+
+# Is the direct peer one of TRUSTED_PROXIES?
+geo $realip_remote_addr $from_trusted_proxy {
+    default 0;
+${TRUSTED_GEO}
+}
+
+# Client scheme: X-Forwarded-Proto only from trusted proxies, else the connection's own.
+map "$from_trusted_proxy:$http_x_forwarded_proto" $client_proto {
+    "~^1:(?<fwd>https?)$" $fwd;
+    default $scheme;
+}
+
+server {
+    listen 8080;
+    client_max_body_size 25m;
+${REAL_IP_CONFIG}
+
+    root /srv/spa;
+
+    location /api/ {
+        include /etc/nginx/django_proxy.conf;
+    }
+
+    # Brute-force brake: per client IP (after TRUSTED_PROXIES evaluation), see nginx.conf.
+    location = /api/v1/auth/login {
+        limit_req zone=login burst=5 nodelay;
+        include /etc/nginx/django_proxy.conf;
+    }
+
+    location ~ ^/django-admin(/|$) {
+        include /etc/nginx/django_proxy.conf;
+    }
+
+    # --- project: locations ---
+    # Registration gets the same brake as the login.
+    location = /api/v1/auth/register {
+        limit_req zone=login burst=5 nodelay;
+        include /etc/nginx/django_proxy.conf;
+    }
+
+    # Not in nginx's stock mime.types; browsers want the proper type for the PWA manifest.
+    location = /manifest.webmanifest {
+        default_type application/manifest+json;
+        include /etc/nginx/security_headers.conf;
+    }
+    # --- end ---
+
+    location /django-static/ {
+        alias /app/staticfiles/;
+        expires 7d;
+        access_log off;
+        include /etc/nginx/security_headers.conf;
+    }
+
+    # Vite's hashed build output
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        include /etc/nginx/security_headers.conf;
+        try_files $uri =404;
+    }
+
+    # SPA: unknown paths fall back to index.html, which must never be cached.
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
+        include /etc/nginx/security_headers.conf;
+    }
+}

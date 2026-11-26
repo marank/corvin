@@ -57,7 +57,6 @@ jobs:
           --health-retries 10
     env:
       # Tests run against PostgreSQL like production.
-      DB_TYPE: postgres
       DB_HOST: localhost
       DB_PORT: "5432"
       DB_NAME: ci
@@ -288,7 +287,7 @@ jobs:
               -e "s/^DB_PASSWORD=.*/DB_PASSWORD=smoke-$SECRET/" \
               -e "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=smoke-admin-$SECRET/" \
               -e "s/^TRUSTED_PROXIES=.*/TRUSTED_PROXIES=127.0.0.1/" \
-              -e "s/^APP_PORT=.*/APP_PORT=0/" \
+              -e "s/^APP_BIND=.*/APP_BIND=0/" \
               .env.example > .env
 
       # The stack from compose.yml with the just-built image, hardened as in production, so an

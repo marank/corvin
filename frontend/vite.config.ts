@@ -26,6 +26,12 @@ export default defineConfig({
         // Django CSRF checks Origin; make proxied requests look same-origin.
         headers: { origin: 'http://localhost:8000' },
       },
+      '/django-admin': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        headers: { origin: 'http://localhost:8000' },
+      },
+      '/django-static': { target: 'http://localhost:8000', changeOrigin: true },
     },
   },
   test: {

@@ -40,11 +40,13 @@ The `justfile` holds every command (`just` lists them); CI (`.github/workflows/b
 
 ## Docker / runtime
 
-- One image (`ghcr.io/marank/corvin`), two services in `compose.yml` besides `db`: `app` runs nginx and gunicorn under supervisord (`docker/supervisord.conf`); `worker` runs the procrastinate job worker (`docker/worker`).
+- One image (`ghcr.io/marank/corvin`), two services in `compose.yml` besides `db`: `app` (`docker/entrypoint.sh` runs the deploy checks, migrates and creates the first admin once, then supervisord runs nginx and gunicorn, settings in `docker/gunicorn.conf.py`); `worker` runs the procrastinate job worker (`docker/worker`).
+- The Docker files follow the house template; Corvin's own additions go between `# --- project: <name> ---` and `# --- end ---`.
 - Background jobs live in `core/tasks.py` (procrastinate, queue in PostgreSQL): invoice mails, recurring invoices daily at `RECURRING_TIME`, backups (pg_dump from `postgresql-client` in the server's major + uploads tarball) daily at `BACKUP_TIME`. Services defer them only through `core.jobs.defer("core.tasks.<name>", …)`, inside the transaction that causes them — never send mails or do slow work in the request, never call `task.defer()` directly. Tasks call services, services never import `core.tasks` (import-linter). Periodic jobs: `@app.periodic` hourly + `_is_due` for local times (procrastinate's cron is UTC). On SQLite (native, tests) there is no queue: jobs run in-process after the commit; tests use `django_capture_on_commit_callbacks(execute=True)`. Nothing periodic goes into a host cron.
-- nginx (`docker/app.conf`) serves the SPA and proxies `/api/` to gunicorn on 127.0.0.1:8000. It sets `X-Forwarded-For`/`-Proto` itself and trusts them only from `TRUSTED_PROXIES`; Django relies on that (`NUM_PROXIES = 1`, `SECURE_PROXY_SSL_HEADER`).
-- Every container runs as `app` (uid 10001), without capabilities, on a read-only root filesystem. Only the volumes (`/app/media`, `/backups`) and `/tmp` are writable — new features write there instead of loosening `compose.yml`. nginx listens on 8080.
-- `docker/smoke-test` is the one smoke test (CI runs it in all three containers); new probes go there.
+- nginx (`docker/app.conf.template`, rendered by `docker/start-nginx`) serves the SPA and proxies `/api/` and `/django-admin` to gunicorn on 127.0.0.1:8000. It sets `X-Forwarded-For`/`-Proto` itself and trusts them only from `TRUSTED_PROXIES`, which `manage.py check` validates (`core.E002`: IPs or CIDRs, no range covering every address); Django relies on that (`NUM_PROXIES = 1`, `SECURE_PROXY_SSL_HEADER`).
+- The Django admin is off unless `ADMIN_ENABLED=true`, lives under `/django-admin` (static files under `/django-static/`).
+- Every container runs as `app` (uid 10001), without capabilities, on a read-only root filesystem. Only `/data` (`DATA_DIR`, uploads in `/data/media`), `/backups` and `/tmp` are writable — new features write there instead of loosening `compose.yml`. nginx listens on 8080.
+- `docker/smoke-test` is the one smoke test (CI runs it in the app and worker containers); new probes go there.
 
 ## Glossary
 
@@ -55,13 +57,14 @@ The `justfile` holds every command (`just` lists them); CI (`.github/workflows/b
 
 ## House defaults
 
-Checked against django-spa-defaults 1.8.1 (2026-11-23). Accepted deviations and settled judgements,
+Checked against django-spa-defaults 1.9.1 (2026-11-26). Accepted deviations and settled judgements,
 one line each as `- ID: decision and reason`, or `- ID [path, …]: …` for exceptions in some places only
 (IDs from the project-defaults checklist); the review does not report these again:
 
 - BE-11: met — `DEBUG = env_bool("DEBUG", False)`; `config.env.secret_key()` refuses a missing, placeholder or short `SECRET_KEY` unless DEBUG is on, and settings refuse an empty `APP_URLS`.
 - SEC-01: met — `SECURE_SSL_REDIRECT = False` and `SECURE_HSTS_SECONDS = 0` in `config/settings.py`, no cookie domain, nginx sends no HSTS (the check's pattern flags the explicit off values too).
 - BE-04: met with `core.auth_backends.CaseInsensitiveModelBackend` and `username__iexact` lookups (registration, `ensure_admin`, `set_password`); the app lives in `backend/core/`, which the check does not scan.
+- DOCKER-12: follows the template except: `docs/` is plain Markdown, not a VitePress site, so the docs stage and `/docs/` locations don't apply; uv stays a stage of its own so Dependabot sees its pin; the app is `core`, not `apps/`; the build sets `APP_URLS` because settings refuse an empty one (BE-11).
 - DOCKER-03: met — `docker/smoke-test app` probes health and the unauthenticated status at `/api/v1/health` and `/api/v1/auth/me` (the API is versioned), which the check's patterns don't match.
 
 Project decisions (asked once; the review checks against them and asks again only if a line is missing):

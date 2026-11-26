@@ -1,6 +1,6 @@
 """Back up the database and the uploads now, e.g. before an update.
 
-    docker compose exec worker python manage.py backup
+    docker compose exec worker python manage.py backup_database
 
 The worker does the same every night at ``BACKUP_TIME`` (``core.tasks.backup``).
 """

@@ -19,6 +19,8 @@ load_dotenv(BASE_DIR.parent / ".env")
 DEBUG = env_bool("DEBUG", False)
 SECRET_KEY = secret_key(DEBUG)  # >= 40 chars, else refuse to start (DEBUG: fixed dev key)
 REGISTRATION_ENABLED = env_bool("REGISTRATION_ENABLED", False)
+# The Django admin at /django-admin (staff users). Off by default.
+ADMIN_ENABLED = env_bool("ADMIN_ENABLED", False)
 
 # Every URL users open the app under. Hosts, CSRF origins and the https-only cookies
 # are derived from it.
@@ -87,15 +89,16 @@ TEMPLATES = [
     },
 ]
 
-# sqlite (backend/db.sqlite3) or postgres. docker compose sets DB_TYPE=postgres and DB_HOST=db.
-if env_str("DB_TYPE", "sqlite") == "postgres":
+# PostgreSQL when DB_HOST is set (docker compose sets db, CI localhost); natively SQLite in
+# backend/db.sqlite3.
+if env_str("DB_HOST", ""):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
             "NAME": env_str("DB_NAME", "corvin"),
             "USER": env_str("DB_USER", "corvin"),
             "PASSWORD": env_str("DB_PASSWORD", ""),
-            "HOST": env_str("DB_HOST", "localhost"),
+            "HOST": env_str("DB_HOST"),
             "PORT": env_int("DB_PORT", 5432),
         }
     }
@@ -154,10 +157,15 @@ TIME_ZONE = env_str("TIME_ZONE", "Europe/Berlin")
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "static/"
+# Admin assets only; the SPA is served by nginx / Vite. Not "/static/", so it can't collide
+# with the SPA's own files.
+STATIC_URL = "/django-static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# Everything the app writes at runtime lives below DATA_DIR (/data in the image, the only
+# writable place besides /backups and /tmp). Uploads are served only through the API.
+DATA_DIR = Path(env_str("DATA_DIR", str(BASE_DIR / "data")))
+MEDIA_ROOT = DATA_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

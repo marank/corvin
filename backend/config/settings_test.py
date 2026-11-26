@@ -4,4 +4,4 @@ import os
 
 os.environ.setdefault("DEBUG", "true")  # set before .env is read, so .env cannot turn it off
 
-from .settings import *  # noqa: F403  (SQLite natively, PostgreSQL via DB_TYPE in CI)
+from .settings import *  # noqa: F403  (SQLite natively, PostgreSQL via DB_HOST in CI)

@@ -177,7 +177,7 @@ def test_backup_command_refuses_without_postgres(settings):
         mock.patch("core.services.backups.available", return_value=False),
         pytest.raises(CommandError, match="PostgreSQL"),
     ):
-        call_command("backup")
+        call_command("backup_database")
 
 
 @pytest.mark.django_db
@@ -187,7 +187,7 @@ def test_backup_command_refuses_without_backup_dir(settings):
         mock.patch("core.services.backups.available", return_value=True),
         pytest.raises(CommandError, match="BACKUP_DIR"),
     ):
-        call_command("backup")
+        call_command("backup_database")
 
 
 @pytest.mark.django_db
@@ -196,7 +196,7 @@ def test_backup_command_reports_files(backup_dirs, capsys):
         mock.patch("core.services.backups.available", return_value=True),
         mock.patch("core.services.backups.subprocess.run", side_effect=_fake_pg_dump),
     ):
-        call_command("backup")
+        call_command("backup_database")
     assert capsys.readouterr().out.count("Written") == 2
 
 

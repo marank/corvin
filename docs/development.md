@@ -44,7 +44,8 @@ reads the same `.env` in the repository root (values already in the environment 
 | Variable | Natively | Note |
 |---|---|---|
 | `DEBUG` | `true` (required) | fixed development `SECRET_KEY`, localhost:8000/:5173 allowed, `APP_URLS` optional, mails on the console |
-| `DB_TYPE` | `sqlite` (default) | `postgres` uses `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST` (default `localhost`), `DB_PORT` (default 5432); docker compose sets `postgres`, `db`, 5432 |
+| `DB_HOST` | unset: SQLite in `backend/db.sqlite3` | set: PostgreSQL with `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_PORT` (default 5432); `just db-up` starts one from `compose.dev.yml` for `DB_HOST=localhost`; docker compose sets `db`, 5432 |
+| `DATA_DIR` | `backend/data` (default) | where uploads go (`<DATA_DIR>/media`); the image sets `/data` |
 | `EMAIL_BACKEND` | console (default with `DEBUG`) | a Django mail backend path; SMTP without `DEBUG` |
 | `MSYS2_BIN_DIR` | only on Windows | where MSYS2 (Pango for WeasyPrint) lives, if not `C:\msys64\ucrt64\bin` |
 

@@ -125,7 +125,7 @@ failed = true
 extend_exclude = [".*/tests/.*"]
 
 [tool.deptry.per_rule_ignores]
-# Used at runtime but never imported: DB driver (DB_TYPE=postgres), WSGI server and
+# Used at runtime but never imported: DB driver (PostgreSQL with DB_HOST), WSGI server and
 # Pillow (needed by ImageField).
 DEP002 = ["psycopg", "gunicorn", "pillow"]
 

@@ -1,10 +1,11 @@
 #!/bin/sh
 # Smoke test of a running container, run inside it — the one place for these probes:
 #   docker compose exec -T <service> sh /usr/local/bin/smoke-test app|worker
-# app:       nginx serves the SPA, its static files and the API, login without CSRF token
-#            is refused, every supervisord program (gunicorn, nginx) runs.
-# worker:    the job worker runs, and a backup (pg_dump + uploads) lands in /backups.
-# All:       nothing runs as root, the root filesystem is read-only.
+# app:    nginx serves the SPA, static files and the API, the Django admin answers when
+#         ADMIN_ENABLED and is a 404 otherwise, login without CSRF token is refused, every
+#         supervisord program (gunicorn, nginx) runs.
+# worker: the job worker runs and a backup (pg_dump + uploads) lands in /backups.
+# Both:   nothing runs as root, the root filesystem is read-only, /data is writable.
 # Stops at the first failure.
 set -eu
 cd /app
@@ -17,13 +18,15 @@ case "$role" in
   app)
     probe /api/v1/health 200
     probe / 200
+    probe /django-static/admin/css/base.css 200
+    probe /api/v1/auth/me 401
+    # --- project: probes ---
     probe /invoices 200
     probe /manifest.webmanifest 200
-    # static files: the SPA's public files and a built, hashed asset
+    # the SPA's public files and a built, hashed asset
     probe /favicon.svg 200
     asset=$(cd /srv/spa && ls assets/*.js | head -n 1)
     probe "/$asset" 200
-    probe /api/v1/auth/me 401
     # Login without CSRF token is refused.
     python - <<'EOF' || fail "login without CSRF token was not refused"
 import os, sys, urllib.error, urllib.request
@@ -40,6 +43,13 @@ except urllib.error.HTTPError as error:
 print(f"/api/v1/auth/login (no CSRF): {status}")
 sys.exit(0 if status == 403 else 1)
 EOF
+    # --- end ---
+    # The Django admin is off unless ADMIN_ENABLED.
+    case "$(printf %s "${ADMIN_ENABLED:-}" | tr '[:upper:]' '[:lower:]')" in
+      1|true|yes|on) probe /django-admin/login/ 200 ;;
+      *) probe /django-admin/login/ 404 ;;
+    esac
+    if [ -d /srv/docs ]; then probe /docs/ 200; fi
     status=$(supervisorctl -c /etc/supervisord.conf status || true)
     echo "$status"
     [ -n "$status" ] || fail "supervisorctl gave no status"
@@ -49,7 +59,7 @@ EOF
     # [p]: the pattern does not match grep's own command line.
     grep -qa '[p]rocrastinate' /proc/[0-9]*/cmdline || fail "the job worker is not running"
     # pg_dump in the image must accept the server's version and write into /backups.
-    python manage.py backup || fail "backup"
+    python manage.py backup_database || fail "backup"
     ;;
   *) fail "unknown role" ;;
 esac
@@ -59,5 +69,6 @@ if grep -l '^Uid:[[:space:]]*0[[:space:]]' /proc/[0-9]*/status 2>/dev/null | gre
   fail "a process runs as root"
 fi
 if touch /app/.probe 2>/dev/null; then fail "the root filesystem is writable"; fi
+mkdir /data/.probe && rmdir /data/.probe || fail "/data is not writable"
 
 echo "smoke test ($role) passed"

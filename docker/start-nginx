@@ -1,18 +1,29 @@
 #!/bin/sh
-# Started by supervisord in the app container. Renders TRUSTED_PROXIES (comma/space
-# separated addresses or CIDRs) into the includes of app.conf — in /tmp, the root filesystem
-# is read-only —, checks the configuration, then runs nginx in the foreground.
+# Render the nginx site config from env into /tmp (the rootfs is read-only), then run
+# nginx in the foreground as the unprivileged user.
 set -eu
 
-dir=/tmp/nginx
-mkdir -p "$dir"
-: > "$dir/realip.conf"
-: > "$dir/geo.conf"
-for proxy in $(echo "${TRUSTED_PROXIES:-}" | tr ',' ' '); do
-  echo "set_real_ip_from $proxy;" >> "$dir/realip.conf"
-  echo "$proxy 1;" >> "$dir/geo.conf"
+conf_dir=/tmp/nginx
+mkdir -p "$conf_dir"
+
+TRUSTED_GEO=""
+REAL_IP_CONFIG=""
+nl='
+'
+# `none` says on purpose that no proxy is in front; the Django check core.E002 (run by
+# entrypoint.sh) has already refused typos and "trust every address".
+for p in $(echo "${TRUSTED_PROXIES:-}" | tr ',' ' '); do
+  [ "$p" = none ] && continue
+  TRUSTED_GEO="${TRUSTED_GEO}        ${p} 1;${nl}"
+  REAL_IP_CONFIG="${REAL_IP_CONFIG}    set_real_ip_from ${p};${nl}"
 done
-echo "trusted proxies: ${TRUSTED_PROXIES:-none}"
+if [ -n "$REAL_IP_CONFIG" ]; then
+  REAL_IP_CONFIG="${REAL_IP_CONFIG}    real_ip_header X-Forwarded-For;${nl}    real_ip_recursive on;"
+fi
+
+export TRUSTED_GEO REAL_IP_CONFIG
+envsubst '${TRUSTED_GEO} ${REAL_IP_CONFIG}' \
+  < /etc/nginx/app.conf.template > "$conf_dir/app.conf"
 
 nginx -e /dev/stderr -t -q
 exec nginx -e /dev/stderr -g 'daemon off;'

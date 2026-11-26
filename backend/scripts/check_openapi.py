@@ -36,7 +36,11 @@ def export(target: Path) -> None:
             str(target),
         ],
         check=True,
-        env={**os.environ, "DJANGO_SETTINGS_MODULE": "config.settings_test", "DB_TYPE": "postgres"},
+        env={
+            **os.environ,
+            "DJANGO_SETTINGS_MODULE": "config.settings_test",
+            "DB_HOST": "localhost",
+        },
     )
 
 
