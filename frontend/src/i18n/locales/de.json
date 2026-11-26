@@ -25,6 +25,7 @@
     "settings": "Einstellungen"
   },
   "common": {
+    "remove": "{name} entfernen",
     "moreActions": "Weitere Aktionen",
     "save": "Speichern",
     "cancel": "Abbrechen",
@@ -114,6 +115,7 @@
     "resetWidths": "Spaltenbreiten automatisch"
   },
   "customers": {
+    "salutationName": "Name in der Anrede",
     "newContact": "Neuer Ansprechpartner",
     "editContact": "Ansprechpartner bearbeiten",
     "newAddress": "Neue Adresse",
@@ -252,6 +254,7 @@
     "generatedInvoice": "Rechnung erstellt"
   },
   "invoices": {
+    "recipients": "Empfänger",
     "mailSubject": "Betreff",
     "sendReminder": "Zahlungserinnerung senden",
     "reminderQueued": "Zahlungserinnerung wird versendet.",

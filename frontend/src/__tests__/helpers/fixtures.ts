@@ -69,6 +69,7 @@ export const contact = (over: Partial<Contact> = {}): Contact => ({
   email: 'erika@acme.example',
   phone: '',
   is_invoice_contact: true,
+  salutation_name: '',
   ...over,
 })
 

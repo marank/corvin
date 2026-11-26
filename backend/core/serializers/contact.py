@@ -27,6 +27,7 @@ class ContactSerializer(OwnedSerializer[Contact]):
             "email",
             "phone",
             "is_invoice_contact",
+            "salutation_name",
             "created_at",
             "updated_at",
         ]

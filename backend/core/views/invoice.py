@@ -25,7 +25,7 @@ from core.services.archiving import archive_invoice
 from core.services.consolidation import consolidate, header_defaults, preview
 from core.services.draft_editing import draft_state, update_draft
 from core.services.erechnung import build_xrechnung_xml
-from core.services.mailer import queue_invoice_email, render_invoice_mail
+from core.services.mailer import default_recipients, queue_invoice_email, render_invoice_mail
 from core.services.pdf import render_invoice_html, render_invoice_pdf
 from core.services.time_report import render_time_report_pdf
 
@@ -116,7 +116,7 @@ class MarkSentSerializer(serializers.Serializer[Any]):
 
 
 class SendEmailSerializer(serializers.Serializer[Any]):
-    to = serializers.EmailField()
+    to = serializers.ListField(child=serializers.EmailField(), min_length=1, max_length=20)
     # Empty: the template's subject. The text comes from the template.
     subject = serializers.CharField(required=False, allow_blank=True, max_length=255)
     kind = serializers.ChoiceField(
@@ -125,6 +125,8 @@ class SendEmailSerializer(serializers.Serializer[Any]):
 
 
 class EmailDraftSerializer(serializers.Serializer[Any]):
+    # The addresses it goes to unless changed, and the mail as it greets them.
+    to = serializers.ListField(child=serializers.EmailField())
     subject = serializers.CharField()
     html = serializers.CharField()
 
@@ -459,17 +461,23 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
         return HttpResponse(render_invoice_html(invoice), content_type="text/html")
 
     @extend_schema(
-        parameters=[OpenApiParameter("kind", enum=MailTemplate.Kind.values, default="invoice")],
+        parameters=[
+            OpenApiParameter("kind", enum=MailTemplate.Kind.values, default="invoice"),
+            OpenApiParameter("to", many=True, description="Addresses; omitted: the default"),
+        ],
         responses=EmailDraftSerializer,
     )
     @action(detail=True, methods=["get"])
     def email_draft(self, request: Request, pk: str | None = None) -> Response:
-        """The mail of a kind as it would be sent (`?kind=`, default: the invoice mail)."""
+        """The mail of a kind (`?kind=`, default: the invoice mail) as it would go to the
+        addresses given (`?to=…&to=…`, default: the invoice contacts')."""
+        invoice = self.get_object()
         kind = request.query_params.get("kind", MailTemplate.Kind.INVOICE)
         if kind not in MailTemplate.Kind.values:
             raise ValidationError({"kind": _("Unknown mail kind.")})
-        mail = render_invoice_mail(self.get_object(), kind, inline_images=False)
-        return Response({"subject": mail.subject, "html": mail.html})
+        to = request.query_params.getlist("to") or default_recipients(invoice)
+        mail = render_invoice_mail(invoice, kind, to=to, inline_images=False)
+        return Response({"to": to, "subject": mail.subject, "html": mail.html})
 
     @action(detail=True, methods=["post"])
     def send_email(self, request: Request, pk: str | None = None) -> Response:

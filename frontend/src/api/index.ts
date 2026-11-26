@@ -91,6 +91,8 @@ export interface Contact {
   email: string
   phone: string
   is_invoice_contact: boolean
+  // How mails greet them ("Erika", "Frau Muster"); empty: the full name.
+  salutation_name: string
 }
 
 export interface Visit {
@@ -490,9 +492,15 @@ export const invoicesApi = {
     api.post<Invoice>(`${base}/invoices/${id}/mark_sent/`, d),
   cancel: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/cancel/`),
   // The mail of a kind as it would go out (from the e-mail template assigned to the kind).
-  emailDraft: (id: string, kind: MailKind = 'invoice') =>
-    api.get<{ subject: string; html: string }>(`${base}/invoices/${id}/email_draft/?kind=${kind}`),
-  sendEmail: (id: string, d: { to: string; subject?: string; kind?: MailKind }) =>
+  // `to`: the addresses to greet (omitted: the default ones, returned as `to`).
+  emailDraft: (id: string, kind: MailKind = 'invoice', to?: string[]) => {
+    const params = new URLSearchParams({ kind })
+    for (const address of to ?? []) params.append('to', address)
+    return api.get<{ to: string[]; subject: string; html: string }>(
+      `${base}/invoices/${id}/email_draft/?${params.toString()}`,
+    )
+  },
+  sendEmail: (id: string, d: { to: string[]; subject?: string; kind?: MailKind }) =>
     api.post<Invoice>(`${base}/invoices/${id}/send_email/`, d),
   pdfUrl: (id: string) => `${base}/invoices/${id}/pdf/`,
   xmlUrl: (id: string) => `${base}/invoices/${id}/xrechnung/`,

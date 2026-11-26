@@ -4161,7 +4161,7 @@
         "/api/v1/invoices/{id}/email_draft/": {
             "get": {
                 "operationId": "invoices_email_draft_retrieve",
-                "description": "The mail of a kind as it would be sent (`?kind=`, default: the invoice mail).",
+                "description": "The mail of a kind (`?kind=`, default: the invoice mail) as it would go to the\naddresses given (`?to=…&to=…`, default: the invoice contacts').",
                 "parameters": [
                     {
                         "in": "path",
@@ -4184,6 +4184,17 @@
                             ],
                             "default": "invoice"
                         }
+                    },
+                    {
+                        "in": "query",
+                        "name": "to",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "description": "Addresses; omitted: the default"
                     }
                 ],
                 "tags": [
@@ -9080,6 +9091,10 @@
                     "is_invoice_contact": {
                         "type": "boolean"
                     },
+                    "salutation_name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
@@ -9135,6 +9150,10 @@
                     },
                     "is_invoice_contact": {
                         "type": "boolean"
+                    },
+                    "salutation_name": {
+                        "type": "string",
+                        "maxLength": 255
                     }
                 },
                 "required": [
@@ -9746,6 +9765,13 @@
             "EmailDraft": {
                 "type": "object",
                 "properties": {
+                    "to": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "email"
+                        }
+                    },
                     "subject": {
                         "type": "string"
                     },
@@ -9755,7 +9781,8 @@
                 },
                 "required": [
                     "html",
-                    "subject"
+                    "subject",
+                    "to"
                 ]
             },
             "EntityEnum": {
@@ -11535,6 +11562,10 @@
                     },
                     "is_invoice_contact": {
                         "type": "boolean"
+                    },
+                    "salutation_name": {
+                        "type": "string",
+                        "maxLength": 255
                     }
                 }
             },

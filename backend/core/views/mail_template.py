@@ -13,7 +13,11 @@ from rest_framework.response import Response
 from core.models import MailTemplate
 from core.request_helpers import request_user
 from core.serializers import MailTemplateSerializer
-from core.services.mail_templates import assigned_kinds, ensure_mail_templates, render_mail
+from core.services.mail_templates import (
+    assigned_kinds,
+    ensure_mail_templates,
+    render_mail,
+)
 from core.services.mailer import mail_context
 from core.services.sample_invoice import sample_template_context
 
@@ -70,6 +74,7 @@ class MailTemplateViewSet(OwnedViewSet[MailTemplate]):
             for field, value in serializer.validated_data.items():
                 setattr(template, field, value)
         owner = request_user(request)
-        data = mail_context(owner, sample_template_context(owner))
+        sample = sample_template_context(owner)
+        data = mail_context(owner, sample, sample["invoice_contacts"])
         mail = render_mail(template, data, inline_images=False)
         return Response({"subject": mail.subject, "html": mail.html})

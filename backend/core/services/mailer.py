@@ -29,17 +29,54 @@ from .pdf import default_template_context, text_block_context
 SENDABLE = (Invoice.Status.ISSUED, Invoice.Status.SENT)
 
 
-def mail_context(owner: User, data: dict[str, Any]) -> dict[str, Any]:
-    """What a mail template sees: the document variables (`data`), plus `contact` (the
-    first invoice contact, for the salutation) and the text blocks."""
-    contacts = data.get("invoice_contacts") or []
-    data = {**data, "contact": contacts[0] if contacts else None}
+def join_names(names: list[str]) -> str:
+    """ "Erika", "Erika und Max", "Erika, Max und Tom" (in LANGUAGE_CODE)."""
+    if len(names) < 2:
+        return "".join(names)
+    return _("%(names)s and %(last)s") % {"names": ", ".join(names[:-1]), "last": names[-1]}
+
+
+def recipient_contacts(contacts: list[Any], to: list[str] | None) -> list[Any]:
+    """The contacts a mail greets: those it goes to (by address, in the order given), or
+    without addresses yet, the ones with an address."""
+    if to is None:
+        return [contact for contact in contacts if contact.email]
+    by_email = {contact.email.lower(): contact for contact in contacts if contact.email}
+    return [by_email[address.lower()] for address in to if address.lower() in by_email]
+
+
+def mail_context(
+    owner: User, data: dict[str, Any], contacts: list[Any], to: list[str] | None = None
+) -> dict[str, Any]:
+    """What a mail template sees: the document variables (`data`), the text blocks, and for
+    the greeting the recipients (`recipients`: name as greeted, contact), their names
+    joined (`names`) and the first one (`contact`)."""
+    greeted = recipient_contacts(contacts, to)
+    names = [getattr(c, "salutation_name", "") or c.name for c in greeted]
+    data = {
+        **data,
+        "recipients": [
+            {"name": name, "contact": c} for name, c in zip(names, greeted, strict=True)
+        ],
+        "names": join_names(names),
+        "contact": greeted[0] if greeted else None,
+    }
     data["text_blocks"] = text_block_context(owner, Context(data))
     return data
 
 
-def invoice_mail_context(invoice: Invoice) -> dict[str, Any]:
-    return mail_context(invoice.owner, default_template_context(invoice))
+def invoice_mail_context(invoice: Invoice, to: list[str] | None = None) -> dict[str, Any]:
+    # Anyone of the customer may be greeted, invoice contact or not.
+    contacts = list(invoice.contacts.all())
+    others = invoice.customer.contacts.exclude(pk__in=[c.pk for c in contacts])
+    return mail_context(invoice.owner, default_template_context(invoice), [*contacts, *others], to)
+
+
+def default_recipients(invoice: Invoice) -> list[str]:
+    """Who an invoice mail goes to unless the user changes it: the invoice contacts with
+    an address, else the customer's address."""
+    addresses = [c.email for c in invoice.contacts.all() if c.email]
+    return addresses or ([invoice.customer.email] if invoice.customer.email else [])
 
 
 @override(settings.LANGUAGE_CODE)
@@ -47,15 +84,18 @@ def render_invoice_mail(
     invoice: Invoice,
     kind: str = MailTemplate.Kind.INVOICE,
     *,
+    to: list[str] | None = None,
     inline_images: bool = True,
 ) -> RenderedMail:
-    """The mail of a kind about the invoice, from the template assigned to that kind."""
+    """The mail of a kind about the invoice to these addresses (None: the default ones),
+    from the template assigned to the kind."""
     template = mail_template_for(invoice.owner, kind)
-    return render_mail(template, invoice_mail_context(invoice), inline_images=inline_images)
+    to = default_recipients(invoice) if to is None else to
+    return render_mail(template, invoice_mail_context(invoice, to), inline_images=inline_images)
 
 
 def queue_invoice_email(
-    invoice: Invoice, to: str, subject: str = "", kind: str = MailTemplate.Kind.INVOICE
+    invoice: Invoice, to: list[str], subject: str = "", kind: str = MailTemplate.Kind.INVOICE
 ) -> None:
     """Send a mail about the invoice in the background (job ``send_invoice_email``).
 
@@ -65,7 +105,7 @@ def queue_invoice_email(
     """
     if invoice.status not in SENDABLE:
         raise ValidationError(_("Only finalized invoices can be sent."))
-    mail = render_invoice_mail(invoice, kind)
+    mail = render_invoice_mail(invoice, kind, to=to)
     if not invoice.documents.filter(kind="pdf").exists():
         archive_invoice(invoice)
     defer(
@@ -142,7 +182,7 @@ class HtmlMail(EmailMultiAlternatives):
 
 def send_invoice_email(
     invoice_id: str,
-    to: str,
+    to: list[str] | str,
     subject: str,
     html: str = "",
     text: str = "",
@@ -157,7 +197,8 @@ def send_invoice_email(
     mail = HtmlMail(
         subject=subject,
         body=text or body,
-        to=[to],
+        # A single address: queued before mails went to several.
+        to=[to] if isinstance(to, str) else to,
         inline_images=[_inline_image(image) for image in inline] if html else [],
     )
     if html:

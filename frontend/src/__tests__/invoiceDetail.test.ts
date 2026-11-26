@@ -13,7 +13,7 @@ import {
   type,
 } from './helpers/dom'
 import { contact, customer, invoice, lineItem, payment, timeEntry } from './helpers/fixtures'
-import { render, t } from './helpers/render'
+import { render, settle, t } from './helpers/render'
 
 /** Opens the detail page of `inv`; the backend returns `state.invoice` on every reload. */
 async function open(inv: Invoice = invoice(), entries: TimeEntry[] = []) {
@@ -213,38 +213,59 @@ describe('InvoiceDetailView', () => {
       expect(dialog(t('invoices.addPayment')).input(t('common.amount')).value).toContain('$')
     })
 
-    it('sends the e-mail to the invoice contact with the template text', async () => {
+    it('sends the e-mail to the proposed recipients, greeting whoever it goes to', async () => {
       const { api } = await open(issued({ contacts: [contact()] }))
-      api.get('/invoices/inv-1/email_draft/', {
-        subject: 'Rechnung RE-2026-001',
-        html: '<p>Hallo Erika</p>',
+      api.get(
+        '/contacts/',
+        page([contact(), contact({ id: 'con-2', name: 'Max Other', email: 'max@acme.example' })]),
+      )
+      api.get('/customers/cus-1/', customer())
+      api.get('/invoices/inv-1/email_draft/', (call) => {
+        const to = call.query.getAll('to')
+        return {
+          to: to.length ? to : ['erika@acme.example'],
+          subject: 'Rechnung RE-2026-001',
+          html: `<p>Hallo ${to.length ? to.join(' & ') : 'erika@acme.example'}</p>`,
+        }
       })
       api.post('/invoices/inv-1/send_email/', issued({ status: 'sent' }))
 
       await click(screen.button(t('invoices.sendEmail')))
       const modal = dialog(t('invoices.sendEmail'))
-      expect(modal.input(t('common.email')).value).toBe('erika@acme.example')
+      const frame = () => modal.root.querySelector('iframe')!.getAttribute('srcdoc')
+      expect(modal.field(t('invoices.recipients')).textContent).toContain('erika@acme.example')
       expect(modal.input(t('invoices.mailSubject')).value).toBe('Rechnung RE-2026-001')
-      // The mail as it goes out.
-      expect(modal.root.querySelector('iframe')!.getAttribute('srcdoc')).toBe('<p>Hallo Erika</p>')
+      expect(frame()).toBe('<p>Hallo erika@acme.example</p>')
+
+      // Another contact with a click, an address typed in: the greeting follows.
+      await click(modal.button('+ Max Other'))
+      expect(frame()).toBe('<p>Hallo erika@acme.example & max@acme.example</p>')
+      const input = modal.input(t('invoices.recipients'))
+      input.value = 'office@acme.example'
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      await settle()
+      expect(modal.hasButton('+ Max Other')).toBe(false)
       await click(modal.button(t('common.send')))
 
       expect(api.lastBody('POST', '/invoices/inv-1/send_email/')).toEqual({
-        to: 'erika@acme.example',
+        to: ['erika@acme.example', 'max@acme.example', 'office@acme.example'],
         subject: 'Rechnung RE-2026-001',
         kind: 'invoice',
       })
       expect(toasts()).toContain(t('invoices.emailQueued'))
     })
 
-    it("falls back to the customer's address without invoice contacts", async () => {
+    it('removes a recipient and keeps unusable text in the field', async () => {
       const { api } = await open(issued())
-      api.get('/customers/cus-1/', customer())
-      api.get('/invoices/inv-1/email_draft/', reply(500))
+      api.get('/invoices/inv-1/email_draft/', { to: ['a@acme.example'], subject: 'S', html: '' })
       await click(screen.button(t('invoices.sendEmail')))
       const modal = dialog(t('invoices.sendEmail'))
-      expect(modal.input(t('common.email')).value).toBe('billing@acme.example')
-      expect(modal.input(t('invoices.mailSubject')).value).toBe('')
+      const input = modal.input(t('invoices.recipients'))
+      await type(input, 'not an address')
+      expect(input.value).toBe('not an address')
+      await click(modal.button(t('common.remove', { name: 'a@acme.example' })))
+      expect(modal.field(t('invoices.recipients')).textContent).not.toContain('a@acme.example')
     })
 
     it('sends a payment reminder with the reminder template', async () => {

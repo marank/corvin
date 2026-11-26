@@ -12,6 +12,8 @@ class Contact(OwnedModel):
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=50, blank=True)
     is_invoice_contact = models.BooleanField(default=False)
+    # How mails greet them ("Erika", "Frau Muster"); empty: the full name.
+    salutation_name = models.CharField(max_length=255, blank=True)
 
     class Meta:
         ordering = ["last_name", "first_name"]
@@ -19,6 +21,10 @@ class Contact(OwnedModel):
     @property
     def name(self) -> str:
         return f"{self.first_name} {self.last_name}".strip()
+
+    @property
+    def salutation(self) -> str:
+        return self.salutation_name or self.name
 
     def __str__(self) -> str:
         return f"{self.name} ({self.customer.name})"

@@ -430,6 +430,14 @@ function removeAddress(a: Address) {
             ><InputText v-model="contactForm.last_name" class="w-full"
           /></AppFormField>
         </div>
+        <AppFormField field="salutation_name" :label="t('customers.salutationName')">
+          <!-- Empty: mails greet them with the full name, which the placeholder shows. -->
+          <InputText
+            v-model="contactForm.salutation_name"
+            :placeholder="[contactForm.first_name, contactForm.last_name].filter(Boolean).join(' ')"
+            class="w-full"
+          />
+        </AppFormField>
         <AppFormField field="role" :label="t('customers.role')"
           ><InputText v-model="contactForm.role" class="w-full"
         /></AppFormField>

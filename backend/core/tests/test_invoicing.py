@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 from core.models import (
     BankAccount,
     CompanyImage,
+    Contact,
     HourlyRate,
     Invoice,
     TimeEntry,
@@ -176,7 +177,7 @@ def test_send_email_sends_pdf_after_commit_and_marks_sent(
     with django_capture_on_commit_callbacks(execute=True):
         r = c.post(
             f"/api/v1/invoices/{issued_invoice.id}/send_email/",
-            {"to": "billing@acme.test", "subject": "Ihre Rechnung"},
+            {"to": ["billing@acme.test"], "subject": "Ihre Rechnung"},
             format="json",
         )
     assert r.status_code == 202
@@ -211,7 +212,7 @@ def test_mails_show_company_images_inline(
     with django_capture_on_commit_callbacks(execute=True):
         c.post(
             f"/api/v1/invoices/{issued_invoice.id}/send_email/",
-            {"to": "billing@acme.test"},
+            {"to": ["billing@acme.test"]},
             format="json",
         )
     message = mailoutbox[0].message()
@@ -234,7 +235,7 @@ def test_xrechnung_mails_carry_the_xml(
     with django_capture_on_commit_callbacks(execute=True):
         c.post(
             f"/api/v1/invoices/{draft_invoice.id}/send_email/",
-            {"to": "billing@acme.test"},
+            {"to": ["billing@acme.test"]},
             format="json",
         )
     names = [name for name, _content, _mime in mailoutbox[0].attachments]
@@ -252,7 +253,7 @@ def test_payment_reminders_leave_the_status(
     with django_capture_on_commit_callbacks(execute=True):
         r = c.post(
             f"/api/v1/invoices/{issued_invoice.id}/send_email/",
-            {"to": "billing@acme.test", "kind": "payment_reminder"},
+            {"to": ["billing@acme.test"], "kind": "payment_reminder"},
             format="json",
         )
     assert r.status_code == 202
@@ -262,13 +263,103 @@ def test_payment_reminders_leave_the_status(
     assert c.get(f"/api/v1/invoices/{issued_invoice.id}/email_draft/?kind=x").status_code == 400
 
 
+@pytest.fixture
+def two_contacts(user, issued_invoice):
+    erika = Contact.objects.create(
+        owner=user,
+        customer=issued_invoice.customer,
+        first_name="Erika",
+        last_name="Muster",
+        email="erika@acme.test",
+        salutation_name="Frau Muster",
+    )
+    max_ = Contact.objects.create(
+        owner=user,
+        customer=issued_invoice.customer,
+        first_name="Max",
+        last_name="Other",
+        email="max@acme.test",
+    )
+    issued_invoice.contacts.set([erika, max_])
+    return erika, max_
+
+
+def _draft(client, invoice, *to):
+    query = "&".join(f"to={address}" for address in to)
+    return client.get(f"/api/v1/invoices/{invoice.id}/email_draft/?{query}").json()
+
+
+@pytest.mark.django_db
+def test_mails_greet_everyone_they_go_to(user, issued_invoice, two_contacts):
+    c = APIClient()
+    c.force_authenticate(user)
+    draft = _draft(c, issued_invoice)
+    assert draft["to"] == ["erika@acme.test", "max@acme.test"]
+    assert "<p>Guten Tag Frau Muster und Max Other,</p>" in draft["html"]
+    # Only who it goes to, in that order; unknown addresses add no name.
+    assert "<p>Guten Tag Max Other,</p>" in _draft(c, issued_invoice, "max@acme.test")["html"]
+    assert "<p>Guten Tag,</p>" in _draft(c, issued_invoice, "office@acme.test")["html"]
+
+
+@pytest.mark.django_db
+def test_templates_greet_each_recipient_as_they_like(user, issued_invoice, two_contacts):
+    from core.services.mail_templates import mail_template_for
+
+    template = mail_template_for(user, "invoice")
+    template.html = (
+        "{% block anrede %}<p>{% for r in recipients %}Hallo {{ r.name }}"
+        "{% if not forloop.last %}, {% endif %}{% endfor %},</p>{% endblock %}"
+    )
+    template.save()
+    c = APIClient()
+    c.force_authenticate(user)
+    html = _draft(c, issued_invoice, "max@acme.test", "erika@acme.test")["html"]
+    assert "<p>Hallo Max Other, Hallo Frau Muster,</p>" in html
+
+
+@pytest.mark.django_db
+def test_mails_go_to_several_addresses(
+    no_queue, user, issued_invoice, two_contacts, mailoutbox, django_capture_on_commit_callbacks
+):
+    c = APIClient()
+    c.force_authenticate(user)
+    with django_capture_on_commit_callbacks(execute=True):
+        r = c.post(
+            f"/api/v1/invoices/{issued_invoice.id}/send_email/",
+            {"to": ["erika@acme.test", "max@acme.test"]},
+            format="json",
+        )
+    assert r.status_code == 202
+    assert mailoutbox[0].to == ["erika@acme.test", "max@acme.test"]
+    assert "Guten Tag Frau Muster und Max Other," in mailoutbox[0].body
+    assert (
+        c.post(
+            f"/api/v1/invoices/{issued_invoice.id}/send_email/", {"to": []}, format="json"
+        ).status_code
+        == 400
+    )
+
+
+def test_names_are_joined_in_the_documents_language():
+    from django.utils.translation import override
+
+    from core.services.mailer import join_names
+
+    assert join_names([]) == ""
+    assert join_names(["Erika"]) == "Erika"
+    with override("de"):
+        assert join_names(["Erika", "Max", "Tom"]) == "Erika, Max und Tom"
+    with override("en"):
+        assert join_names(["Erika", "Max"]) == "Erika and Max"
+
+
 @pytest.mark.django_db
 def test_send_email_sends_nothing_before_commit(no_queue, user, issued_invoice, mailoutbox):
     c = APIClient()
     c.force_authenticate(user)
     r = c.post(
         f"/api/v1/invoices/{issued_invoice.id}/send_email/",
-        {"to": "billing@acme.test"},
+        {"to": ["billing@acme.test"]},
         format="json",
     )
     assert r.status_code == 202
@@ -286,7 +377,7 @@ def test_send_email_with_queue_defers_job_with_rendered_text(user, issued_invoic
     with mock.patch("core.jobs.app") as app:
         r = c.post(
             f"/api/v1/invoices/{issued_invoice.id}/send_email/",
-            {"to": "billing@acme.test"},
+            {"to": ["billing@acme.test"]},
             format="json",
         )
     assert r.status_code == 202
@@ -295,7 +386,7 @@ def test_send_email_with_queue_defers_job_with_rendered_text(user, issued_invoic
     )
     kwargs = app.configure_task.return_value.defer.call_args.kwargs
     assert kwargs["invoice_id"] == str(issued_invoice.id)
-    assert kwargs["to"] == "billing@acme.test"
+    assert kwargs["to"] == ["billing@acme.test"]
     # Rendered now from the template: the job sends exactly this.
     assert kwargs["subject"] == f"Rechnung {issued_invoice.number}"
     assert issued_invoice.number in kwargs["html"]
@@ -308,7 +399,7 @@ def test_send_email_rejects_invalid_address(no_queue, user, issued_invoice, mail
     c = APIClient()
     c.force_authenticate(user)
     r = c.post(
-        f"/api/v1/invoices/{issued_invoice.id}/send_email/", {"to": "no-address"}, format="json"
+        f"/api/v1/invoices/{issued_invoice.id}/send_email/", {"to": ["no-address"]}, format="json"
     )
     assert r.status_code == 400
     assert "to" in r.json()
@@ -328,7 +419,7 @@ def test_send_email_refuses_invoices_that_are_not_finalized(
     with django_capture_on_commit_callbacks(execute=True):
         r = c.post(
             f"/api/v1/invoices/{draft_invoice.id}/send_email/",
-            {"to": "billing@acme.test"},
+            {"to": ["billing@acme.test"]},
             format="json",
             HTTP_ACCEPT_LANGUAGE="en",
         )

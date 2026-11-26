@@ -298,11 +298,13 @@ describe('CustomerDetailView', () => {
     const modal = dialog(t('customers.newContact'))
     await type(modal.input(t('customers.firstName')), 'Max')
     await type(modal.input(t('common.email')), 'max@acme.example')
+    await type(modal.input(t('customers.salutationName')), 'Max')
     await toggleCheckbox(modal.checkbox(t('customers.invoiceContact')))
     await click(modal.button(t('common.save')))
     expect(api.lastBody('POST', '/contacts/')).toEqual({
       first_name: 'Max',
       email: 'max@acme.example',
+      salutation_name: 'Max',
       is_invoice_contact: true,
       customer: 'cus-1',
     })

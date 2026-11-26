@@ -25,7 +25,7 @@ LAYOUT_HTML = """<!DOCTYPE html>
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:6px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1f2937;">
 {% if images.logo_light %}<tr><td style="padding:24px 32px 0;"><img src="{{ images.logo_light }}" alt="{{ company.company_name }}" style="max-height:48px;max-width:240px;"></td></tr>{% endif %}
 <tr><td style="padding:24px 32px;">
-{% block anrede %}<p>Guten Tag{% if contact.name %} {{ contact.name }}{% endif %},</p>{% endblock %}
+{% block anrede %}<p>Guten Tag{% if names %} {{ names }}{% endif %},</p>{% endblock %}
 {% block inhalt %}{% endblock %}
 {% block gruss %}<p>Viele Grüße<br>{{ company.company_name }}</p>{% endblock %}
 </td></tr>

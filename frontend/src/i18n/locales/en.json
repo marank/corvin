@@ -25,6 +25,7 @@
     "settings": "Settings"
   },
   "common": {
+    "remove": "Remove {name}",
     "moreActions": "More actions",
     "save": "Save",
     "cancel": "Cancel",
@@ -114,6 +115,7 @@
     "resetWidths": "Automatic column widths"
   },
   "customers": {
+    "salutationName": "Name in the salutation",
     "newContact": "New contact",
     "editContact": "Edit contact",
     "newAddress": "New address",
@@ -252,6 +254,7 @@
     "generatedInvoice": "Invoice created"
   },
   "invoices": {
+    "recipients": "Recipients",
     "mailSubject": "Subject",
     "sendReminder": "Send payment reminder",
     "reminderQueued": "The payment reminder is being sent.",

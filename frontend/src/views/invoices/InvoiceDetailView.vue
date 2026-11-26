@@ -30,7 +30,9 @@ import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
 import InvoicePreviewFrame from '../../components/InvoicePreviewFrame.vue'
+import EmailRecipientsInput from '../../components/EmailRecipientsInput.vue'
 import {
+  contactsApi,
   customersApi,
   invoicesApi,
   paymentsApi,
@@ -55,8 +57,8 @@ const invoice = ref<Invoice | null>(null)
 const busy = ref(false)
 const emailModal = ref<InstanceType<typeof AppModal>>()
 const paymentModal = ref<InstanceType<typeof AppModal>>()
-const emailForm = ref<{ to: string; subject: string; kind: MailKind }>({
-  to: '',
+const emailForm = ref<{ to: string[]; subject: string; kind: MailKind }>({
+  to: [],
   subject: '',
   kind: 'invoice',
 })
@@ -178,21 +180,38 @@ async function load() {
   timeEntries.value = invoice.value.has_time_entries ? await invoicesApi.timeEntries(id) : []
 }
 
-// Prefill the recipient from the invoice contacts, falling back to the customer's address,
-// and the subject with the template's; the dialog shows the mail as it will look.
+// The recipients the backend proposes (invoice contacts, else the customer's address) and
+// the template's subject; the dialog shows the mail as it greets the chosen recipients.
+// The customer's other contacts are offered with a click.
+const recipientSuggestions = ref<{ label: string; email: string }[]>([])
+
 async function openEmail(kind: MailKind = 'invoice') {
   if (!invoice.value) return
-  const [customer, draft] = await Promise.all([
+  const [contacts, customer, draft] = await Promise.all([
+    contactsApi.list(invoice.value.customer).catch(() => null),
     customersApi.get(invoice.value.customer).catch(() => null),
     invoicesApi.emailDraft(id, kind).catch(() => null),
   ])
-  emailForm.value = {
-    to: invoice.value.contacts.find((contact) => contact.email)?.email ?? customer?.email ?? '',
-    subject: draft?.subject ?? '',
-    kind,
-  }
+  recipientSuggestions.value = [
+    ...(contacts?.results ?? []).map((contact) => ({ label: contact.name, email: contact.email })),
+    ...(customer?.email ? [{ label: customer.email, email: customer.email }] : []),
+  ]
+  emailForm.value = { to: draft?.to ?? [], subject: draft?.subject ?? '', kind }
   emailHtml.value = draft?.html ?? ''
   emailModal.value?.open()
+}
+
+// Other recipients, another greeting: the preview follows (the subject stays as typed).
+let draftRun = 0
+async function refreshEmailPreview(to: string[]) {
+  const run = ++draftRun
+  const draft = await invoicesApi.emailDraft(id, emailForm.value.kind, to).catch(() => null)
+  if (draft && run === draftRun) emailHtml.value = draft.html
+}
+
+function setRecipients(to: string[]) {
+  emailForm.value.to = to
+  void refreshEmailPreview(to)
 }
 
 const loadFailed = useLoadFailed(load)
@@ -575,9 +594,13 @@ async function addPayment() {
       @confirm="sendEmail"
     >
       <div class="flex flex-col gap-4">
-        <AppFormField field="to" :label="t('common.email')" required
-          ><InputText v-model="emailForm.to" class="w-full"
-        /></AppFormField>
+        <AppFormField field="to" :label="t('invoices.recipients')" required>
+          <EmailRecipientsInput
+            :model-value="emailForm.to"
+            :suggestions="recipientSuggestions"
+            @update:model-value="setRecipients"
+          />
+        </AppFormField>
         <AppFormField field="subject" :label="t('invoices.mailSubject')"
           ><InputText v-model="emailForm.subject" class="w-full"
         /></AppFormField>

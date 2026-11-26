@@ -31,11 +31,16 @@ export function templateVariableGroups(
     mail && {
       label: t('designer.variableGroups.mail'),
       entries: [
+        // Salutations: names joins the recipients' names as greeted ("Erika und Max").
+        { label: 'Guten Tag …,', code: 'Guten Tag{% if names %} {{ names }}{% endif %},' },
+        { label: 'Hallo …,', code: 'Hallo {{ names }},' },
         {
-          label: 'salutation',
-          code: 'Guten Tag{% if contact.name %} {{ contact.name }}{% endif %},',
+          label: 'Hallo Max, Hallo Erika,',
+          code: '{% for r in recipients %}Hallo {{ r.name }}{% if not forloop.last %}, {% endif %}{% endfor %},',
         },
-        { label: 'slot', code: '{% block name %}{% endblock %}' },
+        { label: 'Hallo zusammen,', code: 'Hallo zusammen,' },
+        { label: 'names', code: '{{ names }}' },
+        { label: 'block', code: '{% block name %}{% endblock %}' },
         { label: 'app_url', code: '{{ app_url }}' },
       ],
     },

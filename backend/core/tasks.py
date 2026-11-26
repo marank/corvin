@@ -31,7 +31,7 @@ def _is_due(timestamp: int, at: time) -> bool:
 @app.task(retry=RetryStrategy(max_attempts=15, exponential_wait=2))
 def send_invoice_email(
     invoice_id: str,
-    to: str,
+    to: list[str] | str,
     subject: str,
     html: str = "",
     text: str = "",

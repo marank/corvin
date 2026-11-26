@@ -722,7 +722,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The mail of a kind as it would be sent (`?kind=`, default: the invoice mail). */
+        /**
+         * @description The mail of a kind (`?kind=`, default: the invoice mail) as it would go to the
+         *     addresses given (`?to=…&to=…`, default: the invoice contacts').
+         */
         get: operations["invoices_email_draft_retrieve"];
         put?: never;
         post?: never;
@@ -1768,6 +1771,7 @@ export interface components {
             email?: string;
             phone?: string;
             is_invoice_contact?: boolean;
+            salutation_name?: string;
             /** Format: date-time */
             readonly created_at: string;
             /** Format: date-time */
@@ -1783,6 +1787,7 @@ export interface components {
             email?: string;
             phone?: string;
             is_invoice_contact?: boolean;
+            salutation_name?: string;
         };
         /**
          * @description * `symbol` - Symbol
@@ -1957,6 +1962,7 @@ export interface components {
          */
         EInvoiceFormatEnum: "none" | "zugferd" | "xrechnung";
         EmailDraft: {
+            to: string[];
             subject: string;
             html: string;
         };
@@ -2642,6 +2648,7 @@ export interface components {
             email?: string;
             phone?: string;
             is_invoice_contact?: boolean;
+            salutation_name?: string;
         };
         /** @description Its number appears on invoices and locks once a finalized invoice shows it. */
         PatchedCustomerRequest: {
@@ -5484,6 +5491,8 @@ export interface operations {
         parameters: {
             query?: {
                 kind?: "invoice" | "payment_reminder";
+                /** @description Addresses; omitted: the default */
+                to?: string[];
             };
             header?: never;
             path: {
