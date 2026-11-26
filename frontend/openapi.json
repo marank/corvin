@@ -2641,6 +2641,44 @@
                 }
             }
         },
+        "/api/v1/document-templates/{id}/duplicate/": {
+            "post": {
+                "operationId": "document_templates_duplicate_create",
+                "description": "A copy to adapt, e.g. for another document type.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der document template identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "document-templates"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DocumentTemplate"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/document-templates/{id}/export/": {
             "get": {
                 "operationId": "document_templates_export_retrieve",
@@ -4123,7 +4161,7 @@
         "/api/v1/invoices/{id}/email_draft/": {
             "get": {
                 "operationId": "invoices_email_draft_retrieve",
-                "description": "The subject and body that are sent when the dialog's fields stay as they are.",
+                "description": "The mail of a kind as it would be sent (`?kind=`, default: the invoice mail).",
                 "parameters": [
                     {
                         "in": "path",
@@ -4134,6 +4172,18 @@
                         },
                         "description": "Ein UUID-String, der invoice identifiziert.",
                         "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "kind",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "invoice",
+                                "payment_reminder"
+                            ],
+                            "default": "invoice"
+                        }
                     }
                 ],
                 "tags": [
@@ -4149,7 +4199,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/Invoice"
+                                    "$ref": "#/components/schemas/EmailDraft"
                                 }
                             }
                         },
@@ -4708,6 +4758,424 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/Invoice"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/mail-templates/": {
+            "get": {
+                "operationId": "mail_templates_list",
+                "description": "Scopes all queries to the requesting user.",
+                "parameters": [
+                    {
+                        "name": "ordering",
+                        "required": false,
+                        "in": "query",
+                        "description": "Feld, das zum Sortieren der Ergebnisse verwendet werden soll.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "Eine Seitenzahl in der paginierten Ergebnismenge.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Anzahl der pro Seite zurückzugebenden Ergebnisse.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "required": false,
+                        "in": "query",
+                        "description": "Ein Suchbegriff.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "tags": [
+                    "mail-templates"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedMailTemplateList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "mail_templates_create",
+                "description": "Scopes all queries to the requesting user.",
+                "tags": [
+                    "mail-templates"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MailTemplateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MailTemplateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MailTemplateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MailTemplate"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/mail-templates/{id}/": {
+            "get": {
+                "operationId": "mail_templates_retrieve",
+                "description": "Scopes all queries to the requesting user.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der mail template identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "mail-templates"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MailTemplate"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "put": {
+                "operationId": "mail_templates_update",
+                "description": "Scopes all queries to the requesting user.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der mail template identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "mail-templates"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MailTemplateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MailTemplateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MailTemplateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MailTemplate"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "mail_templates_partial_update",
+                "description": "Scopes all queries to the requesting user.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der mail template identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "mail-templates"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedMailTemplateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedMailTemplateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedMailTemplateRequest"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MailTemplate"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "mail_templates_destroy",
+                "description": "Scopes all queries to the requesting user.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der mail template identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "mail-templates"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/v1/mail-templates/{id}/duplicate/": {
+            "post": {
+                "operationId": "mail_templates_duplicate_create",
+                "description": "Scopes all queries to the requesting user.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der mail template identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "mail-templates"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MailTemplate"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/mail-templates/{id}/preview/": {
+            "get": {
+                "operationId": "mail_templates_preview_retrieve",
+                "description": "The mail with sample data; a POST previews unsaved changes without storing them.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der mail template identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "mail-templates"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MailPreview"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "mail_templates_preview_create",
+                "description": "The mail with sample data; a POST previews unsaved changes without storing them.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der mail template identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "mail-templates"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MailTemplateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MailTemplateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MailTemplateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MailPreview"
                                 }
                             }
                         },
@@ -8225,6 +8693,7 @@
                         "maxLength": 10
                     },
                     "template_assignments": {},
+                    "mail_template_assignments": {},
                     "time_rounding_start_direction": {
                         "$ref": "#/components/schemas/TimeRoundingDirectionEnum"
                     },
@@ -8395,6 +8864,7 @@
                         "maxLength": 10
                     },
                     "template_assignments": {},
+                    "mail_template_assignments": {},
                     "time_rounding_start_direction": {
                         "$ref": "#/components/schemas/TimeRoundingDirectionEnum"
                     },
@@ -9100,15 +9570,6 @@
                     "footer_html": {
                         "type": "string"
                     },
-                    "mail_subject": {
-                        "type": "string",
-                        "description": "Empty: a default in LANGUAGE_CODE.",
-                        "maxLength": 255
-                    },
-                    "mail_body": {
-                        "type": "string",
-                        "description": "Empty: a default in LANGUAGE_CODE."
-                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
@@ -9234,15 +9695,6 @@
                     },
                     "footer_html": {
                         "type": "string"
-                    },
-                    "mail_subject": {
-                        "type": "string",
-                        "description": "Empty: a default in LANGUAGE_CODE.",
-                        "maxLength": 255
-                    },
-                    "mail_body": {
-                        "type": "string",
-                        "description": "Empty: a default in LANGUAGE_CODE."
                     }
                 },
                 "required": [
@@ -9290,6 +9742,21 @@
                 ],
                 "type": "string",
                 "description": "* `none` - None\n* `zugferd` - ZUGFeRD (PDF/A-3 + XML)\n* `xrechnung` - XRechnung (XML only)"
+            },
+            "EmailDraft": {
+                "type": "object",
+                "properties": {
+                    "subject": {
+                        "type": "string"
+                    },
+                    "html": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "html",
+                    "subject"
+                ]
             },
             "EntityEnum": {
                 "enum": [
@@ -9878,6 +10345,111 @@
                 "required": [
                     "password",
                     "username"
+                ]
+            },
+            "MailPreview": {
+                "type": "object",
+                "properties": {
+                    "subject": {
+                        "type": "string"
+                    },
+                    "html": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "html",
+                    "subject"
+                ]
+            },
+            "MailTemplate": {
+                "type": "object",
+                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "subject": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "base": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "html": {
+                        "type": "string"
+                    },
+                    "slot_names": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "readOnly": true
+                    },
+                    "derived_count": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "assigned_kinds": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "readOnly": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "assigned_kinds",
+                    "created_at",
+                    "derived_count",
+                    "id",
+                    "name",
+                    "slot_names",
+                    "updated_at"
+                ]
+            },
+            "MailTemplateRequest": {
+                "type": "object",
+                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
+                    },
+                    "subject": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "base": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "html": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "name"
                 ]
             },
             "ManualLine": {
@@ -10535,6 +11107,37 @@
                     }
                 }
             },
+            "PaginatedMailTemplateList": {
+                "type": "object",
+                "required": [
+                    "count",
+                    "results"
+                ],
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MailTemplate"
+                        }
+                    }
+                }
+            },
             "PaginatedOnSiteVisitList": {
                 "type": "object",
                 "required": [
@@ -11123,15 +11726,6 @@
                     },
                     "footer_html": {
                         "type": "string"
-                    },
-                    "mail_subject": {
-                        "type": "string",
-                        "description": "Empty: a default in LANGUAGE_CODE.",
-                        "maxLength": 255
-                    },
-                    "mail_body": {
-                        "type": "string",
-                        "description": "Empty: a default in LANGUAGE_CODE."
                     }
                 }
             },
@@ -11266,6 +11860,29 @@
                         "type": "string",
                         "format": "uuid",
                         "nullable": true
+                    }
+                }
+            },
+            "PatchedMailTemplateRequest": {
+                "type": "object",
+                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
+                    },
+                    "subject": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "base": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "html": {
+                        "type": "string"
                     }
                 }
             },

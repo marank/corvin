@@ -16,8 +16,8 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 
-from core.models import CompanySettings
 from core.request_helpers import request_data, request_user
+from core.services.user_setup import set_up_user
 
 
 class LoginThrottle(AnonRateThrottle):
@@ -159,6 +159,6 @@ class RegisterView(APIView):
         ser = RegisterSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         user = User.objects.create_user(**ser.validated_data)
-        CompanySettings.objects.get_or_create(user=user)
+        set_up_user(user)
         login(request, user)
         return Response(_me_payload(user), status=status.HTTP_201_CREATED)

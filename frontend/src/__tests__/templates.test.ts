@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TemplateListView from '../views/templates/TemplateListView.vue'
 import InvoiceDesignerView from '../views/InvoiceDesignerView.vue'
-import type { DocumentTemplate, TextBlock } from '../api'
+import MailTemplateEditorView from '../views/templates/MailTemplateEditorView.vue'
+import type { DocumentTemplate, MailTemplate, TextBlock } from '../api'
 import { mockApi, page, reply } from './helpers/api'
 import {
   activeTab,
   answerConfirm,
   choose,
+  clearSelect,
   click,
   confirmText,
   dialog,
@@ -26,6 +28,37 @@ const textBlock = (over: Partial<TextBlock> = {}): TextBlock => ({
   ...over,
 })
 
+const mailTemplate = (over: Partial<MailTemplate> = {}): MailTemplate => ({
+  id: 'mt-2',
+  name: 'Rechnung',
+  subject: 'Rechnung {{ invoice.number }}',
+  base: 'mt-1',
+  html: '{% block inhalt %}<p>Anbei</p>{% endblock %}',
+  slot_names: ['anrede', 'inhalt'],
+  derived_count: 0,
+  assigned_kinds: ['invoice'],
+  created_at: '2026-01-01T10:00:00+01:00',
+  updated_at: '2026-01-01T10:00:00+01:00',
+  ...over,
+})
+const mailTemplates = [
+  mailTemplate({
+    id: 'mt-1',
+    name: 'Standard-Layout',
+    subject: '',
+    base: null,
+    html: '<p>{% block anrede %}Hallo{% endblock %}{% block inhalt %}{% endblock %}</p>',
+    derived_count: 2,
+    assigned_kinds: [],
+  }),
+  mailTemplate(),
+  mailTemplate({
+    id: 'mt-3',
+    name: 'Zahlungserinnerung',
+    assigned_kinds: ['payment_reminder'],
+  }),
+]
+
 describe('TemplateListView', () => {
   const templates = [
     template({ id: 'tpl-2', name: 'Modern', created_at: '2026-05-01T10:00:00+02:00' }),
@@ -34,33 +67,73 @@ describe('TemplateListView', () => {
   function backend(list: DocumentTemplate[] = templates) {
     const api = mockApi()
     api.get('/document-templates/', page(list))
+    api.get('/mail-templates/', page(mailTemplates))
     api.get('/text-blocks/', page([textBlock()]))
-    api.get('/settings/', { template_assignments: { invoice: 'tpl-2' } })
+    api.get('/settings/', {
+      template_assignments: { invoice: 'tpl-2' },
+      mail_template_assignments: { invoice: 'mt-2', payment_reminder: 'mt-3' },
+    })
     return api
   }
   const open = () => render(TemplateListView, { path: '/templates' })
 
-  it('assigns templates per document type, falling back to the oldest', async () => {
+  it('assigns templates per document type and mail kind', async () => {
     const api = backend()
     api.put('/settings/', (call) => call.body)
     await open()
-    const quote = screen.field(t('designer.reportTypes.quote'))
-    expect(quote.textContent).toContain(t('designer.defaultTemplate', { name: 'Klassisch' }))
     expect(screen.field(t('designer.reportTypes.invoice')).textContent).toContain('Modern')
-    await choose(quote, 'Modern')
+    expect(screen.field(t('designer.mailKinds.payment_reminder')).textContent).toContain(
+      'Zahlungserinnerung',
+    )
+    await choose(screen.field(t('designer.reportTypes.quote')), 'Modern')
+    await choose(screen.field(t('designer.mailKinds.payment_reminder')), 'Rechnung')
     await click(screen.button(t('common.save')))
     expect(api.lastBody('PUT', '/settings/')).toEqual({
       template_assignments: { invoice: 'tpl-2', quote: 'tpl-2' },
+      mail_template_assignments: { invoice: 'mt-2', payment_reminder: 'mt-2' },
     })
     expect(toasts()).toContain(t('common.saved'))
   })
 
-  it('says a default template will be created when there is none', async () => {
-    backend([])
-    await open()
-    expect(screen.field(t('designer.reportTypes.invoice')).textContent).toContain(
-      t('designer.defaultTemplateAuto'),
+  it('lists the e-mail templates with base and use, and creates one on the layout', async () => {
+    const api = backend()
+    api.post('/mail-templates/', mailTemplate({ id: 'mt-9' }))
+    const { router } = await open()
+    await click(screen.button(t('designer.mailTemplates')))
+    expect(activeTab().rows()).toContainEqual([
+      'Rechnung',
+      'Standard-Layout',
+      t('designer.mailKinds.invoice'),
+      '0',
+      '',
+    ])
+    // Used ones stay: no delete button.
+    expect(
+      activeTab()
+        .row('Standard-Layout')
+        .querySelector(`[aria-label="${t('common.delete')}"]`),
+    ).toBeNull()
+
+    await click(screen.button(t('designer.newMailTemplate')))
+    const modal = dialog(t('designer.newMailTemplate'))
+    expect(modal.field(t('designer.mailBase')).textContent).toContain('Standard-Layout')
+    await type(modal.input(t('common.name')), 'Mahnung')
+    await click(modal.button(t('common.create')))
+    expect(api.lastBody('POST', '/mail-templates/')).toEqual({ name: 'Mahnung', base: 'mt-1' })
+    expect(router.currentRoute.value.path).toBe('/templates/mail/mt-9')
+  })
+
+  it('duplicates templates', async () => {
+    const api = backend()
+    api.post('/document-templates/tpl-2/duplicate/', template({ id: 'tpl-3' }))
+    const { router } = await open()
+    await click(screen.button(t('designer.templates')))
+    await click(
+      activeTab()
+        .row('Modern')
+        .querySelector(`[aria-label="${t('designer.duplicate')}"]`)!,
     )
+    expect(router.currentRoute.value.path).toBe('/templates/tpl-3')
   })
 
   it('creates a template on confirm and opens it in the designer', async () => {
@@ -334,5 +407,95 @@ describe('InvoiceDesignerView', () => {
     await answerConfirm(t('common.delete'))
     expect(router.currentRoute.value.path).toBe('/templates')
     expect(confirmText()).toBe('')
+  })
+})
+
+describe('MailTemplateEditorView', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], now: NOW })
+  })
+
+  function backend(own: MailTemplate = mailTemplate()) {
+    const api = mockApi()
+    api.get(`/mail-templates/${own.id}/`, own)
+    api.get('/mail-templates/', page([...mailTemplates, own]))
+    api.get('/company-images/', page([]))
+    api.get('/text-blocks/', page([textBlock()]))
+    api.post(`/mail-templates/${own.id}/preview/`, (call) => {
+      const body = call.body as MailTemplate
+      return { subject: `S: ${body.subject}`, html: `<pre>${body.html}</pre>` }
+    })
+    return api
+  }
+  async function open(id = 'mt-2') {
+    const view = await render(MailTemplateEditorView, {
+      path: '/templates/mail/:id',
+      url: `/templates/mail/${id}`,
+    })
+    await vi.advanceTimersByTimeAsync(400)
+    await settle()
+    return view
+  }
+  async function waitForPreview() {
+    await vi.advanceTimersByTimeAsync(400)
+    await settle()
+  }
+
+  it('edits one HTML and previews the unsaved state', async () => {
+    const api = backend()
+    await open()
+    expect(screen.hasButton(t('designer.mailHtml'))).toBe(true)
+    expect(screen.hasButton('inhalt')).toBe(false)
+    expect(screen.root.querySelector('iframe')!.getAttribute('srcdoc')).toBe(
+      '<pre>{% block inhalt %}<p>Anbei</p>{% endblock %}</pre>',
+    )
+
+    await type(screen.input(t('designer.mailSubject')), 'Neu {{ invoice.number }}')
+    await waitForPreview()
+    expect(api.lastBody('POST', '/mail-templates/mt-2/preview/')).toEqual({
+      name: 'Rechnung',
+      subject: 'Neu {{ invoice.number }}',
+      base: 'mt-1',
+      html: '{% block inhalt %}<p>Anbei</p>{% endblock %}',
+    })
+    expect(screen.text()).toContain('S: Neu {{ invoice.number }}')
+  })
+
+  it("writes out the base's blocks when an empty template gets a base", async () => {
+    const api = backend(mailTemplate({ id: 'mt-9', name: 'Neu', base: null, html: '' }))
+    await open('mt-9')
+    await choose(screen.field(t('designer.mailBase')), 'Standard-Layout')
+    await waitForPreview()
+    expect(api.lastBody('POST', '/mail-templates/mt-9/preview/')).toMatchObject({
+      base: 'mt-1',
+      html:
+        '{% block anrede %}{{ block.super }}{% endblock %}\n\n' +
+        '{% block inhalt %}{{ block.super }}{% endblock %}',
+    })
+  })
+
+  it('keeps written HTML when the base changes', async () => {
+    const api = backend()
+    await open()
+    await clearSelect(screen.field(t('designer.mailBase')))
+    await waitForPreview()
+    expect(api.lastBody('POST', '/mail-templates/mt-2/preview/')).toMatchObject({
+      base: null,
+      html: '{% block inhalt %}<p>Anbei</p>{% endblock %}',
+    })
+  })
+
+  it('saves, and keeps a base of others from being deleted', async () => {
+    const api = backend(mailTemplates[0])
+    api.put('/mail-templates/mt-1/', (call) => ({ ...mailTemplates[0], ...(call.body as object) }))
+    await open('mt-1')
+    expect(screen.hasButton(t('common.delete'))).toBe(false)
+    await type(screen.input(t('designer.templateName')), 'Rahmen')
+    await click(screen.button(t('common.save')))
+    expect(api.lastBody('PUT', '/mail-templates/mt-1/')).toMatchObject({
+      name: 'Rahmen',
+      base: null,
+    })
+    expect(toasts()).toContain(t('common.saved'))
   })
 })

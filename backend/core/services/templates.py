@@ -62,7 +62,8 @@ DEFAULT_FOOTER = (
 
 
 def ensure_default_template(owner: User) -> DocumentTemplate:
-    """Return the owner's first template, creating the default one if none exists."""
+    """Return the owner's first template, creating the default one if none exists; invoices
+    are always assigned a template (this one, unless one of theirs is)."""
     with transaction.atomic():
         # Locking the owner serialises concurrent first requests: only one creates the default.
         get_user_model().objects.select_for_update().filter(pk=owner.pk).first()
@@ -76,6 +77,13 @@ def ensure_default_template(owner: User) -> DocumentTemplate:
                 footer_html=DEFAULT_FOOTER,
                 footer_height=10,
             )
+        company, _created = CompanySettings.objects.get_or_create(user=owner)
+        assignments = dict(company.template_assignments or {})
+        assigned = assignments.get("invoice")
+        if not (assigned and DocumentTemplate.objects.filter(owner=owner, pk=assigned).exists()):
+            assignments["invoice"] = str(template.pk)
+            company.template_assignments = assignments
+            company.save(update_fields=["template_assignments"])
     return template
 
 

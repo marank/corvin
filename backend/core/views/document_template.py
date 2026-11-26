@@ -7,6 +7,7 @@ from django.utils.text import slugify
 from django.utils.translation import gettext as _
 from django.utils.translation import override
 from django.views.decorators.clickjacking import xframe_options_exempt
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -43,6 +44,18 @@ class DocumentTemplateViewSet(OwnedViewSet[DocumentTemplate]):
             raise ValidationError(_("The last template cannot be deleted."))
         forget_template_assignments(instance)
         super().perform_destroy(instance)
+
+    @extend_schema(request=None, responses={201: DocumentTemplateSerializer})
+    @action(detail=True, methods=["post"])
+    def duplicate(self, request: Request, pk: str | None = None) -> Response:
+        """A copy to adapt, e.g. for another document type."""
+        template = self.get_object()
+        data = DocumentTemplateSerializer(template, context={"request": request}).data
+        data["name"] = _("%(name)s (copy)") % {"name": template.name}
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        copy = serializer.save()
+        return Response(self.get_serializer(copy).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["get"], url_path="export")
     def export_template(self, request: Request, pk: str | None = None) -> HttpResponse:

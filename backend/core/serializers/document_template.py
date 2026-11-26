@@ -21,7 +21,7 @@ validate_color = RegexValidator(
 validate_font = RegexValidator(
     r"^[^;{}<>\\]+$", _("Font names must not contain ; { } < > or backslashes.")
 )
-TEMPLATE_FIELDS = ("body_html", "css", "header_html", "footer_html", "mail_subject", "mail_body")
+TEMPLATE_FIELDS = ("body_html", "css", "header_html", "footer_html")
 
 
 class DocumentTemplateSerializer(OwnedSerializer[DocumentTemplate]):
@@ -49,8 +49,6 @@ class DocumentTemplateSerializer(OwnedSerializer[DocumentTemplate]):
             "css",
             "header_html",
             "footer_html",
-            "mail_subject",
-            "mail_body",
             "created_at",
             "updated_at",
         ]

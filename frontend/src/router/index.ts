@@ -85,6 +85,11 @@ const router = createRouter({
           component: () => import('../views/templates/TemplateListView.vue'),
         },
         {
+          path: 'templates/mail/:id',
+          name: 'mail-template',
+          component: () => import('../views/templates/MailTemplateEditorView.vue'),
+        },
+        {
           path: 'templates/:id',
           name: 'designer',
           component: () => import('../views/InvoiceDesignerView.vue'),

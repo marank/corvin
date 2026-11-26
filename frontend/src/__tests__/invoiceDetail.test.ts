@@ -215,19 +215,24 @@ describe('InvoiceDetailView', () => {
 
     it('sends the e-mail to the invoice contact with the template text', async () => {
       const { api } = await open(issued({ contacts: [contact()] }))
-      api.get('/invoices/inv-1/email_draft/', { subject: 'Rechnung RE-2026-001', body: 'Hallo' })
+      api.get('/invoices/inv-1/email_draft/', {
+        subject: 'Rechnung RE-2026-001',
+        html: '<p>Hallo Erika</p>',
+      })
       api.post('/invoices/inv-1/send_email/', issued({ status: 'sent' }))
 
       await click(screen.button(t('invoices.sendEmail')))
       const modal = dialog(t('invoices.sendEmail'))
       expect(modal.input(t('common.email')).value).toBe('erika@acme.example')
-      expect(modal.input(t('designer.mailSubject')).value).toBe('Rechnung RE-2026-001')
+      expect(modal.input(t('invoices.mailSubject')).value).toBe('Rechnung RE-2026-001')
+      // The mail as it goes out.
+      expect(modal.root.querySelector('iframe')!.getAttribute('srcdoc')).toBe('<p>Hallo Erika</p>')
       await click(modal.button(t('common.send')))
 
       expect(api.lastBody('POST', '/invoices/inv-1/send_email/')).toEqual({
         to: 'erika@acme.example',
         subject: 'Rechnung RE-2026-001',
-        body: 'Hallo',
+        kind: 'invoice',
       })
       expect(toasts()).toContain(t('invoices.emailQueued'))
     })
@@ -239,7 +244,27 @@ describe('InvoiceDetailView', () => {
       await click(screen.button(t('invoices.sendEmail')))
       const modal = dialog(t('invoices.sendEmail'))
       expect(modal.input(t('common.email')).value).toBe('billing@acme.example')
-      expect(modal.input(t('designer.mailSubject')).value).toBe('')
+      expect(modal.input(t('invoices.mailSubject')).value).toBe('')
+    })
+
+    it('sends a payment reminder with the reminder template', async () => {
+      const { api } = await open(issued({ contacts: [contact()] }))
+      api.get('/invoices/inv-1/email_draft/', {
+        subject: 'Zahlungserinnerung',
+        html: '<p>Offen</p>',
+      })
+      api.post('/invoices/inv-1/send_email/', issued())
+      await click(screen.button(t('common.moreActions')))
+      await click(screen.button(t('invoices.sendReminder')))
+      expect(api.requests('GET', '/invoices/inv-1/email_draft/')[0]!.query.get('kind')).toBe(
+        'payment_reminder',
+      )
+      const modal = dialog(t('invoices.sendReminder'))
+      await click(modal.button(t('common.send')))
+      expect(api.lastBody('POST', '/invoices/inv-1/send_email/')).toMatchObject({
+        kind: 'payment_reminder',
+      })
+      expect(toasts()).toContain(t('invoices.reminderQueued'))
     })
 
     it('marks as sent on the day given, today by default', async () => {

@@ -3,7 +3,7 @@
 from django.contrib.auth.models import User
 from django.db import transaction
 
-from core.models import CompanySettings
+from .user_setup import set_up_user
 
 
 def ensure_admin(username: str, email: str, password: str) -> str:
@@ -17,7 +17,7 @@ def ensure_admin(username: str, email: str, password: str) -> str:
         return f"Administrator '{username}' exists."
     with transaction.atomic():
         user = User.objects.create_superuser(username, email, password)
-        CompanySettings.objects.get_or_create(user=user)
+        set_up_user(user)
     return f"Administrator '{username}' created."
 
 

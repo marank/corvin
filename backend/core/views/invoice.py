@@ -10,7 +10,7 @@ from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.clickjacking import xframe_options_exempt
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -18,15 +18,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
-from core.models import CompanySettings, Invoice, InvoiceLineItem
+from core.models import CompanySettings, Invoice, InvoiceLineItem, MailTemplate
 from core.request_helpers import request_user
 from core.serializers import InvoiceSerializer, TimeEntrySerializer
-from core.serializers.base import validate_template_syntax
 from core.services.archiving import archive_invoice
 from core.services.consolidation import consolidate, header_defaults, preview
 from core.services.draft_editing import draft_state, update_draft
 from core.services.erechnung import build_xrechnung_xml
-from core.services.mailer import queue_invoice_email, render_invoice_email
+from core.services.mailer import queue_invoice_email, render_invoice_mail
 from core.services.pdf import render_invoice_html, render_invoice_pdf
 from core.services.time_report import render_time_report_pdf
 
@@ -118,12 +117,16 @@ class MarkSentSerializer(serializers.Serializer[Any]):
 
 class SendEmailSerializer(serializers.Serializer[Any]):
     to = serializers.EmailField()
-    subject = serializers.CharField(
-        required=False, allow_blank=True, validators=[validate_template_syntax]
+    # Empty: the template's subject. The text comes from the template.
+    subject = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    kind = serializers.ChoiceField(
+        choices=MailTemplate.Kind.choices, default=MailTemplate.Kind.INVOICE
     )
-    body = serializers.CharField(
-        required=False, allow_blank=True, validators=[validate_template_syntax]
-    )
+
+
+class EmailDraftSerializer(serializers.Serializer[Any]):
+    subject = serializers.CharField()
+    html = serializers.CharField()
 
 
 def _validation_detail(error: DjangoValidationError) -> dict[str, Any]:
@@ -455,11 +458,18 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
         invoice = self.get_object()
         return HttpResponse(render_invoice_html(invoice), content_type="text/html")
 
+    @extend_schema(
+        parameters=[OpenApiParameter("kind", enum=MailTemplate.Kind.values, default="invoice")],
+        responses=EmailDraftSerializer,
+    )
     @action(detail=True, methods=["get"])
     def email_draft(self, request: Request, pk: str | None = None) -> Response:
-        """The subject and body that are sent when the dialog's fields stay as they are."""
-        subject, body = render_invoice_email(self.get_object())
-        return Response({"subject": subject, "body": body})
+        """The mail of a kind as it would be sent (`?kind=`, default: the invoice mail)."""
+        kind = request.query_params.get("kind", MailTemplate.Kind.INVOICE)
+        if kind not in MailTemplate.Kind.values:
+            raise ValidationError({"kind": _("Unknown mail kind.")})
+        mail = render_invoice_mail(self.get_object(), kind, inline_images=False)
+        return Response({"subject": mail.subject, "html": mail.html})
 
     @action(detail=True, methods=["post"])
     def send_email(self, request: Request, pk: str | None = None) -> Response:
@@ -471,7 +481,7 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
                 invoice,
                 ser.validated_data["to"],
                 ser.validated_data.get("subject", ""),
-                ser.validated_data.get("body", ""),
+                ser.validated_data["kind"],
             )
         except DjangoValidationError as e:
             raise ValidationError(_validation_detail(e)) from e

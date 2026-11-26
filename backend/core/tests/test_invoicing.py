@@ -8,6 +8,7 @@ from rest_framework.test import APIClient
 
 from core.models import (
     BankAccount,
+    CompanyImage,
     HourlyRate,
     Invoice,
     TimeEntry,
@@ -175,19 +176,20 @@ def test_send_email_sends_pdf_after_commit_and_marks_sent(
     with django_capture_on_commit_callbacks(execute=True):
         r = c.post(
             f"/api/v1/invoices/{issued_invoice.id}/send_email/",
-            {
-                "to": "billing@acme.test",
-                "subject": "Rechnung {{ invoice.number }}",
-                "body": "Hallo",
-            },
+            {"to": "billing@acme.test", "subject": "Ihre Rechnung"},
             format="json",
         )
     assert r.status_code == 202
     assert len(mailoutbox) == 1
     mail = mailoutbox[0]
     assert mail.to == ["billing@acme.test"]
-    # Rendered when the user sent it, not later in the job.
-    assert mail.subject == f"Rechnung {issued_invoice.number}"
+    # The subject as the user confirmed it; the text from the invoice mail template, as
+    # HTML with a plain-text part.
+    assert mail.subject == "Ihre Rechnung"
+    assert f"Rechnung {issued_invoice.number}" in mail.body
+    [(html, mimetype)] = mail.alternatives
+    assert mimetype == "text/html"
+    assert f"Rechnung {issued_invoice.number}" in html
     name, content, mimetype = mail.attachments[0]
     assert name == f"{issued_invoice.number}.pdf"
     assert mimetype == "application/pdf"
@@ -195,6 +197,69 @@ def test_send_email_sends_pdf_after_commit_and_marks_sent(
     issued_invoice.refresh_from_db()
     assert issued_invoice.status == Invoice.Status.SENT
     assert issued_invoice.sent_at is not None
+
+
+@pytest.mark.django_db
+def test_mails_show_company_images_inline(
+    no_queue, user, issued_invoice, mailoutbox, django_capture_on_commit_callbacks
+):
+    from core.tests.test_company_images import image_file
+
+    CompanyImage.objects.create(owner=user, kind="logo_light", image=image_file())
+    c = APIClient()
+    c.force_authenticate(user)
+    with django_capture_on_commit_callbacks(execute=True):
+        c.post(
+            f"/api/v1/invoices/{issued_invoice.id}/send_email/",
+            {"to": "billing@acme.test"},
+            format="json",
+        )
+    message = mailoutbox[0].message()
+    html = next(p for p in message.walk() if p.get_content_type() == "text/html")
+    assert 'src="cid:logo_light"' in html.get_content()
+    related = next(p for p in message.walk() if p.get_content_type() == "multipart/related")
+    image = next(p for p in related.iter_parts() if p.get_content_maintype() == "image")
+    assert image["Content-ID"] == "<logo_light>"
+
+
+@pytest.mark.django_db
+def test_xrechnung_mails_carry_the_xml(
+    no_queue, user, draft_invoice, mailoutbox, django_capture_on_commit_callbacks
+):
+    draft_invoice.e_invoice_format = Invoice.EInvoiceFormat.XRECHNUNG
+    draft_invoice.save(update_fields=["e_invoice_format"])
+    c = APIClient()
+    c.force_authenticate(user)
+    assert c.post(f"/api/v1/invoices/{draft_invoice.id}/finalize/").status_code == 200
+    with django_capture_on_commit_callbacks(execute=True):
+        c.post(
+            f"/api/v1/invoices/{draft_invoice.id}/send_email/",
+            {"to": "billing@acme.test"},
+            format="json",
+        )
+    names = [name for name, _content, _mime in mailoutbox[0].attachments]
+    assert names == [f"{draft_invoice.number}.pdf", f"{draft_invoice.number}.xml"]
+
+
+@pytest.mark.django_db
+def test_payment_reminders_leave_the_status(
+    no_queue, user, issued_invoice, mailoutbox, django_capture_on_commit_callbacks
+):
+    c = APIClient()
+    c.force_authenticate(user)
+    draft = c.get(f"/api/v1/invoices/{issued_invoice.id}/email_draft/?kind=payment_reminder")
+    assert draft.json()["subject"] == f"Zahlungserinnerung: Rechnung {issued_invoice.number}"
+    with django_capture_on_commit_callbacks(execute=True):
+        r = c.post(
+            f"/api/v1/invoices/{issued_invoice.id}/send_email/",
+            {"to": "billing@acme.test", "kind": "payment_reminder"},
+            format="json",
+        )
+    assert r.status_code == 202
+    assert mailoutbox[0].subject.startswith("Zahlungserinnerung")
+    issued_invoice.refresh_from_db()
+    assert issued_invoice.status == Invoice.Status.ISSUED
+    assert c.get(f"/api/v1/invoices/{issued_invoice.id}/email_draft/?kind=x").status_code == 400
 
 
 @pytest.mark.django_db
@@ -221,7 +286,7 @@ def test_send_email_with_queue_defers_job_with_rendered_text(user, issued_invoic
     with mock.patch("core.jobs.app") as app:
         r = c.post(
             f"/api/v1/invoices/{issued_invoice.id}/send_email/",
-            {"to": "billing@acme.test", "subject": "Nr. {{ invoice.number }}"},
+            {"to": "billing@acme.test"},
             format="json",
         )
     assert r.status_code == 202
@@ -231,8 +296,11 @@ def test_send_email_with_queue_defers_job_with_rendered_text(user, issued_invoic
     kwargs = app.configure_task.return_value.defer.call_args.kwargs
     assert kwargs["invoice_id"] == str(issued_invoice.id)
     assert kwargs["to"] == "billing@acme.test"
-    assert kwargs["subject"] == f"Nr. {issued_invoice.number}"
-    assert kwargs["body"]  # the template's or the default text, never empty
+    # Rendered now from the template: the job sends exactly this.
+    assert kwargs["subject"] == f"Rechnung {issued_invoice.number}"
+    assert issued_invoice.number in kwargs["html"]
+    assert issued_invoice.number in kwargs["text"]
+    assert kwargs["kind"] == "invoice"
 
 
 @pytest.mark.django_db

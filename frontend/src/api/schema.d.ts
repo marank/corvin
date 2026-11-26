@@ -439,6 +439,23 @@ export interface paths {
         patch: operations["document_templates_partial_update"];
         trace?: never;
     };
+    "/api/v1/document-templates/{id}/duplicate/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description A copy to adapt, e.g. for another document type. */
+        post: operations["document_templates_duplicate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/document-templates/{id}/export/": {
         parameters: {
             query?: never;
@@ -705,7 +722,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The subject and body that are sent when the dialog's fields stay as they are. */
+        /** @description The mail of a kind as it would be sent (`?kind=`, default: the invoice mail). */
         get: operations["invoices_email_draft_retrieve"];
         put?: never;
         post?: never;
@@ -879,6 +896,79 @@ export interface paths {
         put?: never;
         /** @description Line items and totals `consolidate` would create, without creating anything. */
         post: operations["invoices_consolidate_preview_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mail-templates/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Scopes all queries to the requesting user. */
+        get: operations["mail_templates_list"];
+        put?: never;
+        /** @description Scopes all queries to the requesting user. */
+        post: operations["mail_templates_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mail-templates/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Scopes all queries to the requesting user. */
+        get: operations["mail_templates_retrieve"];
+        /** @description Scopes all queries to the requesting user. */
+        put: operations["mail_templates_update"];
+        post?: never;
+        /** @description Scopes all queries to the requesting user. */
+        delete: operations["mail_templates_destroy"];
+        options?: never;
+        head?: never;
+        /** @description Scopes all queries to the requesting user. */
+        patch: operations["mail_templates_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/mail-templates/{id}/duplicate/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Scopes all queries to the requesting user. */
+        post: operations["mail_templates_duplicate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mail-templates/{id}/preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The mail with sample data; a POST previews unsaved changes without storing them. */
+        get: operations["mail_templates_preview_retrieve"];
+        put?: never;
+        /** @description The mail with sample data; a POST previews unsaved changes without storing them. */
+        post: operations["mail_templates_preview_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1573,6 +1663,7 @@ export interface components {
             currency_space?: boolean;
             theme?: string;
             template_assignments?: unknown;
+            mail_template_assignments?: unknown;
             time_rounding_start_direction?: components["schemas"]["TimeRoundingDirectionEnum"];
             time_rounding_start_minutes?: number;
             time_rounding_end_direction?: components["schemas"]["TimeRoundingDirectionEnum"];
@@ -1614,6 +1705,7 @@ export interface components {
             currency_space?: boolean;
             theme?: string;
             template_assignments?: unknown;
+            mail_template_assignments?: unknown;
             time_rounding_start_direction?: components["schemas"]["TimeRoundingDirectionEnum"];
             time_rounding_start_minutes?: number;
             time_rounding_end_direction?: components["schemas"]["TimeRoundingDirectionEnum"];
@@ -1812,10 +1904,6 @@ export interface components {
             css?: string;
             header_html?: string;
             footer_html?: string;
-            /** @description Empty: a default in LANGUAGE_CODE. */
-            mail_subject?: string;
-            /** @description Empty: a default in LANGUAGE_CODE. */
-            mail_body?: string;
             /** Format: date-time */
             readonly created_at: string;
             /** Format: date-time */
@@ -1851,10 +1939,6 @@ export interface components {
             css?: string;
             header_html?: string;
             footer_html?: string;
-            /** @description Empty: a default in LANGUAGE_CODE. */
-            mail_subject?: string;
-            /** @description Empty: a default in LANGUAGE_CODE. */
-            mail_body?: string;
         };
         /** @description A draft as the create page holds it (see services.draft_editing). */
         DraftState: {
@@ -1872,6 +1956,10 @@ export interface components {
          * @enum {string}
          */
         EInvoiceFormatEnum: "none" | "zugferd" | "xrechnung";
+        EmailDraft: {
+            subject: string;
+            html: string;
+        };
         /**
          * @description * `customer` - customer
          *     * `project` - project
@@ -2070,6 +2158,35 @@ export interface components {
             username: string;
             password: string;
             otp_code?: string;
+        };
+        MailPreview: {
+            subject: string;
+            html: string;
+        };
+        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        MailTemplate: {
+            /** Format: uuid */
+            readonly id: string;
+            name: string;
+            subject?: string;
+            /** Format: uuid */
+            base?: string | null;
+            html?: string;
+            readonly slot_names: string[];
+            readonly derived_count: number;
+            readonly assigned_kinds: string[];
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        MailTemplateRequest: {
+            name: string;
+            subject?: string;
+            /** Format: uuid */
+            base?: string | null;
+            html?: string;
         };
         ManualLine: {
             description: string;
@@ -2348,6 +2465,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Invoice"][];
         };
+        PaginatedMailTemplateList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["MailTemplate"][];
+        };
         PaginatedOnSiteVisitList: {
             /** @example 123 */
             count: number;
@@ -2560,10 +2692,6 @@ export interface components {
             css?: string;
             header_html?: string;
             footer_html?: string;
-            /** @description Empty: a default in LANGUAGE_CODE. */
-            mail_subject?: string;
-            /** @description Empty: a default in LANGUAGE_CODE. */
-            mail_body?: string;
         };
         /** @description Sets owner from the request and scopes FK fields to the owner. */
         PatchedHourlyRateRequest: {
@@ -2614,6 +2742,14 @@ export interface components {
             template?: string | null;
             /** Format: uuid */
             bank_account_override?: string | null;
+        };
+        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        PatchedMailTemplateRequest: {
+            name?: string;
+            subject?: string;
+            /** Format: uuid */
+            base?: string | null;
+            html?: string;
         };
         /** @description A model with a `number` from a numbering scheme, which can be corrected by hand later. */
         PatchedOnSiteVisitRequest: {
@@ -4563,6 +4699,28 @@ export interface operations {
             };
         };
     };
+    document_templates_duplicate_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der document template identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentTemplate"];
+                };
+            };
+        };
+    };
     document_templates_export_retrieve: {
         parameters: {
             query?: never;
@@ -5324,7 +5482,9 @@ export interface operations {
     };
     invoices_email_draft_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                kind?: "invoice" | "payment_reminder";
+            };
             header?: never;
             path: {
                 /** @description Ein UUID-String, der invoice identifiziert. */
@@ -5339,7 +5499,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Invoice"];
+                    "application/json": components["schemas"]["EmailDraft"];
                 };
             };
         };
@@ -5611,6 +5771,230 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Invoice"];
+                };
+            };
+        };
+    };
+    mail_templates_list: {
+        parameters: {
+            query?: {
+                /** @description Feld, das zum Sortieren der Ergebnisse verwendet werden soll. */
+                ordering?: string;
+                /** @description Eine Seitenzahl in der paginierten Ergebnismenge. */
+                page?: number;
+                /** @description Anzahl der pro Seite zurückzugebenden Ergebnisse. */
+                page_size?: number;
+                /** @description Ein Suchbegriff. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedMailTemplateList"];
+                };
+            };
+        };
+    };
+    mail_templates_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MailTemplateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["MailTemplateRequest"];
+                "multipart/form-data": components["schemas"]["MailTemplateRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailTemplate"];
+                };
+            };
+        };
+    };
+    mail_templates_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der mail template identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailTemplate"];
+                };
+            };
+        };
+    };
+    mail_templates_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der mail template identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MailTemplateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["MailTemplateRequest"];
+                "multipart/form-data": components["schemas"]["MailTemplateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailTemplate"];
+                };
+            };
+        };
+    };
+    mail_templates_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der mail template identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    mail_templates_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der mail template identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedMailTemplateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedMailTemplateRequest"];
+                "multipart/form-data": components["schemas"]["PatchedMailTemplateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailTemplate"];
+                };
+            };
+        };
+    };
+    mail_templates_duplicate_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der mail template identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailTemplate"];
+                };
+            };
+        };
+    };
+    mail_templates_preview_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der mail template identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailPreview"];
+                };
+            };
+        };
+    };
+    mail_templates_preview_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der mail template identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MailTemplateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["MailTemplateRequest"];
+                "multipart/form-data": components["schemas"]["MailTemplateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailPreview"];
                 };
             };
         };

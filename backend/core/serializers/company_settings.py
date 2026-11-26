@@ -3,7 +3,7 @@ from typing import Any
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
-from core.models import BankAccount, CompanySettings, DocumentTemplate
+from core.models import BankAccount, CompanySettings, DocumentTemplate, MailTemplate
 from core.models.company_settings import NUMBERING_SCHEMES
 from core.services.numbering import normalize_scope
 
@@ -112,6 +112,9 @@ class CompanySettingsSerializer(serializers.ModelSerializer[CompanySettings]):
         user = self._settings().user
         for report_type, template_id in value.items():
             if template_id is None:
+                # Invoices always have a template (the default one to begin with).
+                if report_type == "invoice":
+                    raise serializers.ValidationError({report_type: _("Choose a template.")})
                 continue
             if not DocumentTemplate.objects.filter(
                 id=template_id,
@@ -119,3 +122,28 @@ class CompanySettingsSerializer(serializers.ModelSerializer[CompanySettings]):
             ).exists():
                 raise serializers.ValidationError({report_type: _("Invalid template.")})
         return value
+
+    def validate_mail_template_assignments(self, value: Any) -> dict[str, Any]:
+        """Each mail kind keeps a template of the user's with a subject; kinds left out
+        keep theirs."""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError(_("Must be an object."))
+        unknown = set(value) - set(MailTemplate.Kind.values)
+        if unknown:
+            raise serializers.ValidationError(
+                _("Unknown mail kinds: %(names)s.") % {"names": ", ".join(sorted(unknown))}
+            )
+        settings = self._settings()
+        for kind, template_id in value.items():
+            template = (
+                MailTemplate.objects.filter(id=template_id, owner=settings.user).first()
+                if template_id
+                else None
+            )
+            if template is None:
+                raise serializers.ValidationError({kind: _("Choose a template.")})
+            if not template.subject.strip():
+                raise serializers.ValidationError(
+                    {kind: _("The template has no subject; it cannot be sent.")}
+                )
+        return {**(settings.mail_template_assignments or {}), **value}

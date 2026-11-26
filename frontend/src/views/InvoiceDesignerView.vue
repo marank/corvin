@@ -14,15 +14,13 @@ import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
-import Textarea from 'primevue/textarea'
 import AppFormField from '../components/ui/AppFormField.vue'
 import AppLoadState from '../components/ui/AppLoadState.vue'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
 import AppCodeEditor from '../components/ui/AppCodeEditor.vue'
 import InvoicePreviewFrame from '../components/InvoicePreviewFrame.vue'
-import InvoiceVariableBrowser, {
-  type VariableGroup,
-} from '../components/InvoiceVariableBrowser.vue'
+import InvoiceVariableBrowser from '../components/InvoiceVariableBrowser.vue'
+import { templateVariableGroups } from '../composables/templateVariables'
 import {
   companyImagesApi,
   templatesApi,
@@ -133,181 +131,9 @@ onBeforeUnmount(() => {
   if (pdfBlobUrl.value) URL.revokeObjectURL(pdfBlobUrl.value)
 })
 
-function escapeAttribute(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/{/g, '&#123;')
-}
-
-const variableGroups = computed<VariableGroup[]>(() => [
-  {
-    label: t('designer.variableGroups.invoice'),
-    entries: [
-      'number',
-      'issue_date',
-      'due_date',
-      'status',
-      'subtotal',
-      'vat_rate',
-      'vat_amount',
-      'total',
-      'currency',
-      'notes',
-      'amount_paid',
-      'remaining',
-    ].map((field) => ({ label: field, code: `{{ invoice.${field} }}` })),
-  },
-  {
-    label: t('designer.variableGroups.page'),
-    entries: [
-      'document_type',
-      'size',
-      'width',
-      'height',
-      'margin_top',
-      'margin_right',
-      'margin_bottom',
-      'margin_left',
-      'header_height',
-      'footer_height',
-      'font_size',
-      'primary_font',
-      'secondary_font',
-      'primary_color',
-      'secondary_color',
-      'tertiary_color',
-      'background_color',
-      'text_color',
-    ].map((field) => ({ label: field, code: `{{ page.${field} }}` })),
-  },
-  {
-    label: t('designer.variableGroups.pages'),
-    entries: [
-      { label: 'page_count', code: '{{ page_count }}' },
-      {
-        label: 'page x of y',
-        code: '{% if page_count > 1 %}Seite <span class="page-number"></span> von {{ page_count }}{% endif %}',
-      },
-    ],
-  },
-  {
-    label: t('designer.variableGroups.customer'),
-    entries: [
-      'number',
-      'name',
-      'email',
-      'phone',
-      'website',
-      'vat_id',
-      'buyer_reference',
-      'street',
-      'postal_code',
-      'city',
-      'country',
-    ].map((field) => ({ label: field, code: `{{ customer.${field} }}` })),
-  },
-  {
-    label: t('designer.variableGroups.company'),
-    entries: [
-      'company_name',
-      'street',
-      'postal_code',
-      'city',
-      'country',
-      'email',
-      'phone',
-      'website',
-      'tax_id',
-      'vat_id',
-      'iban',
-      'bic',
-      'currency',
-    ]
-      .map((field) => ({ label: field, code: `{{ company.${field} }}` }))
-      // The public address: the first entry in APP_URLS.
-      .concat({ label: 'app_url', code: '{{ app_url }}' }),
-  },
-  {
-    label: t('designer.variableGroups.bankAccount'),
-    entries: ['name', 'bank_name', 'account_holder', 'iban', 'bic'].map((field) => ({
-      label: field,
-      code: `{{ invoice.bank_account.${field} }}`,
-    })),
-  },
-  {
-    label: t('designer.variableGroups.invoiceContacts'),
-    entries: [
-      {
-        label: t('designer.contactLoop'),
-        code: '{% for contact in invoice_contacts %}\n{{ contact.name }}{% if not forloop.last %}, {% endif %}\n{% endfor %}',
-      },
-      { label: 'name', code: '{{ contact.name }}' },
-      { label: 'role', code: '{{ contact.role }}' },
-      { label: 'email', code: '{{ contact.email }}' },
-      { label: 'phone', code: '{{ contact.phone }}' },
-    ],
-  },
-  {
-    label: t('designer.variableGroups.companyContacts'),
-    entries: [
-      {
-        label: t('designer.contactLoop'),
-        code: '{% for contact in company_contacts %}\n{{ contact.name }} {{ contact.role }} {{ contact.email }} {{ contact.phone }}\n{% endfor %}',
-      },
-      { label: 'name', code: '{{ contact.name }}' },
-      { label: 'role', code: '{{ contact.role }}' },
-      { label: 'email', code: '{{ contact.email }}' },
-      { label: 'phone', code: '{{ contact.phone }}' },
-    ],
-  },
-  {
-    label: t('designer.variableGroups.relations'),
-    entries: [
-      { label: 'project.number', code: '{{ project.number }}' },
-      { label: 'project.name', code: '{{ project.name }}' },
-      { label: 'contract.number', code: '{{ contract.number }}' },
-      { label: 'contract.name', code: '{{ contract.name }}' },
-    ],
-  },
-  {
-    label: t('designer.variableGroups.formatting'),
-    entries: [
-      { label: 'date', code: '{% display_date invoice.issue_date %}' },
-      { label: 'time', code: '{% display_time now %}' },
-      { label: 'number', code: '{% display_number invoice.subtotal %}' },
-      { label: 'money', code: '{% display_money invoice.total invoice.currency %}' },
-    ],
-  },
-  {
-    label: t('designer.variableGroups.lines'),
-    entries: [
-      {
-        label: 'line loop',
-        code: '{% for item in items %}\n{{ item.position }} {{ item.description }} {{ item.quantity }} {{ item.unit }} {% display_money item.total invoice.currency %}\n{% endfor %}',
-      },
-      { label: 'description', code: '{{ item.description }}' },
-      { label: 'quantity', code: '{% display_number item.quantity %}' },
-      { label: 'unit price', code: '{% display_money item.unit_price invoice.currency %}' },
-      { label: 'total', code: '{% display_money item.total invoice.currency %}' },
-    ],
-  },
-  {
-    label: t('designer.variableGroups.textBlocks'),
-    entries: textBlocks.value.map((block) => ({
-      label: `${block.name} (${block.key})`,
-      code: `{{ text_blocks.${block.key} }}`,
-    })),
-  },
-  {
-    label: t('designer.variableGroups.images'),
-    entries: images.value.map((image) => ({
-      label: image.name,
-      code: `<img src="{{ images.${image.key} }}" alt="${escapeAttribute(image.name)}">`,
-    })),
-  },
-])
+const variableGroups = computed(() =>
+  templateVariableGroups(t, { textBlocks: textBlocks.value, images: images.value, page: true }),
+)
 
 const loadFailed = useLoadFailed(async () => {
   const [invoiceTemplate, imagePage, textBlockPage] = await Promise.all([
@@ -405,7 +231,6 @@ async function save() {
             <Tab value="body">{{ t('designer.bodyHtml') }}</Tab>
             <Tab value="footer">{{ t('designer.footerHtml') }}</Tab>
             <Tab value="css">{{ t('designer.css') }}</Tab>
-            <Tab value="mail">{{ t('designer.mail') }}</Tab>
           </TabList>
           <TabPanels class="flex-1 min-h-0">
             <TabPanel value="general" class="h-full overflow-y-auto p-4">
@@ -486,20 +311,6 @@ async function save() {
             </TabPanel>
             <TabPanel value="css" class="h-full">
               <AppCodeEditor v-model="template.css" language="css" />
-            </TabPanel>
-            <TabPanel value="mail" class="h-full overflow-y-auto p-4">
-              <div class="flex flex-col gap-4 max-w-2xl">
-                <p class="text-sm text-surface-500">{{ t('designer.mailHint') }}</p>
-                <AppFormField field="mail_subject" :label="t('designer.mailSubject')"
-                  ><InputText v-model="template.mail_subject" class="w-full"
-                /></AppFormField>
-                <AppFormField field="mail_body" :label="t('designer.mailBody')"
-                  ><Textarea
-                    v-model="template.mail_body"
-                    rows="12"
-                    class="w-full font-mono text-sm"
-                /></AppFormField>
-              </div>
             </TabPanel>
           </TabPanels>
         </Tabs>

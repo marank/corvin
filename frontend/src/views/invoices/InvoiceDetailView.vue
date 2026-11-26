@@ -10,7 +10,6 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Menu from 'primevue/menu'
 import Message from 'primevue/message'
-import Textarea from 'primevue/textarea'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
@@ -30,7 +29,14 @@ import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
 import InvoicePreviewFrame from '../../components/InvoicePreviewFrame.vue'
-import { customersApi, invoicesApi, paymentsApi, type Invoice, type TimeEntry } from '../../api'
+import {
+  customersApi,
+  invoicesApi,
+  paymentsApi,
+  type Invoice,
+  type MailKind,
+  type TimeEntry,
+} from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
 import { useConfirm } from 'primevue/useconfirm'
@@ -48,7 +54,13 @@ const invoice = ref<Invoice | null>(null)
 const busy = ref(false)
 const emailModal = ref<InstanceType<typeof AppModal>>()
 const paymentModal = ref<InstanceType<typeof AppModal>>()
-const emailForm = ref({ to: '', subject: '', body: '' })
+const emailForm = ref<{ to: string; subject: string; kind: MailKind }>({
+  to: '',
+  subject: '',
+  kind: 'invoice',
+})
+// The mail as it goes out (from the e-mail template of its kind); only the subject is edited here.
+const emailHtml = ref('')
 const paymentForm = ref({ date: isoDate(), amount: 0, note: '' })
 
 function openPayment() {
@@ -95,6 +107,15 @@ const dangerItem = '[&_.p-menu-item-label]:text-danger [&_.p-menu-item-icon]:tex
 const moreActions = computed(() => [
   ...(invoice.value?.status === 'issued'
     ? [{ label: t('invoices.markSent'), icon: 'pi pi-envelope', command: openMarkSent }]
+    : []),
+  ...(canReceivePayment.value && Number(invoice.value?.remaining) > 0
+    ? [
+        {
+          label: t('invoices.sendReminder'),
+          icon: 'pi pi-bell',
+          command: () => void openEmail('payment_reminder'),
+        },
+      ]
     : []),
   ...(isDraft.value
     ? [
@@ -157,19 +178,19 @@ async function load() {
 }
 
 // Prefill the recipient from the invoice contacts, falling back to the customer's address,
-// and subject/body with the text the template would send.
-async function openEmail() {
+// and the subject with the template's; the dialog shows the mail as it will look.
+async function openEmail(kind: MailKind = 'invoice') {
   if (!invoice.value) return
   const [customer, draft] = await Promise.all([
     customersApi.get(invoice.value.customer).catch(() => null),
-    invoicesApi.emailDraft(id).catch(() => null),
+    invoicesApi.emailDraft(id, kind).catch(() => null),
   ])
   emailForm.value = {
     to: invoice.value.contacts.find((contact) => contact.email)?.email ?? customer?.email ?? '',
-    subject: '',
-    body: '',
-    ...draft,
+    subject: draft?.subject ?? '',
+    kind,
   }
+  emailHtml.value = draft?.html ?? ''
   emailModal.value?.open()
 }
 
@@ -217,7 +238,9 @@ async function sendEmail() {
   await act(async () => {
     await invoicesApi.sendEmail(id, emailForm.value)
     emailModal.value?.close()
-    notify.ok(t('invoices.emailQueued'))
+    notify.ok(
+      emailForm.value.kind === 'invoice' ? t('invoices.emailQueued') : t('invoices.reminderQueued'),
+    )
   })
 }
 
@@ -288,7 +311,7 @@ async function addPayment() {
           :label="t('invoices.sendEmail')"
           icon="pi pi-send"
           :loading="busy"
-          @click="openEmail"
+          @click="openEmail()"
         />
         <Button
           v-if="canReceivePayment && Number(invoice.remaining) > 0"
@@ -545,20 +568,21 @@ async function addPayment() {
     <AppModal
       ref="emailModal"
       :form="emailForm"
-      :title="t('invoices.sendEmail')"
+      :title="emailForm.kind === 'invoice' ? t('invoices.sendEmail') : t('invoices.sendReminder')"
       :confirm-label="t('common.send')"
+      size="xl"
       @confirm="sendEmail"
     >
       <div class="flex flex-col gap-4">
         <AppFormField field="to" :label="t('common.email')" required
           ><InputText v-model="emailForm.to" class="w-full"
         /></AppFormField>
-        <AppFormField field="subject" :label="t('designer.mailSubject')"
+        <AppFormField field="subject" :label="t('invoices.mailSubject')"
           ><InputText v-model="emailForm.subject" class="w-full"
         /></AppFormField>
-        <AppFormField field="body" :label="t('designer.mailBody')"
-          ><Textarea v-model="emailForm.body" rows="8" class="w-full"
-        /></AppFormField>
+        <div class="h-96 border border-surface-200 dark:border-surface-800">
+          <InvoicePreviewFrame :html="emailHtml" />
+        </div>
       </div>
     </AppModal>
 

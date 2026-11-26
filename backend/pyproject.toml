@@ -136,7 +136,7 @@ omit = ["*/migrations/*", "config/asgi.py", "config/wsgi.py", "manage.py"]
 skip_covered = true
 show_missing = true
 # Current level; raise it as tests are added, never lower it.
-fail_under = 94.3
+fail_under = 95.0
 
 [tool.mypy]
 plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]

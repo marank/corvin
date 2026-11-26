@@ -264,7 +264,5 @@ export const template = (over: Partial<DocumentTemplate> = {}): DocumentTemplate
   css: 'p { margin: 0 }',
   header_html: '',
   footer_html: '',
-  mail_subject: 'Rechnung',
-  mail_body: 'Anbei',
   ...over,
 })

@@ -1,8 +1,5 @@
 <script setup lang="ts">
-export interface VariableGroup {
-  label: string
-  entries: { label: string; code: string }[]
-}
+import type { VariableGroup } from '../composables/templateVariables'
 
 defineProps<{ groups: VariableGroup[] }>()
 defineEmits<{ insert: [code: string] }>()

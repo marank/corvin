@@ -263,8 +263,6 @@ export interface DocumentTemplate {
   css: string
   header_html: string
   footer_html: string
-  mail_subject: string
-  mail_body: string
 }
 
 export interface CompanyContact {
@@ -491,9 +489,10 @@ export const invoicesApi = {
   markSent: (id: string, d: { sent_on?: string } = {}) =>
     api.post<Invoice>(`${base}/invoices/${id}/mark_sent/`, d),
   cancel: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/cancel/`),
-  emailDraft: (id: string) =>
-    api.get<{ subject: string; body: string }>(`${base}/invoices/${id}/email_draft/`),
-  sendEmail: (id: string, d: { to: string; subject?: string; body?: string }) =>
+  // The mail of a kind as it would go out (from the e-mail template assigned to the kind).
+  emailDraft: (id: string, kind: MailKind = 'invoice') =>
+    api.get<{ subject: string; html: string }>(`${base}/invoices/${id}/email_draft/?kind=${kind}`),
+  sendEmail: (id: string, d: { to: string; subject?: string; kind?: MailKind }) =>
     api.post<Invoice>(`${base}/invoices/${id}/send_email/`, d),
   pdfUrl: (id: string) => `${base}/invoices/${id}/pdf/`,
   xmlUrl: (id: string) => `${base}/invoices/${id}/xrechnung/`,
@@ -522,6 +521,38 @@ export const textBlocksApi = {
   remove: (id: string) => api.delete(`${base}/text-blocks/${id}/`),
 }
 
+export type MailKind = 'invoice' | 'payment_reminder'
+export const mailKinds: MailKind[] = ['invoice', 'payment_reminder']
+
+// An e-mail as HTML. Without a base the whole mail, its {% block %} tags are blocks others
+// fill; with a base only blocks, overriding the base's ({{ block.super }} keeps its content).
+export interface MailTemplate {
+  id: string
+  name: string
+  subject: string
+  base: string | null
+  html: string
+  // Read-only: the blocks it offers, templates building on it, kinds it is assigned to.
+  slot_names: string[]
+  derived_count: number
+  assigned_kinds: MailKind[]
+  created_at: string
+  updated_at: string
+}
+
+export const mailTemplatesApi = {
+  list: (params = '') => api.get<Page<MailTemplate>>(`${base}/mail-templates/?${params}`),
+  get: (id: string) => api.get<MailTemplate>(`${base}/mail-templates/${id}/`),
+  create: (d: Partial<MailTemplate>) => api.post<MailTemplate>(`${base}/mail-templates/`, d),
+  update: (id: string, d: Partial<MailTemplate>) =>
+    api.put<MailTemplate>(`${base}/mail-templates/${id}/`, d),
+  remove: (id: string) => api.delete(`${base}/mail-templates/${id}/`),
+  duplicate: (id: string) => api.post<MailTemplate>(`${base}/mail-templates/${id}/duplicate/`),
+  // Sample data; with `d`, unsaved changes (nothing is stored).
+  preview: (id: string, d?: Partial<MailTemplate>) =>
+    api.post<{ subject: string; html: string }>(`${base}/mail-templates/${id}/preview/`, d ?? {}),
+}
+
 export const templatesApi = {
   list: (params = '') => api.get<Page<DocumentTemplate>>(`${base}/document-templates/?${params}`),
   get: (id: string) => api.get<DocumentTemplate>(`${base}/document-templates/${id}/`),
@@ -530,6 +561,8 @@ export const templatesApi = {
   update: (id: string, d: Partial<DocumentTemplate>) =>
     api.put<DocumentTemplate>(`${base}/document-templates/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/document-templates/${id}/`),
+  duplicate: (id: string) =>
+    api.post<DocumentTemplate>(`${base}/document-templates/${id}/duplicate/`),
   previewUrl: (id: string) => `${base}/document-templates/${id}/preview/`,
   previewPdfUrl: (id: string) => `${base}/document-templates/${id}/preview-pdf/`,
   // Previews of unsaved designer changes (nothing is stored).

@@ -9,6 +9,7 @@ export const tableStateKeys = {
   contracts: 'contracts-v2',
   invoices: 'invoices-v2',
   documentTemplates: 'document-templates-v3',
+  mailTemplates: 'mail-templates-v1',
   textBlocks: 'text-blocks-v2',
   customerContacts: 'customer-contacts-v3',
   customerAddresses: 'customer-addresses-v3',

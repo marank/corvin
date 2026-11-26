@@ -45,15 +45,6 @@ class DocumentTemplate(OwnedModel):
     css = models.TextField(blank=True)
     header_html = models.TextField(blank=True)
     footer_html = models.TextField(blank=True)
-    mail_subject = models.CharField(
-        max_length=255,
-        blank=True,
-        default="",
-        help_text="Empty: a default in LANGUAGE_CODE.",
-    )
-    mail_body = models.TextField(
-        blank=True, default="", help_text="Empty: a default in LANGUAGE_CODE."
-    )
 
     class Meta:
         ordering = ["name"]

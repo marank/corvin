@@ -18,10 +18,13 @@ import AppModal from '../../components/ui/AppModal.vue'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import Select from 'primevue/select'
 import {
+  mailKinds,
+  mailTemplatesApi,
   settingsApi,
   templatesApi,
   textBlocksApi,
   type DocumentTemplate,
+  type MailTemplate,
   type TextBlock,
 } from '../../api'
 import { useNotify } from '../../composables/useNotify'
@@ -37,15 +40,10 @@ const importInput = ref<HTMLInputElement>()
 const textBlockModal = ref<InstanceType<typeof AppModal>>()
 const activeTab = ref('assignments')
 const rows = ref<DocumentTemplate[]>([])
-// Without an assignment the backend renders with the oldest template (or creates one).
-const fallbackTemplate = computed(
-  () => [...rows.value].sort((a, b) => a.created_at.localeCompare(b.created_at))[0],
-)
-const fallbackLabel = computed(() =>
-  fallbackTemplate.value
-    ? t('designer.defaultTemplate', { name: fallbackTemplate.value.name })
-    : t('designer.defaultTemplateAuto'),
-)
+const mailRows = ref<MailTemplate[]>([])
+const mailNames = computed(() => new Map(mailRows.value.map((row) => [row.id, row.name])))
+const newMailModal = ref<InstanceType<typeof AppModal>>()
+const newMailForm = ref<{ name: string; base: string | null }>({ name: '', base: null })
 const newTemplateModal = ref<InstanceType<typeof AppModal>>()
 const newTemplateForm = ref({ name: '' })
 const creatingTemplate = ref(false)
@@ -54,6 +52,8 @@ const editingTextBlock = ref<TextBlock | null>(null)
 const textBlockForm = ref<Partial<TextBlock>>({})
 const loading = ref(true)
 const assignments = ref<Record<string, string | null>>({})
+// Every mail kind always has a template (the defaults to begin with).
+const mailAssignments = ref<Record<string, string>>({})
 const savingAssignments = ref(false)
 const reportTypes = ['invoice', 'credit_note', 'quote', 'order', 'delivery_note', 'timesheet']
 const textBlockPagination = usePagination(loadTextBlocks, 'name')
@@ -68,6 +68,10 @@ async function loadTemplates() {
   rows.value = (await templatesApi.list('page_size=500&ordering=name')).results
 }
 
+async function loadMailTemplates() {
+  mailRows.value = (await mailTemplatesApi.list('page_size=500&ordering=name')).results
+}
+
 async function loadTextBlocks() {
   const results = await textBlockPagination.fetchPage(textBlocksApi.list)
   if (results) textBlocks.value = results
@@ -76,12 +80,17 @@ async function loadTextBlocks() {
 async function load() {
   loading.value = true
   try {
+    // The mail templates first: listing them creates missing defaults and assignments.
+    await loadMailTemplates()
     const [, , settings] = await Promise.all([
       loadTemplates(),
       textBlockPagination.start(),
       settingsApi.get(),
     ])
     assignments.value = { ...(settings.template_assignments as Record<string, string | null>) }
+    mailAssignments.value = {
+      ...(settings.mail_template_assignments as Record<string, string>),
+    }
   } catch (e) {
     notify.error(e)
   } finally {
@@ -92,7 +101,11 @@ async function load() {
 async function saveAssignments() {
   savingAssignments.value = true
   try {
-    await settingsApi.update({ template_assignments: assignments.value })
+    await settingsApi.update({
+      template_assignments: assignments.value,
+      mail_template_assignments: mailAssignments.value,
+    })
+    await loadMailTemplates()
     notify.ok(t('common.saved'))
   } catch (e) {
     notify.error(e)
@@ -135,6 +148,57 @@ function removeTemplate(template: DocumentTemplate) {
     await templatesApi.remove(template.id)
     await loadTemplates()
   })
+}
+
+async function duplicateTemplate(template: DocumentTemplate) {
+  try {
+    const copy = await templatesApi.duplicate(template.id)
+    void router.push(`/templates/${copy.id}`)
+  } catch (e) {
+    notify.error(e)
+  }
+}
+
+async function duplicateMailTemplate(template: MailTemplate) {
+  try {
+    const copy = await mailTemplatesApi.duplicate(template.id)
+    void router.push(`/templates/mail/${copy.id}`)
+  } catch (e) {
+    notify.error(e)
+  }
+}
+
+function removeMailTemplate(template: MailTemplate) {
+  confirmDelete(async () => {
+    await mailTemplatesApi.remove(template.id)
+    await loadMailTemplates()
+  })
+}
+
+// A new template builds on the base most templates use (the layout), if there is one.
+function openNewMail() {
+  const counts = new Map<string, number>()
+  for (const row of mailRows.value)
+    if (row.base) counts.set(row.base, (counts.get(row.base) ?? 0) + 1)
+  const base = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+  newMailForm.value = { name: '', base }
+  newMailModal.value?.open()
+}
+
+async function createMailTemplate() {
+  creatingTemplate.value = true
+  try {
+    const created = await mailTemplatesApi.create({
+      name: newMailForm.value.name.trim(),
+      base: newMailForm.value.base,
+    })
+    newMailModal.value?.close()
+    void router.push(`/templates/mail/${created.id}`)
+  } catch (e) {
+    notify.error(e)
+  } finally {
+    creatingTemplate.value = false
+  }
 }
 
 function openNewTemplate() {
@@ -200,6 +264,12 @@ async function importTemplate(event: Event) {
           <Button :label="t('designer.newTemplate')" icon="pi pi-plus" @click="openNewTemplate" />
         </template>
         <Button
+          v-else-if="activeTab === 'mailTemplates'"
+          :label="t('designer.newMailTemplate')"
+          icon="pi pi-plus"
+          @click="openNewMail"
+        />
+        <Button
           v-else-if="activeTab === 'textBlocks'"
           :label="t('designer.newTextBlock')"
           icon="pi pi-plus"
@@ -212,27 +282,51 @@ async function importTemplate(event: Event) {
       <TabList>
         <Tab value="assignments">{{ t('designer.assignments') }}</Tab>
         <Tab value="templates">{{ t('designer.templates') }}</Tab>
+        <Tab value="mailTemplates">{{ t('designer.mailTemplates') }}</Tab>
         <Tab value="textBlocks">{{ t('designer.textBlocks') }}</Tab>
       </TabList>
       <TabPanels>
         <TabPanel value="assignments">
           <p class="text-sm text-surface-500 mb-4 pt-4">{{ t('designer.assignmentsHint') }}</p>
-          <div class="flex flex-col gap-4 max-w-lg">
-            <AppFormField
-              v-for="rt in reportTypes"
-              :key="rt"
-              :label="t(`designer.reportTypes.${rt}`)"
-            >
-              <Select
-                v-model="assignments[rt]"
-                :options="rows"
-                option-label="name"
-                option-value="id"
-                :placeholder="fallbackLabel"
-                show-clear
-                class="w-full"
-              />
-            </AppFormField>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl">
+            <section class="flex flex-col gap-4">
+              <h2 class="font-semibold">{{ t('designer.assignmentsDocuments') }}</h2>
+              <AppFormField
+                v-for="rt in reportTypes"
+                :key="rt"
+                :field="rt"
+                :label="t(`designer.reportTypes.${rt}`)"
+                :required="rt === 'invoice'"
+              >
+                <!-- Invoices always have a template; the other types have none yet. -->
+                <Select
+                  v-model="assignments[rt]"
+                  :options="rows"
+                  option-label="name"
+                  option-value="id"
+                  :show-clear="rt !== 'invoice'"
+                  class="w-full"
+                />
+              </AppFormField>
+            </section>
+            <section class="flex flex-col gap-4">
+              <h2 class="font-semibold">{{ t('designer.assignmentsMails') }}</h2>
+              <AppFormField
+                v-for="kind in mailKinds"
+                :key="kind"
+                :field="kind"
+                :label="t(`designer.mailKinds.${kind}`)"
+                required
+              >
+                <Select
+                  v-model="mailAssignments[kind]"
+                  :options="mailRows"
+                  option-label="name"
+                  option-value="id"
+                  class="w-full"
+                />
+              </AppFormField>
+            </section>
           </div>
         </TabPanel>
         <TabPanel value="templates" class="pt-4">
@@ -247,6 +341,11 @@ async function importTemplate(event: Event) {
             <Column :header="t('common.actions')" :reorderable-column="false">
               <template #body="{ data }">
                 <AppIconButton
+                  icon="pi pi-copy"
+                  :label="t('designer.duplicate')"
+                  @click.stop="duplicateTemplate(data)"
+                />
+                <AppIconButton
                   icon="pi pi-download"
                   :href="templatesApi.exportUrl(data.id)"
                   download
@@ -259,6 +358,43 @@ async function importTemplate(event: Event) {
                   icon="pi pi-trash"
                   severity="danger"
                   @click.stop="removeTemplate(data)"
+                />
+              </template>
+            </Column>
+          </AppDataTable>
+        </TabPanel>
+        <TabPanel value="mailTemplates" class="pt-4">
+          <AppDataTable
+            :rows="mailRows"
+            :loading="loading"
+            :state-key="tableStateKeys.mailTemplates"
+            @row-click="(r: MailTemplate) => router.push(`/templates/mail/${r.id}`)"
+          >
+            <Column class="app-text" field="name" :header="t('common.name')" sortable />
+            <Column class="app-text" :header="t('designer.mailBase')">
+              <template #body="{ data }">{{ data.base ? mailNames.get(data.base) : '—' }}</template>
+            </Column>
+            <Column class="app-text" :header="t('designer.usedFor')">
+              <template #body="{ data }">{{
+                data.assigned_kinds
+                  .map((kind: string) => t(`designer.mailKinds.${kind}`))
+                  .join(', ')
+              }}</template>
+            </Column>
+            <Column class="app-num" field="derived_count" :header="t('designer.derived')" />
+            <Column :header="t('common.actions')" :reorderable-column="false">
+              <template #body="{ data }">
+                <AppIconButton
+                  icon="pi pi-copy"
+                  :label="t('designer.duplicate')"
+                  @click.stop="duplicateMailTemplate(data)"
+                />
+                <!-- Assigned templates and bases of others stay; the backend refuses. -->
+                <AppIconButton
+                  v-if="!data.assigned_kinds.length && !data.derived_count"
+                  icon="pi pi-trash"
+                  severity="danger"
+                  @click.stop="removeMailTemplate(data)"
                 />
               </template>
             </Column>
@@ -308,6 +444,33 @@ async function importTemplate(event: Event) {
         <AppFormField field="name" :label="t('common.name')" required>
           <!-- eslint-disable-next-line vuejs-accessibility/no-autofocus -- the dialog's only field, opened on purpose to type a name. -->
           <InputText v-model="newTemplateForm.name" class="w-full" autofocus />
+        </AppFormField>
+      </form>
+    </AppModal>
+
+    <AppModal
+      ref="newMailModal"
+      :form="newMailForm"
+      :title="t('designer.newMailTemplate')"
+      :confirm-label="t('common.create')"
+      :loading="creatingTemplate"
+      @confirm="createMailTemplate"
+    >
+      <form class="flex flex-col gap-4" @submit.prevent="createMailTemplate">
+        <AppFormField field="name" :label="t('common.name')" required>
+          <!-- eslint-disable-next-line vuejs-accessibility/no-autofocus -- opened on purpose to type a name. -->
+          <InputText v-model="newMailForm.name" class="w-full" autofocus />
+        </AppFormField>
+        <AppFormField field="base" :label="t('designer.mailBase')">
+          <Select
+            v-model="newMailForm.base"
+            :options="mailRows"
+            option-label="name"
+            option-value="id"
+            show-clear
+            :placeholder="t('designer.noBase')"
+            class="w-full"
+          />
         </AppFormField>
       </form>
     </AppModal>

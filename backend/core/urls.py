@@ -16,6 +16,7 @@ from core.views.health import HealthView
 from core.views.hourly_rate import HourlyRateViewSet
 from core.views.invoice import InvoiceViewSet
 from core.views.invoice_line_item import InvoiceLineItemViewSet
+from core.views.mail_template import MailTemplateViewSet
 from core.views.payment import PaymentViewSet
 from core.views.project import ProjectViewSet
 from core.views.security import (
@@ -48,6 +49,7 @@ router.register("time-tracking", TimeEntryViewSet, basename="time-tracking")
 router.register("hourly-rates", HourlyRateViewSet, basename="hourly-rate")
 router.register("support-contracts", SupportContractViewSet, basename="support-contract")
 router.register("document-templates", DocumentTemplateViewSet, basename="document-template")
+router.register("mail-templates", MailTemplateViewSet, basename="mail-template")
 router.register("invoices", InvoiceViewSet, basename="invoice")
 router.register("invoice-items", InvoiceLineItemViewSet, basename="invoice-item")
 router.register("payments", PaymentViewSet, basename="payment")

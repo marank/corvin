@@ -101,8 +101,10 @@ def test_backup_task_does_nothing_without_backup_dir(settings):
 
 def test_send_invoice_email_task_delegates_to_mailer():
     with mock.patch("core.tasks.mailer.send_invoice_email") as send:
-        tasks.send_invoice_email(invoice_id="id", to="a@b.c", subject="S", body="B")
-    send.assert_called_once_with("id", "a@b.c", "S", "B")
+        tasks.send_invoice_email(
+            invoice_id="id", to="a@b.c", subject="S", html="<p>H</p>", text="H"
+        )
+    send.assert_called_once_with("id", "a@b.c", "S", "<p>H</p>", "H", None, "invoice", "")
 
 
 # --- backups ---------------------------------------------------------------------------

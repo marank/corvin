@@ -87,7 +87,7 @@ def test_pdf_uses_template_page_size(user, page_size, points):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("field", ["body_html", "header_html", "css", "mail_subject"])
+@pytest.mark.parametrize("field", ["body_html", "header_html", "css"])
 def test_template_with_syntax_error_is_rejected(user, invoice_template, field):
     client = APIClient()
     client.force_authenticate(user)

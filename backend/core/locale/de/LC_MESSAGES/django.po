@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Corvin\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-26 01:35+0100\n"
+"POT-Creation-Date: 2026-11-26 02:23+0100\n"
 "PO-Revision-Date: 2026-11-03 01:10+0100\n"
 "Last-Translator: Corvin\n"
 "Language-Team: German\n"
@@ -72,8 +72,18 @@ msgstr "Muss ein Objekt sein."
 msgid "Unknown report types: %(names)s."
 msgstr "Unbekannte Belegtypen: %(names)s."
 
+msgid "Choose a template."
+msgstr "Wähle eine Vorlage."
+
 msgid "Invalid template."
 msgstr "Ungültige Vorlage."
+
+#, python-format
+msgid "Unknown mail kinds: %(names)s."
+msgstr "Unbekannte E-Mail-Arten: %(names)s."
+
+msgid "The template has no subject; it cannot be sent."
+msgstr "Die Vorlage hat keinen Betreff und kann so nicht versendet werden."
 
 msgid "Enter a CSS color, e.g. #1f2937."
 msgstr "Bitte eine CSS-Farbe angeben, z. B. #1f2937."
@@ -115,17 +125,15 @@ msgstr "Die Rechnung hat keine Positionen."
 msgid "Missing required fields: %(fields)s"
 msgstr "Pflichtangaben fehlen: %(fields)s"
 
-msgid "Invoice {{ invoice.number }}"
-msgstr "Rechnung {{ invoice.number }}"
+msgid "A template cannot build on itself."
+msgstr "Eine Vorlage kann nicht auf sich selbst aufbauen."
 
-msgid ""
-"Dear customer,\n"
-"\n"
-"please find attached your invoice."
-msgstr ""
-"Sehr geehrte Damen und Herren,\n"
-"\n"
-"anbei erhalten Sie unsere Rechnung."
+msgid "With a base, everything goes inside blocks; the rest would not show."
+msgstr "Mit Basis gehört alles in Blöcke, der Rest würde nicht angezeigt."
+
+#, python-format
+msgid "The base has no block %(names)s."
+msgstr "Die Basis hat keinen Block %(names)s."
 
 msgid "Only finalized invoices can be sent."
 msgstr "Nur finalisierte Rechnungen können versendet werden."
@@ -208,6 +216,10 @@ msgstr ""
 msgid "The last template cannot be deleted."
 msgstr "Die letzte Vorlage kann nicht gelöscht werden."
 
+#, python-format
+msgid "%(name)s (copy)"
+msgstr "%(name)s (Kopie)"
+
 msgid "Invalid template file."
 msgstr "Die Vorlagendatei ist ungültig."
 
@@ -244,8 +256,18 @@ msgstr "Das Versanddatum darf nicht vor dem Rechnungsdatum liegen."
 msgid "Paid invoices cannot be cancelled."
 msgstr "Bezahlte Rechnungen können nicht storniert werden."
 
+msgid "Unknown mail kind."
+msgstr "Unbekannte E-Mail-Art."
+
 msgid "A line item cannot be moved to another invoice."
 msgstr "Eine Position kann nicht in eine andere Rechnung verschoben werden."
+
+msgid "The template is assigned to a mail kind."
+msgstr "Die Vorlage ist einer E-Mail-Art zugeordnet."
+
+#, python-format
+msgid "Templates build on it: %(names)s."
+msgstr "Darauf bauen Vorlagen auf: %(names)s."
 
 msgid "Wrong password."
 msgstr "Das Passwort ist falsch."

@@ -82,6 +82,8 @@ class CompanySettings(UuidModel):
     currency_space = models.BooleanField(default=True)
     theme = models.CharField(max_length=10, default="light")
     template_assignments = models.JSONField(default=dict, blank=True)
+    # Mail kind (MailTemplate.Kind) -> MailTemplate id.
+    mail_template_assignments = models.JSONField(default=dict, blank=True)
     time_rounding_start_direction = models.CharField(
         max_length=10,
         choices=TimeRoundingDirection.choices,
