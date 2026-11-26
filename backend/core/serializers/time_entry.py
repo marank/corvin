@@ -20,6 +20,7 @@ class TimeEntrySerializer(OwnedSerializer[TimeEntry]):
     project_name = serializers.CharField(source="project.name", read_only=True, default=None)
     customer_name = serializers.CharField(source="customer.name", read_only=True, default=None)
     contract_name = serializers.CharField(source="contract.name", read_only=True, default=None)
+    invoice_number = serializers.CharField(source="invoice.number", read_only=True, default=None)
     hours = serializers.FloatField(read_only=True)
     is_running = serializers.BooleanField(read_only=True)
     breaks = TimeEntryBreakSerializer(many=True, required=False)
@@ -82,6 +83,7 @@ class TimeEntrySerializer(OwnedSerializer[TimeEntry]):
             "visit",
             "contract",
             "contract_name",
+            "invoice_number",
             "start_datetime",
             "end_datetime",
             "normalized_start_datetime",

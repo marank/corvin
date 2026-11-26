@@ -310,12 +310,18 @@ async function run(action: () => Promise<unknown>) {
           <i v-if="data.billable" class="pi pi-check" />
         </template>
       </Column>
-      <Column :header="t('common.status')">
+      <Column :header="t('time.invoiced')">
         <template #body="{ data }">
-          <Tag v-if="data.invoice" :value="t('time.invoiced')" severity="info" />
-          <Tag v-else-if="data.contract" :value="data.contract_name" severity="secondary" />
+          <router-link
+            v-if="data.invoice"
+            :to="`/invoices/${data.invoice}`"
+            class="text-primary"
+            @click.stop
+            >{{ data.invoice_number || t('time.invoiced') }}</router-link
+          >
         </template>
       </Column>
+      <Column class="app-text" field="contract_name" :header="t('invoices.contract')" />
       <Column :reorderable-column="false">
         <template #body="{ data }"
           ><AppIconButton

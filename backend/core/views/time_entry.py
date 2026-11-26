@@ -23,9 +23,9 @@ class StartTimerSerializer(serializers.Serializer[Any]):
 
 
 class TimeEntryViewSet(OwnedViewSet[TimeEntry]):
-    queryset = TimeEntry.objects.select_related("customer", "project", "contract").prefetch_related(
-        "breaks"
-    )
+    queryset = TimeEntry.objects.select_related(
+        "customer", "project", "contract", "invoice"
+    ).prefetch_related("breaks")
     serializer_class = TimeEntrySerializer
     filterset_fields = {
         "customer": ["exact"],

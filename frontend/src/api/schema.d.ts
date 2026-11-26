@@ -3307,6 +3307,7 @@ export interface components {
              */
             contract?: string | null;
             readonly contract_name: string;
+            readonly invoice_number: string;
             /** Format: date-time */
             start_datetime: string;
             /** Format: date-time */

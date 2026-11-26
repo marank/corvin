@@ -4,7 +4,7 @@ export const tableStateKeys = {
   customers: 'customers-v2',
   projects: 'projects-v2',
   tasks: 'tasks-v2',
-  timeTracking: 'time-tracking-v2',
+  timeTracking: 'time-tracking-v3',
   visits: 'visits-v2',
   contracts: 'contracts-v2',
   invoices: 'invoices-v2',

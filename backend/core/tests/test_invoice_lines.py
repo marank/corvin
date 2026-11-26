@@ -235,3 +235,12 @@ def test_entries_are_not_linked_through_the_time_api(client, customer, entries):
     assert r.status_code == 200
     open_entry.refresh_from_db()
     assert open_entry.invoice is None
+
+
+@pytest.mark.django_db
+def test_time_list_names_the_invoice_an_entry_is_billed_on(client, customer, entries):
+    invoice = _consolidate(client, customer, entry_ids=_ids(entries[0]))
+    Invoice.objects.filter(pk=invoice.pk).update(number="RE-2026-0042")
+    rows = {e["id"]: e for e in client.get("/api/v1/time-tracking/").json()["results"]}
+    assert rows[str(entries[0].id)]["invoice_number"] == "RE-2026-0042"
+    assert rows[str(entries[1].id)]["invoice_number"] is None

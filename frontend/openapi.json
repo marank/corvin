@@ -13484,6 +13484,10 @@
                         "type": "string",
                         "readOnly": true
                     },
+                    "invoice_number": {
+                        "type": "string",
+                        "readOnly": true
+                    },
                     "start_datetime": {
                         "type": "string",
                         "format": "date-time"
@@ -13563,6 +13567,7 @@
                     "hours",
                     "id",
                     "invoice",
+                    "invoice_number",
                     "is_paused",
                     "is_running",
                     "project_name",
