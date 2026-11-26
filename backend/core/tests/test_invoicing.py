@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from unittest import mock
 
@@ -66,6 +66,26 @@ def test_mark_sent_updates_status_and_timestamp(user, draft_invoice):
     assert r.status_code == 200
     assert r.json()["status"] == Invoice.Status.SENT
     assert r.json()["sent_at"] is not None
+
+
+@pytest.mark.django_db
+def test_mark_sent_on_an_earlier_day(user, draft_invoice):
+    Invoice.objects.filter(pk=draft_invoice.pk).update(
+        status=Invoice.Status.ISSUED, issue_date=date(2026, 9, 1)
+    )
+    c = APIClient()
+    c.force_authenticate(user)
+    url = f"/api/v1/invoices/{draft_invoice.id}/mark_sent/"
+    assert c.post(url, {"sent_on": "2026-08-31"}, format="json").status_code == 400
+    tomorrow = timezone.localdate() + timedelta(days=1)
+    assert c.post(url, {"sent_on": tomorrow.isoformat()}, format="json").status_code == 400
+
+    r = c.post(url, {"sent_on": "2026-09-03"}, format="json")
+    assert r.status_code == 200
+    draft_invoice.refresh_from_db()
+    assert draft_invoice.status == Invoice.Status.SENT
+    assert draft_invoice.sent_at is not None
+    assert timezone.localdate(draft_invoice.sent_at) == date(2026, 9, 3)
 
 
 @pytest.mark.django_db

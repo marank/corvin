@@ -25,6 +25,7 @@
     "settings": "Einstellungen"
   },
   "common": {
+    "moreActions": "Weitere Aktionen",
     "save": "Speichern",
     "cancel": "Abbrechen",
     "delete": "Löschen",
@@ -251,6 +252,9 @@
     "generatedInvoice": "Rechnung erstellt"
   },
   "invoices": {
+    "documentPdf": "Rechnung (PDF)",
+    "documentTimeReport": "Leistungsnachweis (PDF)",
+    "documentXml": "E-Rechnung (XRechnung-XML)",
     "contract": "Vertrag",
     "sentAt": "Gesendet am",
     "documents": "Dokumente",
@@ -264,7 +268,6 @@
     "otherProjectsTitle": "Positionen anderer Projekte entfernen?",
     "otherProjectsMessage": "Eine Zeit stammt aus einem anderen Projekt und würde entfernt. | {n} Zeiten stammen aus anderen Projekten und würden entfernt.",
     "removeOtherProjects": "Entfernen",
-    "downloadTimeReport": "Leistungsnachweis",
     "resetText": "Text zurücksetzen",
     "regroupTitle": "Gruppierung ändern?",
     "regroupMessage": "Die Positionen aus Zeiten werden neu gebildet. Deine geänderten Texte gehen dabei verloren.",
@@ -317,14 +320,12 @@
     "markSent": "Als gesendet markieren",
     "addPayment": "Zahlung hinzufügen",
     "payments": "Zahlungen",
-    "downloadXml": "XML herunterladen",
     "preview": "Vorschau",
     "items": "Positionen",
     "contacts": "Rechnungs-Ansprechpartner",
     "inheritedBankAccount": "Kunden- oder Unternehmensstandard",
     "quantity": "Menge",
     "unitPrice": "Einzelpreis",
-    "downloadPdf": "PDF herunterladen",
     "finalizeConfirm": "Nach dem Finalisieren wird die Rechnung archiviert und kann nicht mehr geändert werden. Fortfahren?",
     "cancelInvoice": "Stornieren",
     "cancelConfirm": "Die Rechnung wird als storniert markiert. Das lässt sich nicht rückgängig machen. Fortfahren?",

@@ -2095,6 +2095,10 @@ export interface components {
             /** Format: decimal */
             unit_price: string;
         };
+        MarkSentRequest: {
+            /** Format: date */
+            sent_on?: string;
+        };
         Me: {
             id: number;
             username: string;
@@ -5378,11 +5382,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": components["schemas"]["InvoiceRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["InvoiceRequest"];
-                "multipart/form-data": components["schemas"]["InvoiceRequest"];
+                "application/json": components["schemas"]["MarkSentRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["MarkSentRequest"];
+                "multipart/form-data": components["schemas"]["MarkSentRequest"];
             };
         };
         responses: {

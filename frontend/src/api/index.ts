@@ -487,7 +487,9 @@ export const invoicesApi = {
   draftPreview: (id: string, d: ConsolidateRequest) =>
     api.post<ConsolidatePreview>(`${base}/invoices/${id}/draft_preview/`, d),
   finalize: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/finalize/`),
-  markSent: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/mark_sent/`),
+  // `sent_on`: the day it went out (omitted: now).
+  markSent: (id: string, d: { sent_on?: string } = {}) =>
+    api.post<Invoice>(`${base}/invoices/${id}/mark_sent/`, d),
   cancel: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/cancel/`),
   emailDraft: (id: string) =>
     api.get<{ subject: string; body: string }>(`${base}/invoices/${id}/email_draft/`),

@@ -25,6 +25,7 @@
     "settings": "Settings"
   },
   "common": {
+    "moreActions": "More actions",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -251,6 +252,9 @@
     "generatedInvoice": "Invoice created"
   },
   "invoices": {
+    "documentPdf": "Invoice (PDF)",
+    "documentTimeReport": "Time report (PDF)",
+    "documentXml": "E-invoice (XRechnung XML)",
     "contract": "Contract",
     "sentAt": "Sent on",
     "documents": "Documents",
@@ -264,7 +268,6 @@
     "otherProjectsTitle": "Remove lines of other projects?",
     "otherProjectsMessage": "One time entry is from another project and would be removed. | {n} time entries are from other projects and would be removed.",
     "removeOtherProjects": "Remove",
-    "downloadTimeReport": "Time report",
     "resetText": "Reset text",
     "regroupTitle": "Change the grouping?",
     "regroupMessage": "The lines from time entries are built anew. The texts you changed are lost.",
@@ -317,14 +320,12 @@
     "markSent": "Mark as sent",
     "addPayment": "Add payment",
     "payments": "Payments",
-    "downloadXml": "Download XML",
     "preview": "Preview",
     "items": "Line items",
     "contacts": "Invoice contacts",
     "inheritedBankAccount": "Customer or company default",
     "quantity": "Qty",
     "unitPrice": "Unit price",
-    "downloadPdf": "Download PDF",
     "finalizeConfirm": "Finalizing archives the invoice; it can no longer be changed. Continue?",
     "cancelInvoice": "Cancel invoice",
     "cancelConfirm": "The invoice will be marked as cancelled. This cannot be undone. Continue?",

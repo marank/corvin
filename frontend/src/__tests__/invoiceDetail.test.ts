@@ -109,6 +109,7 @@ describe('InvoiceDetailView', () => {
     it('is deleted after confirmation and leaves for the list', async () => {
       const { api, router } = await open()
       api.delete('/invoices/inv-1/')
+      await click(screen.button(t('common.moreActions')))
       await click(screen.button(t('common.delete')))
       await answerConfirm(t('common.delete'))
       expect(api.requests('DELETE', '/invoices/inv-1/')).toHaveLength(1)
@@ -118,6 +119,7 @@ describe('InvoiceDetailView', () => {
     it('says so when the delete is refused', async () => {
       const { api, router } = await open()
       api.delete('/invoices/inv-1/', reply(409, { detail: 'Invoice is referenced.' }))
+      await click(screen.button(t('common.moreActions')))
       await click(screen.button(t('common.delete')))
       await answerConfirm(t('common.delete'))
       expect(toasts().join()).toContain('Invoice is referenced.')
@@ -131,6 +133,10 @@ describe('InvoiceDetailView', () => {
       expect(screen.hasButton(t('invoices.finalize'))).toBe(false)
       expect(screen.hasButton(t('invoices.addLine'))).toBe(false)
       expect(screen.hasButton(t('common.edit'))).toBe(false)
+      // Its ⋮ menu offers cancelling, not deleting.
+      await click(screen.button(t('common.moreActions')))
+      expect(screen.hasButton(t('invoices.cancelInvoice'))).toBe(true)
+      expect(screen.hasButton(t('common.delete'))).toBe(false)
       expect(screen.text()).toContain(`${t('settings.bankAccount')}Hausbank`)
     })
 
@@ -139,17 +145,23 @@ describe('InvoiceDetailView', () => {
       expect(screen.text()).toContain(t('invoices.receivables.overdue'))
     })
 
-    it('links the PDF, and the XML only for XRechnung', async () => {
+    it('offers the PDF under "Dokumente", without time report and XML here', async () => {
       await open(issued())
-      expect(screen.button(t('invoices.downloadPdf')).getAttribute('href')).toBe(
+      await click(screen.button(t('invoices.documents')))
+      expect(screen.button(t('invoices.documentPdf')).getAttribute('href')).toBe(
         '/api/v1/invoices/inv-1/pdf/',
       )
-      expect(screen.hasButton(t('invoices.downloadXml'))).toBe(false)
+      expect(screen.hasButton(t('invoices.documentTimeReport'))).toBe(false)
+      expect(screen.hasButton(t('invoices.documentXml'))).toBe(false)
     })
 
-    it('offers the XRechnung XML', async () => {
-      await open(issued({ e_invoice_format: 'xrechnung' }))
-      expect(screen.button(t('invoices.downloadXml')).getAttribute('href')).toBe(
+    it('offers the time report and the XRechnung XML when there are some', async () => {
+      await open(issued({ e_invoice_format: 'xrechnung', has_time_entries: true }))
+      await click(screen.button(t('invoices.documents')))
+      expect(screen.button(t('invoices.documentTimeReport')).getAttribute('href')).toBe(
+        '/api/v1/invoices/inv-1/time-report/',
+      )
+      expect(screen.button(t('invoices.documentXml')).getAttribute('href')).toBe(
         '/api/v1/invoices/inv-1/xrechnung/',
       )
     })
@@ -230,11 +242,18 @@ describe('InvoiceDetailView', () => {
       expect(modal.input(t('designer.mailSubject')).value).toBe('')
     })
 
-    it('marks as sent', async () => {
+    it('marks as sent on the day given, today by default', async () => {
       const { api } = await open(issued())
       api.post('/invoices/inv-1/mark_sent/', issued({ status: 'sent' }))
+      await click(screen.button(t('common.moreActions')))
       await click(screen.button(t('invoices.markSent')))
-      expect(api.requests('POST', '/invoices/inv-1/mark_sent/')).toHaveLength(1)
+      const modal = dialog(t('invoices.markSent'))
+      expect(modal.input(t('invoices.sentAt')).value).toBe('23.11.2026')
+      await type(modal.input(t('invoices.sentAt')), '20.11.2026')
+      await click(modal.button(t('invoices.markSent')))
+      expect(api.lastBody('POST', '/invoices/inv-1/mark_sent/')).toEqual({
+        sent_on: '2026-11-20',
+      })
     })
 
     it('is cancelled only after confirmation', async () => {
@@ -243,6 +262,7 @@ describe('InvoiceDetailView', () => {
         state.invoice = issued({ status: 'cancelled' })
         return state.invoice
       })
+      await click(screen.button(t('common.moreActions')))
       await click(screen.button(t('invoices.cancelInvoice')))
       expect(confirmText()).toContain(t('invoices.cancelConfirm'))
       await answerConfirm(t('invoices.cancelInvoice'))

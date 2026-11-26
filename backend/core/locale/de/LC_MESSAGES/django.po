@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Corvin\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-26 00:24+0100\n"
+"POT-Creation-Date: 2026-11-26 01:35+0100\n"
 "PO-Revision-Date: 2026-11-03 01:10+0100\n"
 "Last-Translator: Corvin\n"
 "Language-Team: German\n"
@@ -96,10 +96,20 @@ msgid "Unknown grouping: %(group_by)s"
 msgstr "Unbekannte Gruppierung: %(group_by)s"
 
 msgid "A line bills time entries that are not open or twice."
-msgstr "Eine Position rechnet Zeiten ab, die nicht offen sind oder doppelt vorkommen."
+msgstr ""
+"Eine Position rechnet Zeiten ab, die nicht offen sind oder doppelt vorkommen."
 
 msgid "No billable, uninvoiced time entries found."
 msgstr "Keine abrechenbaren, noch nicht abgerechneten Zeiteinträge gefunden."
+
+msgid "Only draft invoices can be edited."
+msgstr "Nur Rechnungsentwürfe können bearbeitet werden."
+
+msgid "The customer of an invoice cannot be changed."
+msgstr "Der Kunde einer Rechnung kann nicht geändert werden."
+
+msgid "Invoice has no line items."
+msgstr "Die Rechnung hat keine Positionen."
 
 #, python-format
 msgid "Missing required fields: %(fields)s"
@@ -204,12 +214,6 @@ msgstr "Die Vorlagendatei ist ungültig."
 msgid "Unsupported template format or version."
 msgstr "Dieses Vorlagenformat bzw. diese Version wird nicht unterstützt."
 
-msgid "Only draft invoices can be edited."
-msgstr "Nur Rechnungsentwürfe können bearbeitet werden."
-
-msgid "The customer of an invoice cannot be changed."
-msgstr "Der Kunde einer Rechnung kann nicht geändert werden."
-
 msgid "Only draft invoices can be deleted."
 msgstr "Nur Rechnungsentwürfe können gelöscht werden."
 
@@ -225,14 +229,17 @@ msgstr "Ungültige Kontakte."
 msgid "Invoice already finalized."
 msgstr "Die Rechnung ist bereits finalisiert."
 
-msgid "Invoice has no line items."
-msgstr "Die Rechnung hat keine Positionen."
-
 msgid "No bank account with an IBAN for this invoice."
 msgstr "Für diese Rechnung ist kein Bankkonto mit IBAN hinterlegt."
 
 msgid "Only issued invoices can be marked as sent."
 msgstr "Nur ausgestellte Rechnungen können als gesendet markiert werden."
+
+msgid "The sending date cannot be in the future."
+msgstr "Das Versanddatum darf nicht in der Zukunft liegen."
+
+msgid "The sending date cannot be before the issue date."
+msgstr "Das Versanddatum darf nicht vor dem Rechnungsdatum liegen."
 
 msgid "Paid invoices cannot be cancelled."
 msgstr "Bezahlte Rechnungen können nicht storniert werden."

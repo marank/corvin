@@ -8,6 +8,7 @@ import Button from 'primevue/button'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
+import Menu from 'primevue/menu'
 import Message from 'primevue/message'
 import Textarea from 'primevue/textarea'
 import Tabs from 'primevue/tabs'
@@ -62,6 +63,65 @@ const previewUrl = computed(() => `${invoicesApi.previewUrl(id)}?v=${previewVers
 const pdfUrl = computed(() => invoicesApi.pdfUrl(id))
 const xmlUrl = computed(() => invoicesApi.xmlUrl(id))
 const timeReportUrl = computed(() => invoicesApi.timeReportUrl(id))
+// The documents to download, behind "Dokumente" in the header.
+const documentsMenu = ref<InstanceType<typeof Menu>>()
+const documents = computed(() => [
+  { label: t('invoices.documentPdf'), icon: 'pi pi-file-pdf', url: pdfUrl.value, target: '_blank' },
+  ...(invoice.value?.has_time_entries
+    ? [
+        {
+          label: t('invoices.documentTimeReport'),
+          icon: 'pi pi-list',
+          url: timeReportUrl.value,
+          target: '_blank',
+        },
+      ]
+    : []),
+  ...(invoice.value?.e_invoice_format === 'xrechnung'
+    ? [
+        {
+          label: t('invoices.documentXml'),
+          icon: 'pi pi-code',
+          url: xmlUrl.value,
+          target: '_blank',
+        },
+      ]
+    : []),
+])
+// Rarely needed actions behind the ⋮ button.
+const moreMenu = ref<InstanceType<typeof Menu>>()
+// The theme colours the link itself; only its label and icon turn red.
+const dangerItem = '[&_.p-menu-item-label]:text-danger [&_.p-menu-item-icon]:text-danger'
+const moreActions = computed(() => [
+  ...(invoice.value?.status === 'issued'
+    ? [{ label: t('invoices.markSent'), icon: 'pi pi-envelope', command: openMarkSent }]
+    : []),
+  ...(isDraft.value
+    ? [
+        {
+          label: t('common.delete'),
+          icon: 'pi pi-trash',
+          class: dangerItem,
+          command: () =>
+            confirmDelete(async () => {
+              await invoicesApi.remove(id)
+              void router.push('/invoices')
+            }),
+        },
+      ]
+    : []),
+  // Only while nothing has been paid on it.
+  ...(canReceivePayment.value && Number(invoice.value?.amount_paid) === 0
+    ? [
+        {
+          label: t('invoices.cancelInvoice'),
+          icon: 'pi pi-ban',
+          class: dangerItem,
+          command: confirmCancel,
+        },
+      ]
+    : []),
+])
 const isDraft = computed(() => invoice.value?.status === 'draft')
 const statusKey = computed(() =>
   invoice.value?.partially_paid ? 'partially_paid' : (invoice.value?.status ?? ''),
@@ -161,6 +221,22 @@ async function sendEmail() {
   })
 }
 
+// Sent another way (by post, from the mail client): on which day, today unless told.
+const markSentModal = ref<InstanceType<typeof AppModal>>()
+const markSentForm = ref({ sent_on: isoDate() })
+
+function openMarkSent() {
+  markSentForm.value = { sent_on: isoDate() }
+  markSentModal.value?.open()
+}
+
+async function markSent() {
+  await act(async () => {
+    await invoicesApi.markSent(id, markSentForm.value)
+    markSentModal.value?.close()
+  })
+}
+
 async function addPayment() {
   await act(async () => {
     await paymentsApi.create({ ...paymentForm.value, invoice: id })
@@ -182,6 +258,16 @@ async function addPayment() {
         <AppStatusTag :status="statusKey" :label="t(`invoices.status.${statusKey}`)" />
       </template>
       <template #actions>
+        <Button
+          :label="t('invoices.documents')"
+          icon="pi pi-chevron-down"
+          icon-pos="right"
+          severity="secondary"
+          outlined
+          aria-haspopup="menu"
+          @click="documentsMenu?.toggle($event)"
+        />
+        <Menu ref="documentsMenu" :model="documents" popup />
         <!-- A draft is edited on the create page; nothing is changed here. -->
         <Button
           v-if="isDraft"
@@ -210,33 +296,17 @@ async function addPayment() {
           icon="pi pi-money-bill"
           @click="openPayment"
         />
-        <Button
-          v-if="invoice.status === 'issued'"
-          :label="t('invoices.markSent')"
-          text
-          :loading="busy"
-          @click="act(() => invoicesApi.markSent(id))"
-        />
-        <Button
-          v-if="canReceivePayment && Number(invoice.amount_paid) === 0"
-          :label="t('invoices.cancelInvoice')"
-          text
-          severity="danger"
-          :loading="busy"
-          @click="confirmCancel"
-        />
-        <Button
-          v-if="isDraft"
-          :label="t('common.delete')"
-          text
-          severity="danger"
-          @click="
-            confirmDelete(async () => {
-              await invoicesApi.remove(id)
-              router.push('/invoices')
-            })
-          "
-        />
+        <template v-if="moreActions.length">
+          <Button
+            icon="pi pi-ellipsis-v"
+            text
+            severity="secondary"
+            :aria-label="t('common.moreActions')"
+            aria-haspopup="menu"
+            @click="moreMenu?.toggle($event)"
+          />
+          <Menu ref="moreMenu" :model="moreActions" popup />
+        </template>
       </template>
     </AppPageHeader>
 
@@ -338,40 +408,6 @@ async function addPayment() {
               <dd class="whitespace-pre-line">{{ invoice.notes }}</dd>
             </div>
           </dl>
-          <div
-            class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-surface-200 dark:border-surface-800"
-          >
-            <span class="text-sm text-surface-500 me-1">{{ t('invoices.documents') }}</span>
-            <Button
-              as="a"
-              :href="pdfUrl"
-              target="_blank"
-              :label="t('invoices.downloadPdf')"
-              icon="pi pi-file-pdf"
-              size="small"
-              outlined
-            />
-            <Button
-              v-if="invoice.e_invoice_format === 'xrechnung'"
-              as="a"
-              :href="xmlUrl"
-              target="_blank"
-              :label="t('invoices.downloadXml')"
-              icon="pi pi-code"
-              size="small"
-              outlined
-            />
-            <Button
-              v-if="invoice.has_time_entries"
-              as="a"
-              :href="timeReportUrl"
-              target="_blank"
-              :label="t('invoices.downloadTimeReport')"
-              icon="pi pi-list"
-              size="small"
-              outlined
-            />
-          </div>
         </section>
 
         <Tabs v-model:value="tab">
@@ -524,6 +560,18 @@ async function addPayment() {
           ><Textarea v-model="emailForm.body" rows="8" class="w-full"
         /></AppFormField>
       </div>
+    </AppModal>
+
+    <AppModal
+      ref="markSentModal"
+      :form="markSentForm"
+      :title="t('invoices.markSent')"
+      :confirm-label="t('invoices.markSent')"
+      @confirm="markSent"
+    >
+      <AppFormField field="sent_on" :label="t('invoices.sentAt')" required
+        ><AppDateInput v-model="markSentForm.sent_on"
+      /></AppFormField>
     </AppModal>
 
     <AppModal

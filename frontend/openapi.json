@@ -4239,21 +4239,20 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/InvoiceRequest"
+                                "$ref": "#/components/schemas/MarkSentRequest"
                             }
                         },
                         "application/x-www-form-urlencoded": {
                             "schema": {
-                                "$ref": "#/components/schemas/InvoiceRequest"
+                                "$ref": "#/components/schemas/MarkSentRequest"
                             }
                         },
                         "multipart/form-data": {
                             "schema": {
-                                "$ref": "#/components/schemas/InvoiceRequest"
+                                "$ref": "#/components/schemas/MarkSentRequest"
                             }
                         }
-                    },
-                    "required": true
+                    }
                 },
                 "security": [
                     {
@@ -9945,6 +9944,15 @@
                     "description",
                     "unit_price"
                 ]
+            },
+            "MarkSentRequest": {
+                "type": "object",
+                "properties": {
+                    "sent_on": {
+                        "type": "string",
+                        "format": "date"
+                    }
+                }
             },
             "Me": {
                 "type": "object",

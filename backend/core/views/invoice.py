@@ -1,3 +1,4 @@
+from datetime import datetime, time
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
@@ -108,6 +109,11 @@ class DraftStateSerializer(serializers.Serializer[Any]):
     # The user's line texts by line key, where they differ from the generated ones.
     texts = serializers.DictField(child=serializers.CharField())
     own_lines = ManualLineSerializer(many=True)
+
+
+class MarkSentSerializer(serializers.Serializer[Any]):
+    # The day it went out (by post, through another channel); omitted: now.
+    sent_on = serializers.DateField(required=False)
 
 
 class SendEmailSerializer(serializers.Serializer[Any]):
@@ -350,13 +356,29 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
         invoice.save(update_fields=["status", "updated_at"])
         return Response(InvoiceSerializer(invoice, context={"request": request}).data)
 
+    @extend_schema(request=MarkSentSerializer, responses=InvoiceSerializer)
     @action(detail=True, methods=["post"])
     def mark_sent(self, request: Request, pk: str | None = None) -> Response:
         invoice = self.get_object()
         if invoice.status != Invoice.Status.ISSUED:
             raise ValidationError(_("Only issued invoices can be marked as sent."))
+        ser = MarkSentSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        sent_on = ser.validated_data.get("sent_on")
+        today = timezone.localdate()
+        if sent_on and sent_on > today:
+            raise ValidationError({"sent_on": _("The sending date cannot be in the future.")})
+        if sent_on and sent_on < invoice.issue_date:
+            raise ValidationError(
+                {"sent_on": _("The sending date cannot be before the issue date.")}
+            )
         invoice.status = Invoice.Status.SENT
-        invoice.sent_at = timezone.now()
+        # An earlier day: its noon, so the date stays the same in every time zone around.
+        invoice.sent_at = (
+            timezone.now()
+            if not sent_on or sent_on == today
+            else timezone.make_aware(datetime.combine(sent_on, time(12)))
+        )
         invoice.save(update_fields=["status", "sent_at", "updated_at"])
         return Response(InvoiceSerializer(invoice, context={"request": request}).data)
 
