@@ -12,6 +12,7 @@ from core.models import (
     Contact,
     HourlyRate,
     Invoice,
+    InvoiceMail,
     TimeEntry,
 )
 from core.services.consolidation import consolidate
@@ -382,16 +383,79 @@ def test_send_email_with_queue_defers_job_with_rendered_text(user, issued_invoic
         )
     assert r.status_code == 202
     app.configure_task.assert_called_once_with(
-        name="core.tasks.send_invoice_email", queueing_lock=None
+        name="core.tasks.send_invoice_mail", queueing_lock=None
     )
     kwargs = app.configure_task.return_value.defer.call_args.kwargs
-    assert kwargs["invoice_id"] == str(issued_invoice.id)
-    assert kwargs["to"] == ["billing@acme.test"]
-    # Rendered now from the template: the job sends exactly this.
-    assert kwargs["subject"] == f"Rechnung {issued_invoice.number}"
-    assert issued_invoice.number in kwargs["html"]
-    assert issued_invoice.number in kwargs["text"]
-    assert kwargs["kind"] == "invoice"
+    # Rendered now from the template and recorded: the job sends exactly this.
+    mail = InvoiceMail.objects.get(pk=kwargs["mail_id"])
+    assert mail.invoice == issued_invoice
+    assert mail.to == ["billing@acme.test"]
+    assert mail.subject == f"Rechnung {issued_invoice.number}"
+    assert issued_invoice.number in mail.html
+    assert issued_invoice.number in mail.text
+    assert mail.kind == "invoice"
+    assert mail.status == InvoiceMail.Status.QUEUED
+    assert mail.attachments == [f"{issued_invoice.number}.pdf"]
+
+
+@pytest.mark.django_db
+def test_the_history_shows_what_went_to_whom(
+    no_queue, user, issued_invoice, mailoutbox, django_capture_on_commit_callbacks
+):
+    c = APIClient()
+    c.force_authenticate(user)
+    with django_capture_on_commit_callbacks(execute=True):
+        c.post(
+            f"/api/v1/invoices/{issued_invoice.id}/send_email/",
+            {"to": ["billing@acme.test"], "subject": "Ihre Rechnung"},
+            format="json",
+        )
+        c.post(
+            f"/api/v1/invoices/{issued_invoice.id}/send_email/",
+            {"to": ["billing@acme.test"], "kind": "payment_reminder"},
+            format="json",
+        )
+    history = c.get(f"/api/v1/invoices/{issued_invoice.id}/mails/").json()
+    assert [(m["kind"], m["status"]) for m in history] == [
+        ("payment_reminder", "sent"),
+        ("invoice", "sent"),
+    ]
+    assert history[1]["subject"] == "Ihre Rechnung"
+    assert history[1]["to"] == ["billing@acme.test"]
+    assert history[1]["sent_at"]
+    assert "html" not in history[1]
+
+    detail = c.get(f"/api/v1/invoices/{issued_invoice.id}/mails/{history[1]['id']}/").json()
+    assert issued_invoice.number in detail["html"]
+    missing = c.get(f"/api/v1/invoices/{issued_invoice.id}/mails/{issued_invoice.id}/")
+    assert missing.status_code == 404
+
+
+@pytest.mark.django_db
+def test_a_failed_attempt_is_noted_and_retried(user, issued_invoice):
+    from core.services.mailer import queue_invoice_email, send_invoice_mail
+
+    with mock.patch("core.services.mailer.defer"):
+        queue_invoice_email(issued_invoice, ["billing@acme.test"])
+    mail = InvoiceMail.objects.get()
+    with (
+        mock.patch("core.services.mailer.HtmlMail.send", side_effect=OSError("SMTP down")),
+        pytest.raises(OSError, match="SMTP down"),
+    ):
+        send_invoice_mail(str(mail.pk))
+    mail.refresh_from_db()
+    assert mail.status == InvoiceMail.Status.QUEUED
+    assert mail.error == "SMTP down"
+    issued_invoice.refresh_from_db()
+    assert issued_invoice.status == Invoice.Status.ISSUED
+
+    with mock.patch("core.services.mailer.HtmlMail.send") as send:
+        send_invoice_mail(str(mail.pk))
+        send_invoice_mail(str(mail.pk))  # a retry after it went out: nothing twice
+    assert send.call_count == 1
+    mail.refresh_from_db()
+    assert mail.status == InvoiceMail.Status.SENT
+    assert mail.error == ""
 
 
 @pytest.mark.django_db

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
+import Menu from 'primevue/menu'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppStatusTag from '../../components/ui/AppStatusTag.vue'
@@ -26,6 +27,15 @@ const { t } = useI18n()
 const router = useRouter()
 const confirmDelete = useConfirmDelete()
 const rows = ref<Invoice[]>([])
+// Rarely needed actions behind the ⋮ button.
+const moreMenu = ref<InstanceType<typeof Menu>>()
+const moreActions = computed(() => [
+  {
+    label: t('invoices.importExternal'),
+    icon: 'pi pi-upload',
+    command: () => void router.push('/invoices/import'),
+  },
+])
 const preset = useQueryFilters()
 const receivableQuery = useRoute().query.receivable
 const receivables = ['open', 'overdue']
@@ -91,6 +101,15 @@ async function load() {
           icon="pi pi-plus"
           @click="router.push('/invoices/new')"
         />
+        <Button
+          icon="pi pi-ellipsis-v"
+          text
+          severity="secondary"
+          :aria-label="t('common.moreActions')"
+          aria-haspopup="menu"
+          @click="moreMenu?.toggle($event)"
+        />
+        <Menu ref="moreMenu" :model="moreActions" popup />
       </template>
     </AppPageHeader>
 

@@ -10,21 +10,29 @@ from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.clickjacking import xframe_options_exempt
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.parsers import MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from core.models import CompanySettings, Invoice, InvoiceLineItem, MailTemplate
 from core.request_helpers import request_user
-from core.serializers import InvoiceSerializer, TimeEntrySerializer
+from core.serializers import (
+    InvoiceMailDetailSerializer,
+    InvoiceMailSerializer,
+    InvoiceSerializer,
+    TimeEntrySerializer,
+)
 from core.services.archiving import archive_invoice
 from core.services.consolidation import consolidate, header_defaults, preview
 from core.services.draft_editing import draft_state, update_draft
 from core.services.erechnung import build_xrechnung_xml
+from core.services.external_invoices import import_external_invoice
 from core.services.mailer import default_recipients, queue_invoice_email, render_invoice_mail
 from core.services.pdf import render_invoice_html, render_invoice_pdf
 from core.services.time_report import render_time_report_pdf
@@ -122,6 +130,25 @@ class SendEmailSerializer(serializers.Serializer[Any]):
     kind = serializers.ChoiceField(
         choices=MailTemplate.Kind.choices, default=MailTemplate.Kind.INVOICE
     )
+
+
+class ExternalInvoiceSerializer(serializers.Serializer[Any]):
+    """An invoice written elsewhere, uploaded (multipart)."""
+
+    customer_id = serializers.UUIDField()
+    project_id = serializers.UUIDField(required=False, allow_null=True)
+    number = serializers.CharField(max_length=50)
+    issue_date = serializers.DateField()
+    due_date = serializers.DateField(required=False, allow_null=True)
+    # Without VAT (small business), net is the amount and the rate is ignored.
+    net = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal(0))
+    vat_rate = serializers.DecimalField(
+        max_digits=5, decimal_places=2, min_value=Decimal(0), required=False, allow_null=True
+    )
+    pdf = serializers.FileField()
+    xml = serializers.FileField(required=False, allow_null=True)
+    # The time entries it billed (open ones of the customer).
+    entry_ids = serializers.ListField(child=serializers.UUIDField(), required=False)
 
 
 class EmailDraftSerializer(serializers.Serializer[Any]):
@@ -396,14 +423,16 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
         invoice.save(update_fields=["status", "updated_at"])
         return Response(InvoiceSerializer(invoice, context={"request": request}).data)
 
+    @xframe_options_exempt
     @action(detail=True, methods=["get"])
     def pdf(self, request: Request, pk: str | None = None) -> HttpResponse | FileResponse:
+        """The archived PDF, else rendered now; `?inline=1` to show it (e.g. in a frame)."""
         invoice = self.get_object()
         doc = invoice.documents.filter(kind="pdf").first()
         if doc:
             return FileResponse(
                 doc.file.open("rb"),
-                as_attachment=True,
+                as_attachment=request.query_params.get("inline") != "1",
                 filename=f"{invoice.number}.pdf",
                 content_type="application/pdf",
             )
@@ -413,6 +442,69 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
             content_type="application/pdf",
             headers={"Content-Disposition": f'attachment; filename="{invoice.number}.pdf"'},
         )
+
+    @extend_schema(
+        request={"multipart/form-data": ExternalInvoiceSerializer},
+        responses={201: InvoiceSerializer},
+    )
+    @action(detail=False, methods=["post"], parser_classes=[MultiPartParser])
+    def import_external(self, request: Request) -> Response:
+        """Records an invoice written elsewhere: issued, its PDF (and XML) archived as
+        uploaded, the time entries it billed invoiced."""
+        from core.models import Customer, Project
+
+        ser = ExternalInvoiceSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        d = ser.validated_data
+        owner = request_user(request)
+        customer = Customer.objects.filter(owner=owner, pk=d["customer_id"]).first()
+        if not customer:
+            raise ValidationError({"customer_id": _("Invalid customer.")})
+        project = None
+        if d.get("project_id"):
+            project = Project.objects.filter(
+                owner=owner, customer=customer, pk=d["project_id"]
+            ).first()
+            if not project:
+                raise ValidationError({"project_id": _("Invalid project.")})
+        try:
+            invoice = import_external_invoice(
+                owner=owner,
+                customer=customer,
+                project=project,
+                number=d["number"],
+                issue_date=d["issue_date"],
+                due_date=d.get("due_date"),
+                net=d["net"],
+                vat_rate=d.get("vat_rate"),
+                pdf=d["pdf"].read(),
+                xml=d["xml"].read() if d.get("xml") else None,
+                entry_ids=d.get("entry_ids"),
+            )
+        except DjangoValidationError as e:
+            raise ValidationError(_validation_detail(e)) from e
+        return Response(
+            InvoiceSerializer(invoice, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    @extend_schema(responses=InvoiceMailSerializer(many=True))
+    @action(detail=True, methods=["get"])
+    def mails(self, request: Request, pk: str | None = None) -> Response:
+        """The mails about the invoice, newest first: what went (or goes) to whom."""
+        return Response(InvoiceMailSerializer(self.get_object().mails.all(), many=True).data)
+
+    @extend_schema(
+        parameters=[OpenApiParameter("mail_id", OpenApiTypes.UUID, OpenApiParameter.PATH)],
+        responses=InvoiceMailDetailSerializer,
+    )
+    @action(detail=True, methods=["get"], url_path=r"mails/(?P<mail_id>[^/.]+)")
+    def mail(self, request: Request, mail_id: str, pk: str | None = None) -> Response:
+        """One mail of the history, with its HTML as it was sent."""
+        mail = self.get_object().mails.filter(pk=mail_id).first()
+        if mail is None:
+            raise NotFound()
+        return Response(InvoiceMailDetailSerializer(mail).data)
 
     @extend_schema(responses=TimeEntrySerializer(many=True))
     @action(detail=True, methods=["get"], url_path="time-entries")

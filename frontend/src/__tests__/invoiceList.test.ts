@@ -66,6 +66,15 @@ describe('InvoiceListView', () => {
     expect(router.currentRoute.value.path).toBe('/invoices/inv-2')
   })
 
+  it('records external invoices from the ⋮ menu', async () => {
+    backend()
+    const { router } = await open()
+    expect(screen.hasButton(t('invoices.importExternal'))).toBe(false)
+    await click(screen.button(t('common.moreActions')))
+    await click(screen.button(t('invoices.importExternal')))
+    expect(router.currentRoute.value.path).toBe('/invoices/import')
+  })
+
   it('takes the receivable filter from the dashboard link', async () => {
     const api = backend()
     await open('/invoices?receivable=overdue')

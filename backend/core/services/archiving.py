@@ -27,6 +27,11 @@ def archive_invoice(invoice: Invoice) -> list[DocumentArchive]:
     return docs
 
 
+def store_document(invoice: Invoice, kind: str, content: bytes, ext: str) -> DocumentArchive:
+    """Archive a file of the invoice once; an existing one stays as it is (GoBD)."""
+    return _store(invoice, kind, content, ext)
+
+
 def _store(invoice: Invoice, kind: str, content: bytes, ext: str) -> DocumentArchive:
     digest = hashlib.sha256(content).hexdigest()
     ct = ContentType.objects.get_for_model(invoice)

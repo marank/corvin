@@ -752,6 +752,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/{id}/mails/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The mails about the invoice, newest first: what went (or goes) to whom. */
+        get: operations["invoices_mails_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/mails/{mail_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One mail of the history, with its HTML as it was sent. */
+        get: operations["invoices_mails_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices/{id}/mark_sent/": {
         parameters: {
             query?: never;
@@ -776,7 +810,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Scopes all queries to the requesting user. */
+        /** @description The archived PDF, else rendered now; `?inline=1` to show it (e.g. in a frame). */
         get: operations["invoices_pdf_retrieve"];
         put?: never;
         post?: never;
@@ -899,6 +933,26 @@ export interface paths {
         put?: never;
         /** @description Line items and totals `consolidate` would create, without creating anything. */
         post: operations["invoices_consolidate_preview_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/import_external/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Records an invoice written elsewhere: issued, its PDF (and XML) archived as
+         *     uploaded, the time entries it billed invoiced.
+         */
+        post: operations["invoices_import_external_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1614,7 +1668,7 @@ export interface components {
         CompanyImage: {
             /** Format: uuid */
             readonly id: string;
-            kind: components["schemas"]["KindEnum"];
+            kind: components["schemas"]["CompanyImageKindEnum"];
             key: string;
             name: string;
             /** Format: uri */
@@ -1625,9 +1679,18 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
+        /**
+         * @description * `logo_light` - Full logo for light backgrounds
+         *     * `logo_dark` - Full logo for dark backgrounds
+         *     * `icon_light` - Icon for light backgrounds
+         *     * `icon_dark` - Icon for dark backgrounds
+         *     * `additional` - Additional
+         * @enum {string}
+         */
+        CompanyImageKindEnum: "logo_light" | "logo_dark" | "icon_light" | "icon_dark" | "additional";
         /** @description Sets owner from the request and scopes FK fields to the owner. */
         CompanyImageRequest: {
-            kind: components["schemas"]["KindEnum"];
+            kind: components["schemas"]["CompanyImageKindEnum"];
             key: string;
             name: string;
             /** Format: binary */
@@ -1980,6 +2043,27 @@ export interface components {
             entry_ids: string[];
             description: string;
         };
+        /** @description An invoice written elsewhere, uploaded (multipart). */
+        ExternalInvoiceRequest: {
+            /** Format: uuid */
+            customer_id: string;
+            /** Format: uuid */
+            project_id?: string | null;
+            number: string;
+            /** Format: date */
+            issue_date: string;
+            /** Format: date */
+            due_date?: string | null;
+            /** Format: decimal */
+            net: string;
+            /** Format: decimal */
+            vat_rate?: string | null;
+            /** Format: binary */
+            pdf: string;
+            /** Format: binary */
+            xml?: string | null;
+            entry_ids?: string[];
+        };
         /**
          * @description * `entry` - Per entry
          *     * `day` - Per day
@@ -2061,6 +2145,7 @@ export interface components {
             readonly remaining: string;
             readonly partially_paid: boolean;
             readonly has_time_entries: boolean;
+            readonly is_external: boolean;
             /** Format: date-time */
             readonly sent_at: string | null;
             /** Format: uuid */
@@ -2108,6 +2193,43 @@ export interface components {
             /** Format: decimal */
             unit_price: string;
         };
+        /** @description A mail in an invoice's history; the HTML only in the detail (InvoiceMailDetail). */
+        InvoiceMail: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly kind: components["schemas"]["MailKindEnum"];
+            readonly to: unknown;
+            readonly subject: string;
+            readonly attachments: unknown;
+            readonly status: components["schemas"]["InvoiceMailStatusEnum"];
+            /** Format: date-time */
+            readonly sent_at: string | null;
+            readonly error: string;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        /** @description A mail in an invoice's history; the HTML only in the detail (InvoiceMailDetail). */
+        InvoiceMailDetail: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly kind: components["schemas"]["MailKindEnum"];
+            readonly to: unknown;
+            readonly subject: string;
+            readonly attachments: unknown;
+            readonly status: components["schemas"]["InvoiceMailStatusEnum"];
+            /** Format: date-time */
+            readonly sent_at: string | null;
+            readonly error: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            readonly html: string;
+        };
+        /**
+         * @description * `queued` - Queued
+         *     * `sent` - Sent
+         * @enum {string}
+         */
+        InvoiceMailStatusEnum: "queued" | "sent";
         /** @description A model with a `number` from a numbering scheme, which can be corrected by hand later. */
         InvoiceRequest: {
             number?: string;
@@ -2147,15 +2269,6 @@ export interface components {
             total: string | null;
             count: number;
         };
-        /**
-         * @description * `logo_light` - Full logo for light backgrounds
-         *     * `logo_dark` - Full logo for dark backgrounds
-         *     * `icon_light` - Icon for light backgrounds
-         *     * `icon_dark` - Icon for dark backgrounds
-         *     * `additional` - Additional
-         * @enum {string}
-         */
-        KindEnum: "logo_light" | "logo_dark" | "icon_light" | "icon_dark" | "additional";
         LoginFailed: {
             detail?: string;
             requires_otp?: boolean;
@@ -2165,6 +2278,12 @@ export interface components {
             password: string;
             otp_code?: string;
         };
+        /**
+         * @description * `invoice` - Invoice
+         *     * `payment_reminder` - Payment reminder
+         * @enum {string}
+         */
+        MailKindEnum: "invoice" | "payment_reminder";
         MailPreview: {
             subject: string;
             html: string;
@@ -2471,6 +2590,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Invoice"][];
         };
+        PaginatedInvoiceMailList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["InvoiceMail"][];
+        };
         PaginatedMailTemplateList: {
             /** @example 123 */
             count: number;
@@ -2632,7 +2766,7 @@ export interface components {
         };
         /** @description Sets owner from the request and scopes FK fields to the owner. */
         PatchedCompanyImageRequest: {
-            kind?: components["schemas"]["KindEnum"];
+            kind?: components["schemas"]["CompanyImageKindEnum"];
             key?: string;
             name?: string;
             /** Format: binary */
@@ -5541,6 +5675,78 @@ export interface operations {
             };
         };
     };
+    invoices_mails_list: {
+        parameters: {
+            query?: {
+                contract?: string;
+                customer?: string;
+                issue_date__gte?: string;
+                issue_date__lte?: string;
+                /** @description Feld, das zum Sortieren der Ergebnisse verwendet werden soll. */
+                ordering?: string;
+                /** @description Eine Seitenzahl in der paginierten Ergebnismenge. */
+                page?: number;
+                /** @description Anzahl der pro Seite zurückzugebenden Ergebnisse. */
+                page_size?: number;
+                project?: string;
+                /**
+                 * @description * `open` - open
+                 *     * `overdue` - overdue
+                 */
+                receivable?: "open" | "overdue";
+                /** @description Ein Suchbegriff. */
+                search?: string;
+                /**
+                 * @description * `draft` - Draft
+                 *     * `issued` - Issued
+                 *     * `sent` - Sent
+                 *     * `paid` - Paid
+                 *     * `cancelled` - Cancelled
+                 */
+                status?: "cancelled" | "draft" | "issued" | "paid" | "sent";
+            };
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der invoice identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedInvoiceMailList"];
+                };
+            };
+        };
+    };
+    invoices_mails_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der invoice identifiziert. */
+                id: string;
+                mail_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceMailDetail"];
+                };
+            };
+        };
+    };
     invoices_mark_sent_create: {
         parameters: {
             query?: never;
@@ -5775,6 +5981,29 @@ export interface operations {
         };
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+        };
+    };
+    invoices_import_external_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ExternalInvoiceRequest"];
+            };
+        };
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -198,3 +198,9 @@ def test_backup_command_reports_files(backup_dirs, capsys):
     ):
         call_command("backup")
     assert capsys.readouterr().out.count("Written") == 2
+
+
+def test_send_invoice_mail_task_delegates_to_mailer():
+    with mock.patch("core.tasks.mailer.send_invoice_mail") as send:
+        tasks.send_invoice_mail(mail_id="m")
+    send.assert_called_once_with("m")

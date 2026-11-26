@@ -10,6 +10,7 @@ from .document_template import DocumentTemplateSerializer
 from .hourly_rate import HourlyRateSerializer
 from .invoice import InvoiceSerializer
 from .invoice_line_item import InvoiceLineItemSerializer
+from .invoice_mail import InvoiceMailDetailSerializer, InvoiceMailSerializer
 from .mail_template import MailTemplateSerializer
 from .payment import PaymentSerializer
 from .project import ProjectSerializer
@@ -30,6 +31,8 @@ __all__ = [
     "CustomerSerializer",
     "HourlyRateSerializer",
     "InvoiceLineItemSerializer",
+    "InvoiceMailDetailSerializer",
+    "InvoiceMailSerializer",
     "MailTemplateSerializer",
     "InvoiceSerializer",
     "DocumentTemplateSerializer",

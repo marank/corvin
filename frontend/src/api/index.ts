@@ -226,6 +226,8 @@ export interface Invoice {
   partially_paid: boolean
   // Bills time entries, so a time report (Leistungsnachweis) exists.
   has_time_entries: boolean
+  // Written elsewhere and uploaded: its PDF is the original.
+  is_external: boolean
   sent_at: string | null
   template: string | null
   bank_account_override: string | null
@@ -505,6 +507,13 @@ export const invoicesApi = {
   pdfUrl: (id: string) => `${base}/invoices/${id}/pdf/`,
   xmlUrl: (id: string) => `${base}/invoices/${id}/xrechnung/`,
   timeEntries: (id: string) => api.get<TimeEntry[]>(`${base}/invoices/${id}/time-entries/`),
+  // An invoice written elsewhere (multipart: fields, pdf, xml, entry_ids), recorded as issued.
+  importExternal: (form: FormData) =>
+    api.upload<Invoice>(`${base}/invoices/import_external/`, form),
+  // The mails about the invoice (newest first); one with its HTML as sent.
+  mails: (id: string) => api.get<InvoiceMail[]>(`${base}/invoices/${id}/mails/`),
+  mail: (id: string, mailId: string) =>
+    api.get<InvoiceMail & { html: string }>(`${base}/invoices/${id}/mails/${mailId}/`),
   timeReportUrl: (id: string) => `${base}/invoices/${id}/time-report/`,
   previewUrl: (id: string) => `${base}/invoices/${id}/preview/`,
 }
@@ -527,6 +536,20 @@ export const textBlocksApi = {
   update: (id: string, d: Partial<TextBlock>) =>
     api.put<TextBlock>(`${base}/text-blocks/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/text-blocks/${id}/`),
+}
+
+// A mail about an invoice as it was sent (or is waiting to be).
+export interface InvoiceMail {
+  id: string
+  kind: MailKind
+  to: string[]
+  subject: string
+  attachments: string[]
+  status: 'queued' | 'sent'
+  sent_at: string | null
+  // The last failed attempt; empty once sent.
+  error: string
+  created_at: string
 }
 
 export type MailKind = 'invoice' | 'payment_reminder'

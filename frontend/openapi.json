@@ -4277,6 +4277,194 @@
                 }
             }
         },
+        "/api/v1/invoices/{id}/mails/": {
+            "get": {
+                "operationId": "invoices_mails_list",
+                "description": "The mails about the invoice, newest first: what went (or goes) to whom.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "contract",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "customer",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der invoice identifiziert.",
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "issue_date__gte",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "issue_date__lte",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "ordering",
+                        "required": false,
+                        "in": "query",
+                        "description": "Feld, das zum Sortieren der Ergebnisse verwendet werden soll.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "Eine Seitenzahl in der paginierten Ergebnismenge.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Anzahl der pro Seite zurückzugebenden Ergebnisse.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "project",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "receivable",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "open",
+                                "overdue"
+                            ]
+                        },
+                        "description": "* `open` - open\n* `overdue` - overdue"
+                    },
+                    {
+                        "name": "search",
+                        "required": false,
+                        "in": "query",
+                        "description": "Ein Suchbegriff.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "status",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "cancelled",
+                                "draft",
+                                "issued",
+                                "paid",
+                                "sent"
+                            ]
+                        },
+                        "description": "* `draft` - Draft\n* `issued` - Issued\n* `sent` - Sent\n* `paid` - Paid\n* `cancelled` - Cancelled"
+                    }
+                ],
+                "tags": [
+                    "invoices"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedInvoiceMailList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/invoices/{id}/mails/{mail_id}/": {
+            "get": {
+                "operationId": "invoices_mails_retrieve",
+                "description": "One mail of the history, with its HTML as it was sent.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der invoice identifiziert.",
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "mail_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "invoices"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InvoiceMailDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/invoices/{id}/mark_sent/": {
             "post": {
                 "operationId": "invoices_mark_sent_create",
@@ -4337,7 +4525,7 @@
         "/api/v1/invoices/{id}/pdf/": {
             "get": {
                 "operationId": "invoices_pdf_retrieve",
-                "description": "Scopes all queries to the requesting user.",
+                "description": "The archived PDF, else rendered now; `?inline=1` to show it (e.g. in a frame).",
                 "parameters": [
                     {
                         "in": "path",
@@ -4765,6 +4953,42 @@
                 ],
                 "responses": {
                     "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Invoice"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/invoices/import_external/": {
+            "post": {
+                "operationId": "invoices_import_external_create",
+                "description": "Records an invoice written elsewhere: issued, its PDF (and XML) archived as\nuploaded, the time entries it billed invoiced.",
+                "tags": [
+                    "invoices"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ExternalInvoiceRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -8502,7 +8726,7 @@
                         "readOnly": true
                     },
                     "kind": {
-                        "$ref": "#/components/schemas/KindEnum"
+                        "$ref": "#/components/schemas/CompanyImageKindEnum"
                     },
                     "key": {
                         "type": "string",
@@ -8543,12 +8767,23 @@
                     "url"
                 ]
             },
+            "CompanyImageKindEnum": {
+                "enum": [
+                    "logo_light",
+                    "logo_dark",
+                    "icon_light",
+                    "icon_dark",
+                    "additional"
+                ],
+                "type": "string",
+                "description": "* `logo_light` - Full logo for light backgrounds\n* `logo_dark` - Full logo for dark backgrounds\n* `icon_light` - Icon for light backgrounds\n* `icon_dark` - Icon for dark backgrounds\n* `additional` - Additional"
+            },
             "CompanyImageRequest": {
                 "type": "object",
                 "description": "Sets owner from the request and scopes FK fields to the owner.",
                 "properties": {
                     "kind": {
-                        "$ref": "#/components/schemas/KindEnum"
+                        "$ref": "#/components/schemas/CompanyImageKindEnum"
                     },
                     "key": {
                         "type": "string",
@@ -9819,6 +10054,69 @@
                     "entry_ids"
                 ]
             },
+            "ExternalInvoiceRequest": {
+                "type": "object",
+                "description": "An invoice written elsewhere, uploaded (multipart).",
+                "properties": {
+                    "customer_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "number": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 50
+                    },
+                    "issue_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "net": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,10}(?:\\.\\d{0,2})?$"
+                    },
+                    "vat_rate": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,3}(?:\\.\\d{0,2})?$",
+                        "nullable": true
+                    },
+                    "pdf": {
+                        "type": "string",
+                        "format": "binary"
+                    },
+                    "xml": {
+                        "type": "string",
+                        "format": "binary",
+                        "nullable": true
+                    },
+                    "entry_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                },
+                "required": [
+                    "customer_id",
+                    "issue_date",
+                    "net",
+                    "number",
+                    "pdf"
+                ]
+            },
             "GroupByEnum": {
                 "enum": [
                     "entry",
@@ -10046,6 +10344,10 @@
                         "type": "boolean",
                         "readOnly": true
                     },
+                    "is_external": {
+                        "type": "boolean",
+                        "readOnly": true
+                    },
                     "sent_at": {
                         "type": "string",
                         "format": "date-time",
@@ -10105,6 +10407,7 @@
                     "customer_name",
                     "has_time_entries",
                     "id",
+                    "is_external",
                     "issue_date",
                     "items",
                     "partially_paid",
@@ -10227,6 +10530,145 @@
                     "unit_price"
                 ]
             },
+            "InvoiceMail": {
+                "type": "object",
+                "description": "A mail in an invoice's history; the HTML only in the detail (InvoiceMailDetail).",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "kind": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/MailKindEnum"
+                            }
+                        ],
+                        "readOnly": true
+                    },
+                    "to": {
+                        "readOnly": true
+                    },
+                    "subject": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "attachments": {
+                        "readOnly": true
+                    },
+                    "status": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/InvoiceMailStatusEnum"
+                            }
+                        ],
+                        "readOnly": true
+                    },
+                    "sent_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "error": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "attachments",
+                    "created_at",
+                    "error",
+                    "id",
+                    "kind",
+                    "sent_at",
+                    "status",
+                    "subject",
+                    "to"
+                ]
+            },
+            "InvoiceMailDetail": {
+                "type": "object",
+                "description": "A mail in an invoice's history; the HTML only in the detail (InvoiceMailDetail).",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "kind": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/MailKindEnum"
+                            }
+                        ],
+                        "readOnly": true
+                    },
+                    "to": {
+                        "readOnly": true
+                    },
+                    "subject": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "attachments": {
+                        "readOnly": true
+                    },
+                    "status": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/InvoiceMailStatusEnum"
+                            }
+                        ],
+                        "readOnly": true
+                    },
+                    "sent_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "error": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "html": {
+                        "type": "string",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "attachments",
+                    "created_at",
+                    "error",
+                    "html",
+                    "id",
+                    "kind",
+                    "sent_at",
+                    "status",
+                    "subject",
+                    "to"
+                ]
+            },
+            "InvoiceMailStatusEnum": {
+                "enum": [
+                    "queued",
+                    "sent"
+                ],
+                "type": "string",
+                "description": "* `queued` - Queued\n* `sent` - Sent"
+            },
             "InvoiceRequest": {
                 "type": "object",
                 "description": "A model with a `number` from a numbering scheme, which can be corrected by hand later.",
@@ -10331,17 +10773,6 @@
                     "total"
                 ]
             },
-            "KindEnum": {
-                "enum": [
-                    "logo_light",
-                    "logo_dark",
-                    "icon_light",
-                    "icon_dark",
-                    "additional"
-                ],
-                "type": "string",
-                "description": "* `logo_light` - Full logo for light backgrounds\n* `logo_dark` - Full logo for dark backgrounds\n* `icon_light` - Icon for light backgrounds\n* `icon_dark` - Icon for dark backgrounds\n* `additional` - Additional"
-            },
             "LoginFailed": {
                 "type": "object",
                 "properties": {
@@ -10373,6 +10804,14 @@
                     "password",
                     "username"
                 ]
+            },
+            "MailKindEnum": {
+                "enum": [
+                    "invoice",
+                    "payment_reminder"
+                ],
+                "type": "string",
+                "description": "* `invoice` - Invoice\n* `payment_reminder` - Payment reminder"
             },
             "MailPreview": {
                 "type": "object",
@@ -11134,6 +11573,37 @@
                     }
                 }
             },
+            "PaginatedInvoiceMailList": {
+                "type": "object",
+                "required": [
+                    "count",
+                    "results"
+                ],
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/InvoiceMail"
+                        }
+                    }
+                }
+            },
             "PaginatedMailTemplateList": {
                 "type": "object",
                 "required": [
@@ -11508,7 +11978,7 @@
                 "description": "Sets owner from the request and scopes FK fields to the owner.",
                 "properties": {
                     "kind": {
-                        "$ref": "#/components/schemas/KindEnum"
+                        "$ref": "#/components/schemas/CompanyImageKindEnum"
                     },
                     "key": {
                         "type": "string",

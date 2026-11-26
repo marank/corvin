@@ -25,6 +25,7 @@
     "settings": "Einstellungen"
   },
   "common": {
+    "chooseFile": "Datei w\u00e4hlen",
     "remove": "{name} entfernen",
     "moreActions": "Weitere Aktionen",
     "save": "Speichern",
@@ -254,6 +255,23 @@
     "generatedInvoice": "Rechnung erstellt"
   },
   "invoices": {
+    "importExternal": "Externe Rechnung erfassen",
+    "importSave": "Erfassen",
+    "importHint": "Für Rechnungen, die woanders geschrieben wurden: Sie wird als ausgestellt erfasst, das PDF bleibt das Original, die gewählten Zeiten gelten als abgerechnet.",
+    "importPickCustomer": "Wähle oben einen Kunden, dann kannst du seine offenen Zeiten zuordnen.",
+    "dueByTerms": "Nach Zahlungsziel",
+    "netAmount": "Nettobetrag",
+    "pdfFile": "Rechnung (PDF)",
+    "xmlFile": "E-Rechnung (XML)",
+    "billedTimes": "Abgerechnete Zeiten",
+    "external": "Extern",
+    "history": "Verlauf",
+    "mailKind": "Art",
+    "mailStatus": {
+      "sent": "Gesendet",
+      "queued": "Wird gesendet",
+      "failed": "Fehlgeschlagen, wird wiederholt"
+    },
     "recipients": "Empfänger",
     "mailSubject": "Betreff",
     "sendReminder": "Zahlungserinnerung senden",

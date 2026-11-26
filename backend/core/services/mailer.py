@@ -19,7 +19,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import override
 
 from core.jobs import defer
-from core.models import CompanyImage, Invoice, MailTemplate
+from core.models import CompanyImage, Invoice, InvoiceMail, MailTemplate
 
 from .archiving import archive_invoice
 from .mail_templates import RenderedMail, mail_template_for, render_mail
@@ -108,16 +108,50 @@ def queue_invoice_email(
     mail = render_invoice_mail(invoice, kind, to=to)
     if not invoice.documents.filter(kind="pdf").exists():
         archive_invoice(invoice)
-    defer(
-        "core.tasks.send_invoice_email",
-        invoice_id=str(invoice.id),
+    record = InvoiceMail.objects.create(
+        owner=invoice.owner,
+        invoice=invoice,
+        kind=kind,
         to=to,
         subject=subject or mail.subject,
         html=mail.html,
         text=mail.text,
         images=mail.images,
-        kind=kind,
+        attachments=[name for name, _content, _mime in _attachments(invoice)],
     )
+    defer("core.tasks.send_invoice_mail", mail_id=str(record.pk))
+
+
+def send_invoice_mail(mail_id: str) -> None:
+    """Send a queued invoice mail as it was recorded; a failure is noted on it (and the
+    queue retries). An invoice mail makes the invoice "sent"."""
+    record = InvoiceMail.objects.select_related("invoice").get(pk=mail_id)
+    if record.status == InvoiceMail.Status.SENT:
+        return  # a retry after the mail went out
+    invoice = record.invoice
+    inline = CompanyImage.objects.filter(owner=invoice.owner, key__in=record.images)
+    mail = HtmlMail(
+        subject=record.subject,
+        body=record.text,
+        to=record.to,
+        inline_images=[_inline_image(image) for image in inline],
+    )
+    mail.attach_alternative(record.html, "text/html")
+    for filename, content, mime in _attachments(invoice):
+        mail.attach(filename, content, mime)
+    try:
+        mail.send()
+    except Exception as e:
+        InvoiceMail.objects.filter(pk=record.pk).update(error=str(e) or type(e).__name__)
+        raise
+    now = timezone.now()
+    InvoiceMail.objects.filter(pk=record.pk).update(
+        status=InvoiceMail.Status.SENT, sent_at=now, error=""
+    )
+    if record.kind == MailTemplate.Kind.INVOICE:
+        invoice.status = Invoice.Status.SENT
+        invoice.sent_at = now
+        invoice.save(update_fields=["status", "sent_at", "updated_at"])
 
 
 def _attachments(invoice: Invoice) -> list[tuple[str, bytes, str]]:
@@ -190,8 +224,8 @@ def send_invoice_email(
     kind: str = MailTemplate.Kind.INVOICE,
     body: str = "",
 ) -> None:
-    """Send a rendered mail about the invoice. `body`: plain text queued before mails
-    were HTML."""
+    """Send a mail queued before mails were recorded (InvoiceMail): rendered, with
+    `body` as plain text from before mails were HTML."""
     invoice = Invoice.objects.get(pk=invoice_id)
     inline = CompanyImage.objects.filter(owner=invoice.owner, key__in=images or [])
     mail = HtmlMail(

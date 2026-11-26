@@ -29,6 +29,12 @@ def _is_due(timestamp: int, at: time) -> bool:
 # SMTP servers fail now and then: retried after 2, 4, 8, … seconds, for about 18 hours in
 # all, before the job counts as failed.
 @app.task(retry=RetryStrategy(max_attempts=15, exponential_wait=2))
+def send_invoice_mail(mail_id: str) -> None:
+    mailer.send_invoice_mail(mail_id)
+
+
+# Jobs queued before mails were recorded (InvoiceMail) still run.
+@app.task(retry=RetryStrategy(max_attempts=15, exponential_wait=2))
 def send_invoice_email(
     invoice_id: str,
     to: list[str] | str,

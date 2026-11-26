@@ -11,6 +11,7 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Menu from 'primevue/menu'
 import Message from 'primevue/message'
+import Tag from 'primevue/tag'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
@@ -37,6 +38,7 @@ import {
   invoicesApi,
   paymentsApi,
   type Invoice,
+  type InvoiceMail,
   type MailKind,
   type TimeEntry,
 } from '../../api'
@@ -163,7 +165,21 @@ const overdue = computed(
 
 // The time entries the invoice bills; the position of the line billing each comes from the
 // lines (contract-covered entries are on none).
-const tab = useTabQuery('items', ['items', 'times', 'payments', 'attachments'])
+// What went to whom: the mails about the invoice; one opens as it was sent.
+const mails = ref<InvoiceMail[]>([])
+const mailModal = ref<InstanceType<typeof AppModal>>()
+const shownMail = ref<(InvoiceMail & { html: string }) | null>(null)
+
+async function showMail(mail: InvoiceMail) {
+  try {
+    shownMail.value = await invoicesApi.mail(id, mail.id)
+    mailModal.value?.open()
+  } catch (e) {
+    notify.error(e)
+  }
+}
+
+const tab = useTabQuery('items', ['items', 'times', 'payments', 'history', 'attachments'])
 const timeEntries = ref<TimeEntry[]>([])
 const positions = computed(
   () =>
@@ -178,6 +194,7 @@ async function load() {
   invoice.value = await invoicesApi.get(id)
   previewVersion.value++
   timeEntries.value = invoice.value.has_time_entries ? await invoicesApi.timeEntries(id) : []
+  mails.value = isDraft.value ? [] : await invoicesApi.mails(id)
 }
 
 // The recipients the backend proposes (invoice contacts, else the customer's address) and
@@ -299,6 +316,7 @@ async function addPayment() {
     >
       <template #title-end>
         <AppStatusTag :status="statusKey" :label="t(`invoices.status.${statusKey}`)" />
+        <Tag v-if="invoice.is_external" :value="t('invoices.external')" severity="secondary" />
       </template>
       <template #actions>
         <Button
@@ -458,6 +476,7 @@ async function addPayment() {
             <Tab value="items">{{ t('invoices.positions') }}</Tab>
             <Tab v-if="invoice.has_time_entries" value="times">{{ t('invoices.times') }}</Tab>
             <Tab v-if="!isDraft" value="payments">{{ t('invoices.payments') }}</Tab>
+            <Tab v-if="!isDraft" value="history">{{ t('invoices.history') }}</Tab>
             <Tab value="attachments">{{ t('customers.attachments') }}</Tab>
           </TabList>
           <TabPanels>
@@ -570,6 +589,40 @@ async function addPayment() {
                 </Column>
               </AppDataTable>
             </TabPanel>
+            <TabPanel v-if="!isDraft" value="history" class="pt-4">
+              <AppDataTable
+                :rows="mails"
+                :state-key="tableStateKeys.invoiceMails"
+                @row-click="showMail"
+              >
+                <Column :header="t('common.date')"
+                  ><template #body="{ data }"
+                    ><AppDateTimeDisplay
+                      :value="data.sent_at ?? data.created_at"
+                      type="datetime" /></template
+                ></Column>
+                <Column class="app-text" :header="t('invoices.mailKind')"
+                  ><template #body="{ data }">{{
+                    t(`designer.mailKinds.${data.kind}`)
+                  }}</template></Column
+                >
+                <Column class="app-text" :header="t('invoices.recipients')"
+                  ><template #body="{ data }">{{ data.to.join(', ') }}</template></Column
+                >
+                <Column class="app-text" field="subject" :header="t('invoices.mailSubject')" />
+                <Column :header="t('common.status')">
+                  <template #body="{ data }">
+                    <span v-if="data.status === 'sent'">{{ t('invoices.mailStatus.sent') }}</span>
+                    <span v-else-if="data.error" class="text-danger" :title="data.error">{{
+                      t('invoices.mailStatus.failed')
+                    }}</span>
+                    <span v-else class="text-surface-500">{{
+                      t('invoices.mailStatus.queued')
+                    }}</span>
+                  </template>
+                </Column>
+              </AppDataTable>
+            </TabPanel>
             <TabPanel value="attachments" class="pt-4"
               ><AttachmentList model="invoice" :object-id="id"
             /></TabPanel>
@@ -581,7 +634,9 @@ async function addPayment() {
       <div
         class="border border-surface-200 dark:border-surface-800 h-[calc(100vh-8rem)] min-h-96 xl:sticky xl:top-4"
       >
-        <InvoicePreviewFrame :url="previewUrl" />
+        <!-- An external invoice shows its uploaded PDF, the original. -->
+        <InvoicePreviewFrame v-if="invoice.is_external" :url="`${pdfUrl}?inline=1`" mode="pdf" />
+        <InvoicePreviewFrame v-else :url="previewUrl" />
       </div>
     </div>
 
@@ -606,6 +661,28 @@ async function addPayment() {
         /></AppFormField>
         <div class="h-96 border border-surface-200 dark:border-surface-800">
           <InvoicePreviewFrame :html="emailHtml" />
+        </div>
+      </div>
+    </AppModal>
+
+    <AppModal ref="mailModal" :title="shownMail?.subject ?? ''" size="xl" :show-footer="false">
+      <div v-if="shownMail" class="flex flex-col gap-3 text-sm">
+        <div>
+          <span class="text-surface-500">{{ t('invoices.recipients') }}:</span>
+          {{ shownMail.to.join(', ') }}
+        </div>
+        <div v-if="shownMail.attachments.length">
+          <span class="text-surface-500">{{ t('customers.attachments') }}:</span>
+          {{ shownMail.attachments.join(', ') }}
+        </div>
+        <Message
+          v-if="shownMail.status !== 'sent' && shownMail.error"
+          severity="warn"
+          size="small"
+          >{{ shownMail.error }}</Message
+        >
+        <div class="h-96 border border-surface-200 dark:border-surface-800">
+          <InvoicePreviewFrame :html="shownMail.html" />
         </div>
       </div>
     </AppModal>

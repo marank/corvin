@@ -11,6 +11,7 @@ from .document_template import DocumentTemplate
 from .hourly_rate import HourlyRate
 from .invoice import Invoice
 from .invoice_line_item import InvoiceLineItem
+from .invoice_mail import InvoiceMail
 from .mail_template import MailTemplate
 from .number_sequence import NumberSequence
 from .payment import Payment
@@ -35,6 +36,7 @@ __all__ = [
     "Invoice",
     "DocumentArchive",
     "InvoiceLineItem",
+    "InvoiceMail",
     "MailTemplate",
     "DocumentTemplate",
     "NumberSequence",

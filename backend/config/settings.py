@@ -191,6 +191,8 @@ SPECTACULAR_SETTINGS = {
     # One choice set used by two fields gets one name instead of a field-derived one each.
     "ENUM_NAME_OVERRIDES": {
         "TimeRoundingDirectionEnum": "core.models.CompanySettings.TimeRoundingDirection",
+        "MailKindEnum": "core.models.MailTemplate.Kind",
+        "InvoiceMailStatusEnum": "core.models.InvoiceMail.Status",
     },
 }
 

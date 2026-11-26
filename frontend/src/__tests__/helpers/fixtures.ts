@@ -129,6 +129,7 @@ export const invoice = (over: Partial<Invoice> = {}): Invoice => ({
   remaining: 238,
   partially_paid: false,
   has_time_entries: false,
+  is_external: false,
   sent_at: null,
   template: null,
   bank_account_override: null,

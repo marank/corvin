@@ -20,6 +20,7 @@ async function open(inv: Invoice = invoice(), entries: TimeEntry[] = []) {
   const state = { invoice: inv }
   const api = mockApi()
   api.get('/invoices/inv-1/time-entries/', entries)
+  api.get('/invoices/inv-1/mails/', [])
   api.get('/invoices/inv-1/', () => state.invoice)
   api.get('/attachments/content_types/', { invoice: 7 })
   api.get('/attachments/', page([]))
@@ -138,6 +139,60 @@ describe('InvoiceDetailView', () => {
       expect(screen.hasButton(t('invoices.cancelInvoice'))).toBe(true)
       expect(screen.hasButton(t('common.delete'))).toBe(false)
       expect(screen.text()).toContain(`${t('settings.bankAccount')}Hausbank`)
+    })
+
+    it('shows what went to whom, and a mail as it was sent', async () => {
+      const sentMail = {
+        id: 'mail-1',
+        kind: 'invoice',
+        to: ['erika@acme.example', 'max@acme.example'],
+        subject: 'Rechnung RE-2026-001',
+        attachments: ['RE-2026-001.pdf'],
+        status: 'sent',
+        sent_at: '2026-11-20T10:00:00+01:00',
+        error: '',
+        created_at: '2026-11-20T09:59:00+01:00',
+      }
+      const failing = {
+        ...sentMail,
+        id: 'mail-2',
+        kind: 'payment_reminder',
+        subject: 'Zahlungserinnerung',
+        status: 'queued',
+        sent_at: null,
+        error: 'SMTP down',
+        created_at: '2026-11-23T09:00:00+01:00',
+      }
+      const { api } = await open(issued())
+      api.get('/invoices/inv-1/mails/', [failing, sentMail])
+      api.get('/invoices/inv-1/mails/mail-1/', { ...sentMail, html: '<p>Guten Tag</p>' })
+      await click(screen.button(t('common.moreActions')))
+      await click(screen.button(t('invoices.markSent')))
+      // Reloaded after an action: the history follows.
+      api.post('/invoices/inv-1/mark_sent/', issued({ status: 'sent' }))
+      await click(dialog(t('invoices.markSent')).button(t('invoices.markSent')))
+
+      await click(screen.button(t('invoices.history')))
+      expect(activeTab().rows()).toEqual([
+        [
+          '23.11.2026 09:00',
+          t('designer.mailKinds.payment_reminder'),
+          'erika@acme.example, max@acme.example',
+          'Zahlungserinnerung',
+          t('invoices.mailStatus.failed'),
+        ],
+        [
+          '20.11.2026 10:00',
+          t('designer.mailKinds.invoice'),
+          'erika@acme.example, max@acme.example',
+          'Rechnung RE-2026-001',
+          t('invoices.mailStatus.sent'),
+        ],
+      ])
+      await click(activeTab().row('Rechnung RE-2026-001'))
+      const modal = dialog('Rechnung RE-2026-001')
+      expect(modal.text()).toContain('RE-2026-001.pdf')
+      expect(modal.root.querySelector('iframe')!.getAttribute('srcdoc')).toBe('<p>Guten Tag</p>')
     })
 
     it('marks an unpaid invoice past its due date as overdue', async () => {

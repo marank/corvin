@@ -25,6 +25,7 @@
     "settings": "Settings"
   },
   "common": {
+    "chooseFile": "Choose file",
     "remove": "Remove {name}",
     "moreActions": "More actions",
     "save": "Save",
@@ -254,6 +255,19 @@
     "generatedInvoice": "Invoice created"
   },
   "invoices": {
+    "importExternal": "Record external invoice",
+    "importSave": "Record",
+    "importHint": "For invoices written elsewhere: it is recorded as issued, the PDF stays the original, the chosen time entries count as invoiced.",
+    "importPickCustomer": "Pick a customer above to assign their open time entries.",
+    "dueByTerms": "By payment terms",
+    "netAmount": "Net amount",
+    "pdfFile": "Invoice (PDF)",
+    "xmlFile": "E-invoice (XML)",
+    "billedTimes": "Billed time entries",
+    "external": "External",
+    "history": "History",
+    "mailKind": "Kind",
+    "mailStatus": { "sent": "Sent", "queued": "Sending", "failed": "Failed, retrying" },
     "recipients": "Recipients",
     "mailSubject": "Subject",
     "sendReminder": "Send payment reminder",

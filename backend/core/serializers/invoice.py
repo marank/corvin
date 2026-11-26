@@ -91,6 +91,7 @@ class InvoiceSerializer(NumberedSerializer[Invoice]):
             "remaining",
             "partially_paid",
             "has_time_entries",
+            "is_external",
             "sent_at",
             "template",
             "bank_account_override",
@@ -105,6 +106,7 @@ class InvoiceSerializer(NumberedSerializer[Invoice]):
             "vat_amount",
             "total",
             "sent_at",
+            "is_external",
             "created_at",
             "updated_at",
         ]

@@ -59,6 +59,8 @@ class Invoice(OwnedModel):
     # How the lines group the time entries they bill (the create page's choice); blank for
     # invoices without such lines and ones from before it was kept.
     group_by = models.CharField(max_length=10, choices=GroupBy.choices, blank=True)
+    # Written elsewhere and uploaded: its PDF (and XML) is the archived original.
+    is_external = models.BooleanField(default=False)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     vat_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)

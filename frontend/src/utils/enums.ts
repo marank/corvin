@@ -40,7 +40,7 @@ export const invoiceStatusValues = allValues<Schemas['InvoiceStatusEnum']>()({
   paid: true,
   cancelled: true,
 })
-export const companyImageKindValues = allValues<Schemas['KindEnum']>()({
+export const companyImageKindValues = allValues<Schemas['CompanyImageKindEnum']>()({
   logo_light: true,
   logo_dark: true,
   icon_light: true,
