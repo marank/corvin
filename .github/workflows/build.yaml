@@ -6,7 +6,7 @@
 # in the justfile, so CI and `just check` cannot drift apart.
 #
 # Pull requests run the checks and a test build. Pushes to main push `latest` and `sha-…`;
-# version tags (v1.2.3) push 1.2.3, 1.2 and 1. Once a week main is rebuilt even without a
+# version tags (v1.2.3, by hand or from release.yaml via workflow_call) push 1.2.3, 1.2 and 1. Once a week main is rebuilt even without a
 # change, so the image gets the base images' security fixes and a newly known vulnerability
 # turns the run red.
 name: build
@@ -21,9 +21,15 @@ on:
     # Mondays 03:17 UTC (off the full hour, when GitHub's scheduler is busiest).
     - cron: "17 3 * * 1"
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      version:
+        description: Release version without "v" (e.g. 1.2.3); tags the image like a version tag
+        type: string
+        required: true
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.version }}
   cancel-in-progress: true
 
 # Nothing by default; each job asks for what it needs.
@@ -261,6 +267,9 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
+            type=semver,pattern={{version}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{major}},value=${{ inputs.version }},enable=${{ inputs.version != '' }}
 
       # Into the local Docker daemon for the smoke test and the scan. The runtime stage is
       # always built without cache (no-cache-filters), so system package updates are never

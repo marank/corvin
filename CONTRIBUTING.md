@@ -35,9 +35,12 @@ Not accepted for now (see above). Once they are, this is how a change gets in:
 8. Run `just check` (**check**) before you push; CI runs the same checks on the pull
    request.
 
-Commit messages: a [Conventional Commit](https://www.conventionalcommits.org/) summary line
-in English (`feat: show the owner on the detail page`, `fix: …`, `chore: …`), a blank line,
-then what changed and why. Releases are tagged by hand.
+Pull requests are squash-merged, and their title becomes the commit on `main`. Write it as a
+[Conventional Commit](https://www.conventionalcommits.org/) in English: `feat: show the owner
+on the detail page`, `fix: …`, `deps: …` (a dependency that reaches users), `docs: …`, `chore: …`;
+`feat!:` or a `BREAKING CHANGE:` footer
+for incompatible changes. Releases are made from these titles (CHANGELOG.md, version number),
+so they describe the change for users.
 
 ## License
 

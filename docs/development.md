@@ -78,8 +78,11 @@ and `v*` tags it pushes `ghcr.io/marank/corvin` with a provenance attestation. E
 support). Dependabot (`.github/dependabot.yml`) proposes updates weekly; a person merges them
 after green CI.
 
-Releases are made by hand: `git tag v1.2.3 && git push --tags` builds and pushes `1.2.3`,
-`1.2` and `1`.
+Releases come from release-please (`.github/workflows/release.yaml`): from the Conventional
+Commits on `main` it keeps a release pull request up to date (`CHANGELOG.md`, next version).
+Merging it tags `vX.Y.Z`, creates the GitHub release and calls `build.yaml`, which pushes
+`X.Y.Z`, `X.Y` and `X`. Before 1.0 a breaking change bumps the minor version. Pull request
+titles are checked by `pr-title.yaml` (`just check-pr-title`).
 
 Not updated by Dependabot, bump by hand: `TRIVY_IMAGE` (tag and digest) in `build.yaml`, the
 actionlint and zizmor versions in the justfile, `rust-just==…` in the workflow, the
@@ -89,13 +92,17 @@ PostgreSQL major of the CI service together with `compose.yml` and `PG_MAJOR` in
 One-time GitHub setup:
 
 1. **Ruleset for `main`**: pull requests required, squash merge only, required status checks
-   `backend`, `frontend`, `workflows`, `repository`, `image` and (public repository)
+   `backend`, `frontend`, `workflows`, `repository`, `image`, `pr-title` and (public repository)
    `dependency-review`. Without it Dependabot PRs can be merged with red CI.
-2. **Security** (Settings → Advanced Security): private vulnerability reporting (SECURITY.md
+   With squash merges the PR title is the commit release-please reads.
+2. **Actions → General**: "Allow GitHub Actions to create and approve pull requests" on, or
+   release-please can't open its release pull request. Checks on that pull request start
+   only after someone with write access approves the run.
+3. **Security** (Settings → Advanced Security): private vulnerability reporting (SECURITY.md
    points there), Dependabot alerts, secret scanning with push protection, CodeQL default
    setup.
-3. **Releases**: turn on immutable releases.
-4. **Package**: the first push creates `ghcr.io/marank/corvin` as a private package. Make it
+4. **Releases**: turn on immutable releases.
+5. **Package**: the first push creates `ghcr.io/marank/corvin` as a private package. Make it
    public (or give the servers a read token) so `docker compose pull` works, and link it to
    the repository.
 

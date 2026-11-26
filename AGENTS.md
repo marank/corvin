@@ -12,6 +12,7 @@ The `justfile` holds every command (`just` lists them); CI (`.github/workflows/b
 - `just migrations` after model changes; commit the migrations.
 - `just api-types` after API changes: exports `frontend/openapi.json` and regenerates `frontend/src/api/schema.d.ts`; commit both (`check-backend` and `check-frontend` fail when they drift).
 - Frontend package manager is **pnpm** only. Backend dependencies via `uv add` / `uv add --dev`.
+- Commits on `main` are Conventional Commits (squash-merged PR titles, checked in CI with `just check-pr-title`); release-please builds CHANGELOG.md and the releases from them (CONTRIBUTING.md). Dependabot titles updates that reach the image or the operators `deps:` (patch release, section "Dependencies") and development tools `chore(deps):` (not in the changelog); `fix:` is for real bug fixes only.
 - Dependabot doesn't update these — bump by hand: `TRIVY_IMAGE` (tag + digest) and the PostgreSQL major of the CI service in `.github/workflows/build.yaml` (together with `compose.yml` and `PG_MAJOR` in the `Dockerfile`), `SUPERVISOR_VERSION` in the `Dockerfile`, the actionlint and zizmor versions in the justfile, `rust-just==…` in the workflow.
 - Lint limits are on tangle, never on length: complexity and cognitive complexity ≤ 15, nesting ≤ 4, import layers (`lint-imports` in the backend, `no-restricted-imports` in the frontend). Split by responsibility when one fires; don't silence it.
 
@@ -68,5 +69,5 @@ one line each as `- ID: decision and reason`, or `- ID [path, …]: …` for exc
 - DOCKER-03: met — `docker/smoke-test app` probes health and the unauthenticated status at `/api/v1/health` and `/api/v1/auth/me` (the API is versioned), which the check's patterns don't match.
 
 Project decisions (asked once; the review checks against them and asks again only if a line is missing):
-- Releases: by hand
+- Releases: release-please
 - Contributions: team only

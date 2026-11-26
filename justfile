@@ -118,6 +118,11 @@ check-frontend:
     pnpm check:licenses
     pnpm audit --prod --audit-level high
 
+# A pull request title must be a Conventional Commit (CI runs it on pull requests, with the
+# title as the exported parameter: `just check-pr-title "$TITLE"`)
+check-pr-title $TITLE:
+    uv run --no-project --python ">=3.11" scripts/check_pr_title.py
+
 # GitHub workflows: syntax (actionlint) and security (zizmor)
 check-workflows:
     uvx --from actionlint-py==1.7.12.25 actionlint
