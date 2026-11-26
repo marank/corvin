@@ -36,7 +36,7 @@ class TimeEntryViewSet(OwnedViewSet[TimeEntry]):
         "billable": ["exact"],
         "start_datetime": ["gte", "lte", "exact", "date__gte", "date__lte"],
         "end_datetime": ["isnull"],
-        "visit": ["exact"],
+        "visit": ["exact", "isnull"],
     }
     search_fields = ["description", "report", "project__name", "customer__name"]
     ordering_fields = [

@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Corvin\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-26 23:18+0100\n"
+"POT-Creation-Date: 2026-11-27 00:23+0100\n"
 "PO-Revision-Date: 2026-11-03 01:10+0100\n"
 "Last-Translator: Corvin\n"
 "Language-Team: German\n"
@@ -93,6 +93,9 @@ msgstr "Schriftnamen dürfen weder ; { } < > noch Backslashes enthalten."
 
 msgid "All contacts must belong to the invoice customer."
 msgstr "Alle Kontakte müssen zum Kunden der Rechnung gehören."
+
+msgid "The visit belongs to another customer."
+msgstr "Der Termin gehört zu einem anderen Kunden."
 
 msgid "Activity report"
 msgstr "Tätigkeitsbericht"

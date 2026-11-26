@@ -7364,6 +7364,7 @@ export interface operations {
                 start_datetime__gte?: string;
                 start_datetime__lte?: string;
                 visit?: string;
+                visit__isnull?: boolean;
             };
             header?: never;
             path?: never;

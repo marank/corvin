@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from core.models import TimeEntry, TimeEntryBreak
@@ -32,6 +33,16 @@ class TimeEntrySerializer(OwnedSerializer[TimeEntry]):
 
     def get_is_paused(self, obj: TimeEntry) -> bool:
         return obj.breaks.filter(end_datetime__isnull=True).exists()
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        attrs = super().validate(attrs)
+        visit = attrs.get("visit", getattr(self.instance, "visit", None))
+        customer = attrs.get("customer", getattr(self.instance, "customer", None))
+        if visit and customer and visit.customer_id != customer.id:
+            raise serializers.ValidationError(
+                {"visit": _("The visit belongs to another customer.")}
+            )
+        return attrs
 
     def create(self, validated_data: dict[str, Any]) -> TimeEntry:
         breaks_data = validated_data.pop("breaks", [])

@@ -18,6 +18,7 @@ export const tableStateKeys = {
   settingsBankAccounts: 'settings-bank-accounts-v3',
   settingsCompanyContacts: 'settings-company-contacts-v4',
   visitTimeEntries: 'visit-time-entries-v3',
+  visitSuggestedEntries: 'visit-suggested-entries-v1',
   contractTimeEntries: 'contract-time-entries-v3',
   contractInvoices: 'contract-invoices-v3',
   invoiceSourceEntries: 'invoice-source-entries-v3',

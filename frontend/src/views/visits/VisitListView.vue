@@ -179,7 +179,7 @@ async function save() {
         sortable
       />
       <Column class="app-text" field="location" :header="t('visits.location')" sortable />
-      <Column class="app-text" field="notes" :header="t('visits.report')" hidden>
+      <Column class="app-text" field="notes" :header="t('common.notes')" hidden>
         <template #body="{ data }">{{ firstLine(data.notes ?? '') }}</template>
       </Column>
       <Column :reorderable-column="false">
@@ -204,7 +204,7 @@ async function save() {
     </AppDataTable>
 
     <AppModal ref="modal" :form="form" :title="t('visits.new')" :loading="saving" @confirm="save">
-      <AppFormTabs :report-label="t('visits.report')" dialog>
+      <AppFormTabs :report-label="t('common.notes')" dialog>
         <template #details>
           <div class="flex flex-col gap-4">
             <AppFormField field="customer" :label="t('projects.customer')" required
@@ -233,7 +233,7 @@ async function save() {
           <AppMarkdownEditor
             :model-value="form.notes ?? ''"
             :rows="12"
-            :label="t('visits.report')"
+            :label="t('common.notes')"
             :fill="fill"
             @update:model-value="(text: string) => (form.notes = text)"
           />

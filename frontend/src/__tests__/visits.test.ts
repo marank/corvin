@@ -98,9 +98,9 @@ describe('VisitListView', () => {
   })
 })
 
-/** The report's Markdown editor (on its tab). */
-const reportText = () =>
-  screen.root.querySelector<HTMLTextAreaElement>(`textarea[aria-label="${t('visits.report')}"]`)!
+/** The notes' Markdown editor (on its tab). */
+const notesText = () =>
+  screen.root.querySelector<HTMLTextAreaElement>(`textarea[aria-label="${t('common.notes')}"]`)!
 
 describe('VisitDetailView', () => {
   const attachment = (over: Partial<Attachment> = {}): Attachment => ({
@@ -116,12 +116,27 @@ describe('VisitDetailView', () => {
 
   function backend(attachments: Attachment[] = []) {
     const api = pickers(mockApi())
-    const state = { attachments }
+    const state = {
+      attachments,
+      entries: [
+        timeEntry({ id: 'te-1', description: 'Router getauscht', visit: 'vis-1' }),
+        timeEntry({ id: 'te-2', description: 'Anfahrt', visit: null }),
+      ],
+    }
     api.get('/visits/vis-1/', visit())
-    api.get(
-      '/time-tracking/',
-      page([timeEntry({ description: 'Router getauscht', visit: 'vis-1' })]),
+    // Linked (?visit=) or suggested (?visit__isnull=true): the backend's filters, in short.
+    api.get('/time-tracking/', (call) =>
+      page(
+        state.entries.filter((entry) =>
+          call.query.get('visit__isnull') ? !entry.visit : entry.visit === call.query.get('visit'),
+        ),
+      ),
     )
+    api.patch(/^\/time-tracking\/te-\d\/$/, (call) => {
+      const entry = state.entries.find((e) => call.path.includes(e.id))!
+      entry.visit = (call.body as { visit: string | null }).visit
+      return entry
+    })
     api.get('/attachments/content_types/', { onsitevisit: 4 })
     api.get('/attachments/', () => page(state.attachments))
     return { api, state }
@@ -138,22 +153,51 @@ describe('VisitDetailView', () => {
     expect(api.requests('GET', '/time-tracking/')[0]!.query.get('visit')).toBe('vis-1')
   })
 
-  it('saves the report', async () => {
+  it("suggests the customer's open entries of the day and links or unlinks them", async () => {
+    const { api } = backend()
+    await open()
+    const suggested = api.requests('GET', '/time-tracking/')[1]!.query
+    expect(Object.fromEntries(suggested)).toMatchObject({
+      customer: 'cus-1',
+      visit__isnull: 'true',
+      start_datetime__date__gte: '2026-11-20',
+      start_datetime__date__lte: '2026-11-20',
+    })
+    expect(activeTab('last').text()).toContain(t('visits.suggested'))
+
+    await click(
+      activeTab('last')
+        .row('Anfahrt')
+        .querySelector(`[aria-label="${t('visits.link')}"]`)!,
+    )
+    expect(api.lastBody('PATCH', '/time-tracking/te-2/')).toEqual({ visit: 'vis-1' })
+    expect(activeTab('last').text()).not.toContain(t('visits.suggested'))
+
+    await click(
+      activeTab('last')
+        .row('Router getauscht')
+        .querySelector(`[aria-label="${t('visits.unlink')}"]`)!,
+    )
+    expect(api.lastBody('PATCH', '/time-tracking/te-1/')).toEqual({ visit: null })
+    expect(activeTab('last').text()).toContain(t('visits.suggested'))
+  })
+
+  it('saves the notes', async () => {
     const { api } = backend()
     api.put('/visits/vis-1/', (call) => call.body)
     await open()
-    await click(screen.button(t('visits.report')))
-    await type(reportText(), 'Switch ersetzt.')
+    await click(screen.button(t('common.notes')))
+    await type(notesText(), 'Switch ersetzt.')
     await click(screen.button(t('common.save')))
     expect(api.lastBody('PUT', '/visits/vis-1/')).toMatchObject({ notes: 'Switch ersetzt.' })
     expect(toasts()).toContain(t('common.saved'))
   })
 
-  it('asks before leaving an unsaved report', async () => {
+  it('asks before leaving unsaved notes', async () => {
     backend()
     const { router } = await open()
-    await click(screen.button(t('visits.report')))
-    await type(reportText(), 'Halb fertig')
+    await click(screen.button(t('common.notes')))
+    await type(notesText(), 'Halb fertig')
     await click(screen.button(t('nav.visits')))
     expect(confirmText()).toContain(t('common.unsavedMessage'))
     await answerConfirm(t('common.keepEditing'))

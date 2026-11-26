@@ -7567,6 +7567,13 @@
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "in": "query",
+                        "name": "visit__isnull",
+                        "schema": {
+                            "type": "boolean"
+                        }
                     }
                 ],
                 "tags": [

@@ -235,11 +235,15 @@
   },
   "visits": {
     "title": "Vor-Ort-Termine",
+    "visit": "Vor-Ort-Termin",
+    "suggested": "Vorgeschlagen",
+    "link": "Zuordnen",
+    "linkAll": "Alle zuordnen",
+    "unlink": "Lösen",
     "new": "Neuer Vor-Ort-Termin",
     "location": "Ort",
     "arrival": "Ankunft",
-    "departure": "Abfahrt",
-    "report": "Bericht"
+    "departure": "Abfahrt"
   },
   "contracts": {
     "title": "Verträge",

@@ -13,9 +13,10 @@ import AppIconButton from './ui/AppIconButton.vue'
 import AppMarkdownEditor from './ui/AppMarkdownEditor.vue'
 import CustomerSelect from './CustomerSelect.vue'
 import ProjectSelect from './ProjectSelect.vue'
+import VisitField from './VisitField.vue'
 import { contractsApi, timeTrackingApi, type SupportContract, type TimeEntry } from '../api'
 import { useNotify } from '../composables/useNotify'
-import { formatDuration, parseDuration } from '../dateTimeInput'
+import { formatDuration, isoDate, parseDuration } from '../dateTimeInput'
 import { firstLine } from '../markdown'
 
 const props = defineProps<{ entry?: TimeEntry | null }>()
@@ -138,6 +139,13 @@ watch(customerId, async (cid) => {
   contracts.value = (await contractsApi.list(`customer=${cid}&active=true&page_size=100`)).results
 })
 
+// The local day and time the entry starts, for its on-site visit.
+const startDay = computed(() => isoDate(new Date(form.value.start_datetime)))
+const startTime = computed(() => {
+  const start = new Date(form.value.start_datetime)
+  return `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`
+})
+
 const normalizedDurationText = computed(() => {
   const start = props.entry?.normalized_start_datetime
   const end = props.entry?.normalized_end_datetime
@@ -208,6 +216,13 @@ defineExpose({ save, saving, state })
         <AppFormField field="project" :label="t('projects.project')">
           <ProjectSelect v-model="form.project" :customer-id="customerId" />
         </AppFormField>
+        <VisitField
+          v-model="form.visit"
+          :customer-id="customerId"
+          :day="startDay"
+          :time="startTime"
+          :suggest="!props.entry"
+        />
         <AppFormField v-if="contracts.length" field="contract" :label="t('time.coveredByContract')">
           <Select
             v-model="form.contract"

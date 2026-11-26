@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import TimeTrackingView from '../views/TimeTrackingView.vue'
-import type { TimeEntry } from '../api'
+import type { TimeEntry, Visit } from '../api'
 import { mockApi, page, reply } from './helpers/api'
 import {
   answerConfirm,
@@ -13,7 +13,7 @@ import {
   type,
   typeOnly,
 } from './helpers/dom'
-import { contract, customer, project, runningEntry, timeEntry } from './helpers/fixtures'
+import { contract, customer, project, runningEntry, timeEntry, visit } from './helpers/fixtures'
 import { render, t } from './helpers/render'
 
 const entries = [
@@ -39,8 +39,10 @@ const entries = [
 function backend(
   running: ReturnType<typeof runningEntry> | null = null,
   list: TimeEntry[] = entries,
+  visits: Visit[] = [],
 ) {
   const api = mockApi()
+  api.get('/visits/', page(visits))
   api.get('/time-tracking/', page(list))
   api.get('/time-tracking/summary/', { count: list.length, total_minutes: 210 })
   // The backend's timer: stop, pause and resume change what /active/ returns.
@@ -184,8 +186,8 @@ describe('TimeTrackingView', () => {
   })
 
   describe('a manual entry', () => {
-    async function newEntry() {
-      const api = backend()
+    async function newEntry(visits: Visit[] = []) {
+      const api = backend(null, entries, visits)
       api.post('/time-tracking/', (call) => timeEntry(call.body as Partial<TimeEntry>))
       await open()
       await click(screen.button(t('time.new')))
@@ -215,6 +217,15 @@ describe('TimeTrackingView', () => {
         billable: true,
       })
       expect(isDialogOpen(t('time.new'))).toBe(false)
+    })
+
+    it('links the visit of the customer that day', async () => {
+      const { api, modal } = await newEntry([visit({ date: '2026-11-23' })])
+      await choose(modal.field(t('projects.customer')), 'Acme GmbH')
+      expect(api.requests('GET', '/visits/').at(-1)!.query.get('date')).toBe('2026-11-23')
+      expect(modal.field(t('visits.visit')).textContent).toContain('B-001')
+      await click(modal.button(t('common.save')))
+      expect(api.lastBody('POST', '/time-tracking/')).toMatchObject({ visit: 'vis-1' })
     })
 
     it('keeps a Markdown report, with its first line as the short form', async () => {

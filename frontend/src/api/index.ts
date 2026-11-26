@@ -391,6 +391,8 @@ export const timeTrackingApi = {
   create: (d: Record<string, unknown>) => api.post<TimeEntry>(`${base}/time-tracking/`, d),
   update: (id: string, d: Record<string, unknown>) =>
     api.put<TimeEntry>(`${base}/time-tracking/${id}/`, d),
+  patch: (id: string, d: Record<string, unknown>) =>
+    api.patch<TimeEntry>(`${base}/time-tracking/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/time-tracking/${id}/`),
   active: () => api.get<RunningEntry | null>(`${base}/time-tracking/active/`),
   start: (d: { customer: string | null; project: string | null; description: string }) =>

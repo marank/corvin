@@ -12,6 +12,7 @@ from core.models import (
     Customer,
     HourlyRate,
     Invoice,
+    OnSiteVisit,
     TimeEntry,
 )
 
@@ -197,6 +198,40 @@ def test_time_entry_keeps_a_markdown_report_and_finds_it(client, customer):
     assert r.json()["report"] == report
     found = client.get("/api/v1/time-tracking/?search=USV").json()["results"]
     assert [e["description"] for e in found] == ["Server-Wartung"]
+
+
+@pytest.mark.django_db
+def test_time_entry_links_only_a_visit_of_its_customer(client, user, customer):
+    other = Customer.objects.create(owner=user, name="Andere GmbH")
+    visit = OnSiteVisit.objects.create(owner=user, customer=customer, date=date(2026, 9, 1))
+    foreign = OnSiteVisit.objects.create(owner=user, customer=other, date=date(2026, 9, 1))
+    payload = {
+        "customer": str(customer.id),
+        "start_datetime": "2026-09-01T09:00:00+02:00",
+        "end_datetime": "2026-09-01T10:00:00+02:00",
+    }
+    r = client.post("/api/v1/time-tracking/", {**payload, "visit": str(foreign.id)}, format="json")
+    assert r.status_code == 400
+    assert "visit" in r.json()
+
+    r = client.post("/api/v1/time-tracking/", {**payload, "visit": str(visit.id)}, format="json")
+    assert r.status_code == 201
+    unlinked = client.post("/api/v1/time-tracking/", payload, format="json").json()
+    found = client.get(
+        f"/api/v1/time-tracking/?customer={customer.id}&visit__isnull=true"
+        "&start_datetime__date__gte=2026-09-01&start_datetime__date__lte=2026-09-01"
+    ).json()["results"]
+    assert [e["id"] for e in found] == [unlinked["id"]]
+
+    # Linked afterwards by a partial update; another customer's visit is refused there too.
+    patched = client.patch(
+        f"/api/v1/time-tracking/{unlinked['id']}/", {"visit": str(visit.id)}, format="json"
+    )
+    assert patched.json()["visit"] == str(visit.id)
+    refused = client.patch(
+        f"/api/v1/time-tracking/{unlinked['id']}/", {"visit": str(foreign.id)}, format="json"
+    )
+    assert refused.status_code == 400
 
 
 @pytest.mark.django_db

@@ -235,11 +235,15 @@
   },
   "visits": {
     "title": "On-site visits",
+    "visit": "On-site visit",
+    "suggested": "Suggested",
+    "link": "Link",
+    "linkAll": "Link all",
+    "unlink": "Unlink",
     "new": "New on-site visit",
     "location": "Location",
     "arrival": "Arrival",
-    "departure": "Departure",
-    "report": "Report"
+    "departure": "Departure"
   },
   "contracts": {
     "title": "Contracts",

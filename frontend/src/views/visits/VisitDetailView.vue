@@ -24,6 +24,7 @@ import NumberField from '../../components/NumberField.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
 import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
+import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
@@ -45,13 +46,43 @@ const visit = ref<Visit | null>(null)
 const form = ref<Partial<Visit>>({})
 const { markSaved } = useUnsavedChanges(form)
 const entries = ref<TimeEntry[]>([])
+// The customer's entries of the visit's day that belong to no visit yet.
+const suggested = ref<TimeEntry[]>([])
 const saving = ref(false)
+const linking = ref(false)
+
+async function loadEntries() {
+  if (!visit.value) return
+  const day = visit.value.date
+  const [linked, open] = await Promise.all([
+    timeTrackingApi.list(`visit=${id}&ordering=start_datetime&page_size=500`),
+    timeTrackingApi.list(
+      `customer=${visit.value.customer}&visit__isnull=true&start_datetime__date__gte=${day}` +
+        `&start_datetime__date__lte=${day}&ordering=start_datetime&page_size=500`,
+    ),
+  ])
+  entries.value = linked.results
+  suggested.value = open.results
+}
 
 async function load() {
   visit.value = await visitsApi.get(id)
   form.value = { ...visit.value }
   markSaved()
-  entries.value = (await timeTrackingApi.list(`visit=${id}&page_size=500`)).results
+  await loadEntries()
+}
+
+async function setVisit(rows: TimeEntry[], visitId: string | null) {
+  if (linking.value) return
+  linking.value = true
+  try {
+    await Promise.all(rows.map((row) => timeTrackingApi.patch(row.id, { visit: visitId })))
+  } catch (e) {
+    notify.error(e)
+  } finally {
+    linking.value = false
+    await loadEntries()
+  }
 }
 const loadFailed = useLoadFailed(load)
 
@@ -61,6 +92,8 @@ async function save() {
     visit.value = await visitsApi.update(id, form.value)
     markSaved()
     notify.ok(t('common.saved'))
+    // Another day or customer suggests other entries.
+    await loadEntries()
   } catch (e) {
     notify.error(e)
   } finally {
@@ -94,7 +127,7 @@ async function save() {
     </AppPageHeader>
 
     <div class="flex flex-wrap items-start gap-6">
-      <AppFormTabs :report-label="t('visits.report')" class="max-w-3xl min-w-0 flex-[1_1_48rem]">
+      <AppFormTabs :report-label="t('common.notes')" class="max-w-3xl min-w-0 flex-[1_1_48rem]">
         <template #details>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <NumberField v-model="form.number" />
@@ -122,7 +155,7 @@ async function save() {
           <AppMarkdownEditor
             :model-value="form.notes ?? ''"
             :rows="16"
-            :label="t('visits.report')"
+            :label="t('common.notes')"
             :fill="fill"
             @update:model-value="(text: string) => (form.notes = text)"
           />
@@ -137,7 +170,11 @@ async function save() {
         <TabPanels>
           <TabPanel value="entries" class="pt-4">
             <AppDataTable :rows="entries" :state-key="tableStateKeys.visitTimeEntries">
-              <Column field="start_datetime" :header="t('common.date')" sortable
+              <Column
+                field="start_datetime"
+                :header="t('common.date')"
+                header-style="width: 9.5rem"
+                sortable
                 ><template #body="{ data }"
                   ><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template
               ></Column>
@@ -157,7 +194,53 @@ async function save() {
                   ><AppDurationDisplay :minutes="data.duration_minutes"
                 /></template>
               </Column>
+              <Column :reorderable-column="false">
+                <template #body="{ data }"
+                  ><AppIconButton
+                    icon="pi pi-times"
+                    :label="t('visits.unlink')"
+                    :title="t('visits.unlink')"
+                    @click="setVisit([data], null)"
+                /></template>
+              </Column>
             </AppDataTable>
+            <template v-if="suggested.length">
+              <div class="flex items-center justify-between mt-6 mb-2">
+                <h3 class="font-semibold">{{ t('visits.suggested') }}</h3>
+                <Button
+                  :label="t('visits.linkAll')"
+                  icon="pi pi-plus"
+                  size="small"
+                  text
+                  :loading="linking"
+                  @click="setVisit(suggested, id)"
+                />
+              </div>
+              <AppDataTable :rows="suggested" :state-key="tableStateKeys.visitSuggestedEntries">
+                <Column
+                  field="start_datetime"
+                  :header="t('common.date')"
+                  header-style="width: 9.5rem"
+                  ><template #body="{ data }"
+                    ><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template
+                ></Column>
+                <Column class="app-text" field="description" :header="t('time.description')" />
+                <Column class="app-num" field="duration_minutes" :header="t('time.duration')">
+                  <template #body="{ data }"
+                    ><AppDurationDisplay :minutes="data.duration_minutes"
+                  /></template>
+                </Column>
+                <Column :reorderable-column="false">
+                  <template #body="{ data }"
+                    ><AppIconButton
+                      icon="pi pi-plus"
+                      :label="t('visits.link')"
+                      :title="t('visits.link')"
+                      @click="setVisit([data], id)"
+                  /></template>
+                </Column>
+              </AppDataTable>
+            </template>
           </TabPanel>
           <TabPanel value="attachments" class="pt-4"
             ><AttachmentList model="onsitevisit" :object-id="id"
