@@ -33,7 +33,15 @@ describe('VisitListView', () => {
     const api = backend()
     await render(VisitListView, { path: '/visits' })
     expect(api.requests('GET', '/visits/')[0]!.query.get('ordering')).toBe('-date')
-    expect(screen.rows()[0]).toEqual(['B-001', '20.11.2026', 'Acme GmbH', '', 'Berlin', ''])
+    expect(screen.rows()[0]).toEqual([
+      'B-001',
+      '20.11.2026',
+      '09:00–12:00',
+      'Acme GmbH',
+      '',
+      'Berlin',
+      '',
+    ])
   })
 
   it("narrows to a customer's visits from the overview link", async () => {
@@ -90,6 +98,10 @@ describe('VisitListView', () => {
   })
 })
 
+/** The report's Markdown editor (on its tab). */
+const reportText = () =>
+  screen.root.querySelector<HTMLTextAreaElement>(`textarea[aria-label="${t('visits.report')}"]`)!
+
 describe('VisitDetailView', () => {
   const attachment = (over: Partial<Attachment> = {}): Attachment => ({
     id: 'att-1',
@@ -122,7 +134,7 @@ describe('VisitDetailView', () => {
     expect(screen.text()).toContain('Acme GmbH — 20.11.2026')
     expect(screen.text()).toContain('B-001 · Berlin')
     expect(screen.input(t('visits.arrival')).value).toBe('09:00')
-    expect(activeTab().row('Router getauscht').textContent).toContain('2:00 h')
+    expect(activeTab('last').row('Router getauscht').textContent).toContain('2:00 h')
     expect(api.requests('GET', '/time-tracking/')[0]!.query.get('visit')).toBe('vis-1')
   })
 
@@ -130,7 +142,8 @@ describe('VisitDetailView', () => {
     const { api } = backend()
     api.put('/visits/vis-1/', (call) => call.body)
     await open()
-    await type(screen.input(t('visits.report')), 'Switch ersetzt.')
+    await click(screen.button(t('visits.report')))
+    await type(reportText(), 'Switch ersetzt.')
     await click(screen.button(t('common.save')))
     expect(api.lastBody('PUT', '/visits/vis-1/')).toMatchObject({ notes: 'Switch ersetzt.' })
     expect(toasts()).toContain(t('common.saved'))
@@ -139,7 +152,8 @@ describe('VisitDetailView', () => {
   it('asks before leaving an unsaved report', async () => {
     backend()
     const { router } = await open()
-    await type(screen.input(t('visits.report')), 'Halb fertig')
+    await click(screen.button(t('visits.report')))
+    await type(reportText(), 'Halb fertig')
     await click(screen.button(t('nav.visits')))
     expect(confirmText()).toContain(t('common.unsavedMessage'))
     await answerConfirm(t('common.keepEditing'))
@@ -159,7 +173,7 @@ describe('VisitDetailView', () => {
     })
     await open()
     await click(screen.button(t('customers.attachments')))
-    const input = activeTab().root.querySelector<HTMLInputElement>('input[type=file]')!
+    const input = activeTab('last').root.querySelector<HTMLInputElement>('input[type=file]')!
     Object.defineProperty(input, 'files', {
       value: [new File(['%PDF'], 'report.pdf', { type: 'application/pdf' })],
     })
@@ -170,13 +184,13 @@ describe('VisitDetailView', () => {
     expect([sent.get('content_type'), sent.get('object_id')]).toEqual(['4', 'vis-1'])
     expect(api.requests('POST', '/attachments/')[0]!.headers['Content-Type']).toBeUndefined()
     expect(toasts()).toContain(t('common.uploaded'))
-    expect(activeTab().button('report.pdf').getAttribute('href')).toBe(
+    expect(activeTab('last').button('report.pdf').getAttribute('href')).toBe(
       '/api/v1/attachments/att-1/file/',
     )
 
-    await click(activeTab().button(t('common.delete')))
+    await click(activeTab('last').button(t('common.delete')))
     await answerConfirm(t('common.delete'))
-    expect(activeTab().text()).toContain(t('common.empty'))
+    expect(activeTab('last').text()).toContain(t('common.empty'))
   })
 
   it('reports a failed upload', async () => {
@@ -184,7 +198,7 @@ describe('VisitDetailView', () => {
     api.post('/attachments/', reply(413, 'Request Entity Too Large'))
     await open()
     await click(screen.button(t('customers.attachments')))
-    const input = activeTab().root.querySelector<HTMLInputElement>('input[type=file]')!
+    const input = activeTab('last').root.querySelector<HTMLInputElement>('input[type=file]')!
     Object.defineProperty(input, 'files', { value: [new File(['x'], 'huge.iso')] })
     input.dispatchEvent(new Event('change'))
     await settle()

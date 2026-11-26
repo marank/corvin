@@ -1,30 +1,32 @@
 <script setup lang="ts" generic="T extends { id: string }">
 import {
-  Fragment,
   computed,
   getCurrentInstance,
-  nextTick,
+  onMounted,
   onUnmounted,
   ref,
-  shallowRef,
   useSlots,
   watch,
   type VNode,
 } from 'vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
-import Column from 'primevue/column'
 import DataTable, {
   type DataTablePageEvent,
   type DataTableSortEvent,
   type DataTableStateEvent,
 } from 'primevue/datatable'
 import Paginator, { type PageState } from 'primevue/paginator'
+import Popover from 'primevue/popover'
 import Select from 'primevue/select'
 import AppEmptyState from './AppEmptyState.vue'
-import { useColumnWidths, useTextColumnShares } from './columnWidths'
-import { useConfirm } from 'primevue/useconfirm'
-import { useNotify } from '../../composables/useNotify'
+import {
+  layoutColumns,
+  readColumns,
+  useColumnPrefs,
+  useColumnResize,
+  type TableColumn,
+} from './tableColumns'
 import { useTableDensity } from '../../composables/useTableDensity'
 import { useI18n } from 'vue-i18n'
 
@@ -47,9 +49,6 @@ const props = withDefaults(
     sortOrder?: 1 | -1
     sortOptions?: AppTableSortOption[]
     stateKey?: string
-    selectable?: boolean
-    // Enables "delete selected" in selection mode; called once per selected row.
-    deleteRow?: (row: T) => Promise<unknown>
     // Rows sharing this field's value get a #groupheader row (rows must be sorted by it).
     groupField?: string
   }>(),
@@ -65,8 +64,6 @@ const props = withDefaults(
     sortOrder: 1,
     sortOptions: () => [],
     stateKey: undefined,
-    selectable: false,
-    deleteRow: undefined,
     groupField: undefined,
   },
 )
@@ -75,26 +72,18 @@ const emit = defineEmits<{
   page: [value: { page: number; pageSize: number; first: number }]
   sort: [value: { field: string; order: 1 | -1 }]
   stateRestore: [value: { page: number; pageSize: number; field: string; order: 1 | -1 }]
-  selectionChange: [rows: T[]]
-  bulkDeleted: []
 }>()
 const { t } = useI18n()
-const confirm = useConfirm()
-const notify = useNotify()
-const deleting = ref(false)
 
 // Table on md+, card list below. Rendered with v-if rather than hidden with CSS:
 // a hidden DataTable measures zero-width columns and saves them to its state.
 const desktopQuery = window.matchMedia('(min-width: 768px)')
 const isDesktop = ref(desktopQuery.matches)
 const density = useTableDensity()
-const columnWidths = useColumnWidths(props.stateKey)
+const columnPrefs = useColumnPrefs(props.stateKey)
 const root = ref<HTMLElement>()
-const textShares = useTextColumnShares(root)
-watch(
-  () => [props.rows, isDesktop.value, columnWidths.tableKey.value],
-  () => nextTick(textShares.update),
-)
+useColumnResize(root, columnPrefs.setWidth)
+const chooser = ref<InstanceType<typeof Popover>>()
 const onMediaChange = (e: MediaQueryListEvent) => {
   isDesktop.value = e.matches
 }
@@ -102,14 +91,56 @@ desktopQuery.addEventListener('change', onMediaChange)
 onUnmounted(() => desktopQuery.removeEventListener('change', onMediaChange))
 
 const slots = useSlots()
-// Only tables whose parent listens to row-click (or that are in selection mode) look clickable.
+
+// The view's <Column>s (see tableColumns.ts): which are shown, and how wide.
+const columns = computed(() => readColumns(slots.default?.()))
+const choosable = computed(() => columns.value.filter((column) => !column.utility))
+const visibleColumns = computed(() => columns.value.filter(columnPrefs.isVisible))
+// Measured so free-text columns can give way before the table has to scroll.
+const available = ref(Number.POSITIVE_INFINITY)
+const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+const layout = computed(() =>
+  layoutColumns(
+    visibleColumns.value,
+    columnPrefs.prefs.value,
+    // The table's border.
+    available.value - 2,
+    remPx,
+  ),
+)
+function headerStyle(column: TableColumn) {
+  const px = layout.value.widths.get(column.key)
+  return px === undefined ? undefined : { width: `${px}px` }
+}
+const tableStyle = computed(() => ({ minWidth: `${layout.value.minWidth}px` }))
+// jsdom (tests) has no ResizeObserver.
+const observer =
+  typeof ResizeObserver === 'function'
+    ? new ResizeObserver(([entry]) => (available.value = entry!.contentRect.width))
+    : undefined
+onMounted(() => root.value && observer?.observe(root.value))
+onUnmounted(() => observer?.disconnect())
+// What AppDataTable adds to each of the view's <Column>s.
+function columnBindings(column: TableColumn) {
+  return {
+    columnKey: column.key,
+    hidden: !columnPrefs.isVisible(column),
+    // Both spellings: the view's `header-style` would otherwise win over ours.
+    headerStyle: headerStyle(column),
+    'header-style': headerStyle(column),
+    pt: { headerCell: column.utility ? {} : { 'data-col-key': column.key } },
+  }
+}
+// At least one content column stays visible.
+function canHide(column: TableColumn) {
+  return visibleColumns.value.filter((c) => !c.utility && c.key !== column.key).length > 0
+}
+// Only tables whose parent listens to row-click look clickable.
 const hasRowClickListener = !!getCurrentInstance()?.vnode.props?.onRowClick
 const localFirst = ref(props.first)
 const localPageSize = ref(props.pageSize)
 const localSortField = ref(props.sortField)
 const localSortOrder = ref<1 | -1>(props.sortOrder)
-const selectionMode = ref(false)
-const selectedRows = shallowRef<T[]>([])
 
 watch(
   () => props.first,
@@ -135,14 +166,6 @@ watch(
     localSortOrder.value = value
   },
 )
-watch(
-  () => props.rows,
-  () => {
-    const ids = new Set(props.rows.map((row) => row.id))
-    if (!props.lazy) updateSelection(selectedRows.value.filter((row) => ids.has(row.id)))
-  },
-  { deep: false },
-)
 
 const total = computed(() => (props.lazy ? (props.totalRecords ?? 0) : props.rows.length))
 const showPaginator = computed(() => total.value > localPageSize.value)
@@ -156,7 +179,7 @@ const effectiveSortOptions = computed(() => {
     }))
 })
 
-// Fallback mobile card for tables without a #card slot or mobileCard: the table's own
+// Fallback mobile card for tables without a #card slot or mobileCard: the table's visible
 // columns as label/value pairs (reusing their #body templates). Columns that can't be
 // reordered (checkboxes, row actions) go in a label-less row at the bottom.
 interface CardColumn {
@@ -166,27 +189,13 @@ interface CardColumn {
   utility: boolean
 }
 
-function flattenNodes(nodes: VNode[]): VNode[] {
-  return nodes.flatMap((node) =>
-    node.type === Fragment && Array.isArray(node.children)
-      ? flattenNodes(node.children as VNode[])
-      : [node],
-  )
-}
-
 function cardColumns(): CardColumn[] {
-  return flattenNodes(slots.default?.() ?? [])
-    .filter((node) => node.type === Column)
-    .map((node) => {
-      const p = node.props ?? {}
-      const reorderable = p.reorderableColumn ?? p['reorderable-column']
-      return {
-        header: String(p.header ?? ''),
-        field: String(p.field ?? ''),
-        body: (node.children as Record<string, CardColumn['body']> | null)?.body,
-        utility: reorderable === false || reorderable === 'false',
-      }
-    })
+  return visibleColumns.value.map((column) => ({
+    header: column.header,
+    field: typeof column.node.props?.field === 'string' ? column.node.props.field : '',
+    body: (column.node.children as Record<string, CardColumn['body']> | null)?.body,
+    utility: column.utility,
+  }))
 }
 
 function cardValue(column: CardColumn, row: T, index: number): VNode[] | string {
@@ -226,93 +235,21 @@ const visibleMobileRows = computed(() => {
   return sortedRows.value.slice(localFirst.value, localFirst.value + localPageSize.value)
 })
 
-const currentPageRows = computed(() =>
-  props.lazy
-    ? props.rows
-    : sortedRows.value.slice(localFirst.value, localFirst.value + localPageSize.value),
-)
-
-// Truncated free-text cells (td.app-text, see style.css) get their full text as tooltip.
+// Cells and headers cut off by their column's width get their full text as tooltip.
 function showTruncatedText(event: Event) {
-  const cell = (event.target as HTMLElement).closest<HTMLElement>('td.app-text')
+  const target = event.target as HTMLElement
+  const th = target.closest<HTMLElement>('th')
+  const cell = th
+    ? th.querySelector<HTMLElement>('.p-datatable-column-title')
+    : target.closest('td')
   if (!cell) return
   cell.title = cell.scrollWidth > cell.clientWidth ? cell.textContent.trim() : ''
 }
 
-function updateSelection(rows: T[]) {
-  selectedRows.value = rows
-  emit('selectionChange', rows)
-}
-
-function toggleSelection(row: T) {
-  const exists = selectedRows.value.some((selected) => selected.id === row.id)
-  updateSelection(
-    exists
-      ? selectedRows.value.filter((selected) => selected.id !== row.id)
-      : [...selectedRows.value, row],
-  )
-}
-
-const rowsClickable = computed(() => hasRowClickListener || selectionMode.value)
-// The checkbox toggles the selection itself; its click must not reach the row as well.
-const stopRowClick = { root: { onClick: (event: Event) => event.stopPropagation() } }
+const rowsClickable = hasRowClickListener
 
 function handleRowClick(row: T) {
-  if (selectionMode.value) toggleSelection(row)
-  else emit('rowClick', row)
-}
-
-// Deletes one by one so a row the backend refuses (protected, invoiced) doesn't stop the rest.
-function deleteSelected() {
-  const rows = selectedRows.value
-  const deleteRow = props.deleteRow
-  if (!deleteRow || !rows.length) return
-  confirm.require({
-    header: t('common.delete'),
-    message: t('table.bulkDeleteConfirm', { count: rows.length }),
-    icon: 'pi pi-trash',
-    rejectLabel: t('common.cancel'),
-    rejectProps: { text: true },
-    acceptLabel: t('common.delete'),
-    acceptClass: 'p-button-danger',
-    accept: () => void deleteRows(rows, deleteRow),
-  })
-}
-
-async function deleteRows(rows: T[], deleteRow: (row: T) => Promise<unknown>) {
-  deleting.value = true
-  let failed = 0
-  for (const row of rows) {
-    try {
-      await deleteRow(row)
-    } catch {
-      failed++
-    }
-  }
-  deleting.value = false
-  if (rows.length > failed) notify.ok(t('table.bulkDeleted', { count: rows.length - failed }))
-  if (failed) notify.error(null, t('table.bulkDeleteFailed', { count: failed }))
-  updateSelection([])
-  selectionMode.value = false
-  emit('bulkDeleted')
-}
-
-function startSelection() {
-  selectionMode.value = true
-}
-
-function finishSelection() {
-  selectionMode.value = false
-}
-
-function selectCurrentPage() {
-  const byId = new Map(selectedRows.value.map((row) => [row.id, row]))
-  currentPageRows.value.forEach((row) => byId.set(row.id, row))
-  updateSelection([...byId.values()])
-}
-
-function clearSelection() {
-  updateSelection([])
+  emit('rowClick', row)
 }
 
 function handlePage(event: DataTablePageEvent | PageState) {
@@ -336,7 +273,6 @@ function handleStateRestore(state: DataTableStateEvent) {
   const restoredField = typeof state.sortField === 'string' ? state.sortField : ''
   const field = restoredField || props.sortField
   const order: 1 | -1 = restoredField ? (state.sortOrder === -1 ? -1 : 1) : props.sortOrder
-  if (selectedRows.value.length) updateSelection([])
   localFirst.value = first
   localPageSize.value = rows
   localSortField.value = field
@@ -359,52 +295,51 @@ function toggleSortOrder() {
 
 <template>
   <!-- eslint-disable-next-line vuejs-accessibility/no-static-element-interactions -- not interactive: hover/focus only fill the native title tooltip of truncated cells. -->
-  <div :id="textShares.id" ref="root" @mouseover="showTruncatedText" @focusin="showTruncatedText">
-    <div v-if="selectable || $slots.toolbar" class="flex flex-wrap min-h-9 items-center gap-2 mb-2">
+  <div ref="root" @mouseover="showTruncatedText" @focusin="showTruncatedText">
+    <div
+      v-if="$slots.toolbar || (isDesktop && choosable.length > 1)"
+      class="flex flex-wrap min-h-9 items-center gap-2 mb-2"
+    >
       <div class="flex-1 min-w-0"><slot name="toolbar" /></div>
-      <template v-if="selectable && selectionMode">
-        <span class="text-sm text-surface-500">{{
-          t('table.selected', { count: selectedRows.length })
-        }}</span>
-        <Button :label="t('table.selectPage')" size="small" text @click="selectCurrentPage" />
-        <Button
-          :label="t('table.clearSelection')"
-          size="small"
-          text
-          :disabled="selectedRows.length === 0"
-          @click="clearSelection"
-        />
-        <Button
-          v-if="deleteRow"
-          :label="t('table.deleteSelected', { count: selectedRows.length })"
-          icon="pi pi-trash"
-          size="small"
-          severity="danger"
-          outlined
-          :loading="deleting"
-          :disabled="selectedRows.length === 0"
-          @click="deleteSelected"
-        />
-        <Button :label="t('common.done')" size="small" @click="finishSelection" />
-      </template>
       <Button
-        v-else-if="selectable"
-        :label="t('table.select')"
-        icon="pi pi-check-square"
-        size="small"
-        text
-        @click="startSelection"
-      />
-      <Button
-        v-if="isDesktop && columnWidths.custom.value"
-        icon="pi pi-arrows-h"
+        v-if="isDesktop && choosable.length > 1"
+        icon="pi pi-sliders-h"
         size="small"
         text
         severity="secondary"
-        :aria-label="t('table.resetWidths')"
-        :title="t('table.resetWidths')"
-        @click="columnWidths.reset"
+        :aria-label="t('table.columns')"
+        :title="t('table.columns')"
+        aria-haspopup="true"
+        @click="chooser?.toggle($event)"
       />
+      <Popover ref="chooser">
+        <div class="flex flex-col gap-1 min-w-48 max-h-96 overflow-y-auto">
+          <div class="text-xs font-semibold text-surface-500 mb-1">{{ t('table.columns') }}</div>
+          <label
+            v-for="column in choosable"
+            :key="column.key"
+            class="flex items-center gap-2 text-sm py-0.5 cursor-pointer"
+          >
+            <Checkbox
+              :model-value="columnPrefs.isVisible(column)"
+              binary
+              :disabled="columnPrefs.isVisible(column) && !canHide(column)"
+              @update:model-value="(on: boolean) => columnPrefs.setVisible(column, on)"
+            />
+            {{ column.header }}
+          </label>
+          <Button
+            :label="t('table.resetColumns')"
+            icon="pi pi-refresh"
+            size="small"
+            text
+            severity="secondary"
+            class="mt-1 self-start"
+            :disabled="!columnPrefs.customized.value"
+            @click="columnPrefs.reset"
+          />
+        </div>
+      </Popover>
       <Button
         v-if="isDesktop"
         :icon="density === 'compact' ? 'pi pi-expand' : 'pi pi-compress'"
@@ -419,7 +354,7 @@ function toggleSortOrder() {
 
     <DataTable
       v-if="isDesktop"
-      :key="columnWidths.tableKey.value"
+      :key="columnPrefs.tableKey.value"
       :value="rows"
       :loading="loading"
       :lazy="lazy"
@@ -431,40 +366,33 @@ function toggleSortOrder() {
       :rows-per-page-options="rowsPerPageOptions"
       :sort-field="localSortField || undefined"
       :sort-order="localSortField ? localSortOrder : undefined"
-      :resizable-columns="true"
-      column-resize-mode="fit"
       :reorderable-columns="true"
+      :table-style="tableStyle"
       :state-storage="stateKey ? 'local' : undefined"
       :state-key="stateKey"
       paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
       :current-page-report-template="t('table.pageReport')"
-      class="border border-surface-200 dark:border-surface-800"
+      class="app-data-table border border-surface-200 dark:border-surface-800"
       :class="{ 'app-table-comfortable': density === 'comfortable' }"
-      :row-class="() => (hasRowClickListener || selectionMode ? 'cursor-pointer' : '')"
+      :row-class="() => (hasRowClickListener ? 'cursor-pointer' : '')"
       :row-group-mode="groupField ? 'subheader' : undefined"
       :group-rows-by="groupField"
-      :selection="selectionMode ? selectedRows : undefined"
       data-key="id"
-      @update:selection="(rows: T[]) => updateSelection(rows ?? [])"
       @row-click="(event: any) => handleRowClick(event.data)"
       @page="handlePage"
       @sort="handleSort"
       @state-restore="handleStateRestore"
-      @state-save="columnWidths.dropSavedWidths"
-      @column-resize-end="columnWidths.markResized"
-      @column-reorder="nextTick(textShares.update)"
     >
-      <Column
-        v-if="selectionMode"
-        selection-mode="multiple"
-        header-style="width: 3rem"
-        :reorderable-column="false"
-      />
       <template #empty><AppEmptyState :message="t('common.empty')" /></template>
       <template v-if="groupField" #groupheader="{ data }"
         ><slot name="groupheader" :data="data"
       /></template>
-      <slot />
+      <component
+        :is="column.node"
+        v-for="column in columns"
+        :key="column.key"
+        v-bind="columnBindings(column)"
+      />
     </DataTable>
 
     <div v-else>
@@ -499,13 +427,6 @@ function toggleSortOrder() {
           @click="handleRowClick(row)"
           @keydown.enter.self="handleRowClick(row)"
         >
-          <Checkbox
-            v-if="selectionMode"
-            :model-value="selectedRows.some((selected) => selected.id === row.id)"
-            binary
-            :pt="stopRowClick"
-            @update:model-value="toggleSelection(row)"
-          />
           <div class="min-w-0 flex-1">
             <slot name="card" :row="row">
               <div v-if="mobileCard" class="font-medium">{{ mobileCard(row) }}</div>

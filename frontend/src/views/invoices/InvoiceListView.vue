@@ -117,9 +117,6 @@ async function load() {
       :rows="rows"
       :loading="pagination.loading.value"
       lazy
-      selectable
-      :delete-row="(row) => invoicesApi.remove(row.id)"
-      @bulk-deleted="load"
       :total-records="pagination.totalRecords.value"
       :first="pagination.first.value"
       :page-size="pagination.pageSize.value"
@@ -177,7 +174,12 @@ async function load() {
           </AppFormField>
         </AppFilterBar>
       </template>
-      <Column field="number" :header="t('common.numberShort')" sortable />
+      <Column
+        field="number"
+        :header="t('common.numberShort')"
+        header-style="width: 6.5rem"
+        sortable
+      />
       <Column
         class="app-text"
         field="customer_name"
@@ -185,18 +187,39 @@ async function load() {
         :header="t('projects.customer')"
         sortable
       />
-      <Column field="issue_date" :header="t('invoices.issueDate')" sortable
+      <Column class="app-text" field="project_name" :header="t('projects.project')" hidden />
+      <Column class="app-text" field="contract_name" :header="t('invoices.contract')" hidden />
+      <Column
+        field="issue_date"
+        :header="t('invoices.issueDate')"
+        header-style="width: 7rem"
+        sortable
         ><template #body="{ data }"><AppDateTimeDisplay :value="data.issue_date" /></template
       ></Column>
-      <Column field="due_date" :header="t('invoices.dueDate')" sortable
+      <Column field="due_date" :header="t('invoices.dueDate')" header-style="width: 7rem" sortable
         ><template #body="{ data }"><AppDateTimeDisplay :value="data.due_date" /></template
       ></Column>
+      <Column class="app-num" field="subtotal" :header="t('invoices.subtotal')" hidden>
+        <template #body="{ data }"
+          ><AppMoneyDisplay :amount="data.subtotal" :currency="data.currency"
+        /></template>
+      </Column>
+      <Column class="app-num" field="vat_amount" :header="t('invoices.vat')" hidden>
+        <template #body="{ data }"
+          ><AppMoneyDisplay :amount="data.vat_amount" :currency="data.currency"
+        /></template>
+      </Column>
       <Column class="app-num" field="total" :header="t('common.total')" sortable>
         <template #body="{ data }"
           ><AppMoneyDisplay :amount="data.total" :currency="data.currency"
         /></template>
       </Column>
-      <Column class="app-num" :header="t('invoices.remaining')">
+      <Column class="app-num" field="amount_paid" :header="t('invoices.paid')" hidden>
+        <template #body="{ data }"
+          ><AppMoneyDisplay :amount="data.amount_paid" :currency="data.currency"
+        /></template>
+      </Column>
+      <Column class="app-num" field="remaining" :header="t('invoices.remaining')">
         <template #body="{ data }">
           <AppMoneyDisplay
             v-if="Number(data.remaining) > 0 && data.status !== 'draft'"
@@ -206,7 +229,12 @@ async function load() {
           <span v-else>—</span>
         </template>
       </Column>
-      <Column field="status" :header="t('common.status')" sortable>
+      <Column field="sent_at" :header="t('invoices.sentAt')" hidden>
+        <template #body="{ data }"
+          ><AppDateTimeDisplay v-if="data.sent_at" :value="data.sent_at"
+        /></template>
+      </Column>
+      <Column field="status" :header="t('common.status')" header-style="width: 9rem" sortable>
         <template #body="{ data }">
           <AppStatusTag
             :status="statusKey(data)"
@@ -214,7 +242,7 @@ async function load() {
           />
         </template>
       </Column>
-      <Column :header="t('common.actions')" :reorderable-column="false">
+      <Column :reorderable-column="false">
         <template #body="{ data }">
           <AppIconButton
             v-if="data.status === 'draft'"

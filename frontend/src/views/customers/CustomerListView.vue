@@ -13,6 +13,7 @@ import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
+import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AppFilterBar, { type ActiveFilter } from '../../components/ui/AppFilterBar.vue'
 import AppSearchInput from '../../components/ui/AppSearchInput.vue'
 import Select from 'primevue/select'
@@ -108,9 +109,6 @@ async function save() {
       :rows="rows"
       :loading="pagination.loading.value"
       lazy
-      selectable
-      :delete-row="(row) => customersApi.remove(row.id)"
-      @bulk-deleted="load"
       :total-records="pagination.totalRecords.value"
       :first="pagination.first.value"
       :page-size="pagination.pageSize.value"
@@ -143,9 +141,14 @@ async function save() {
           <template #end><AppSearchInput v-model="search" /></template>
         </AppFilterBar>
       </template>
-      <Column field="number" :header="t('common.numberShort')" sortable />
+      <Column
+        field="number"
+        :header="t('common.numberShort')"
+        header-style="width: 6.5rem"
+        sortable
+      />
       <Column class="app-text" field="name" :header="t('common.name')" sortable />
-      <Column class="app-text" :header="t('customers.place')">
+      <Column class="app-text" column-key="place" :header="t('customers.place')">
         <template #body="{ data }">{{
           data.primary_address
             ? `${data.primary_address.postal_code} ${data.primary_address.city}`
@@ -153,20 +156,43 @@ async function save() {
         }}</template>
       </Column>
       <Column class="app-text" field="email" :header="t('common.email')" sortable />
-      <Column field="project_count" :header="t('nav.projects')" sortable />
-      <Column class="app-num" field="uninvoiced_hours" :header="t('overview.uninvoiced')" sortable>
+      <Column field="phone" :header="t('common.phone')" header-style="width: 10rem" hidden />
+      <Column field="vat_id" :header="t('customers.vatId')" header-style="width: 9rem" hidden />
+      <Column
+        class="app-num"
+        field="payment_terms_days"
+        :header="t('customers.paymentTerms')"
+        hidden
+      />
+      <Column
+        class="app-num"
+        field="project_count"
+        :header="t('nav.projects')"
+        header-style="width: 6rem"
+        sortable
+      />
+      <Column
+        class="app-num"
+        field="uninvoiced_hours"
+        header-style="width: 9rem"
+        :header="t('overview.uninvoiced')"
+        sortable
+      >
         <template #body="{ data }"
           ><AppDurationDisplay :minutes="(data.uninvoiced_hours ?? 0) * 60"
         /></template>
       </Column>
-      <Column :header="t('common.status')">
+      <Column field="created_at" :header="t('common.createdAt')" sortable hidden>
+        <template #body="{ data }"><AppDateTimeDisplay :value="data.created_at" /></template>
+      </Column>
+      <Column column-key="status" :header="t('common.status')">
         <template #body="{ data }"
           ><AppStatusTag
             :status="data.is_active ? 'active' : 'inactive'"
             :label="data.is_active ? t('common.active') : t('common.inactive')"
         /></template>
       </Column>
-      <Column :header="t('common.actions')" :reorderable-column="false">
+      <Column :reorderable-column="false">
         <template #body="{ data }"
           ><AppIconButton
             icon="pi pi-trash"

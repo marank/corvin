@@ -490,8 +490,12 @@ async function addPayment() {
                   sortable
                 />
                 <Column class="app-num" :header="t('invoices.quantity')"
-                  ><template #body="{ data }"><AppNumberDisplay :value="data.quantity" /></template
-                ></Column>
+                  ><template #body="{ data }"
+                    ><AppNumberDisplay :value="data.quantity" />{{
+                      data.unit ? ` ${t(`invoices.units.${data.unit}`)}` : ''
+                    }}</template
+                  ></Column
+                >
                 <Column class="app-num" :header="t('invoices.unitPrice')">
                   <template #body="{ data }"
                     ><AppMoneyDisplay :amount="data.unit_price" :currency="invoice!.currency"
@@ -574,7 +578,7 @@ async function addPayment() {
                   /></template>
                 </Column>
                 <Column class="app-text" field="note" :header="t('common.notes')" sortable />
-                <Column :header="t('common.actions')" :reorderable-column="false">
+                <Column :reorderable-column="false">
                   <template #body="{ data }"
                     ><AppIconButton
                       icon="pi pi-trash"

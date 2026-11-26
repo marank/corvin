@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import TimeTrackingView from '../views/TimeTrackingView.vue'
 import type { TimeEntry } from '../api'
 import { mockApi, page, reply } from './helpers/api'
@@ -211,9 +211,30 @@ describe('TimeTrackingView', () => {
         end_datetime: new Date(2026, 10, 23, 10, 45).toISOString(),
         breaks: [],
         description: 'Workshop',
+        report: '',
         billable: true,
       })
       expect(isDialogOpen(t('time.new'))).toBe(false)
+    })
+
+    it('keeps a Markdown report, with its first line as the short form', async () => {
+      const { api, modal } = await newEntry()
+      await choose(modal.field(t('projects.customer')), 'Acme GmbH')
+      await click(modal.button(t('time.report')))
+      const report = modal.root.querySelector<HTMLTextAreaElement>(
+        `textarea[aria-label="${t('time.report')}"]`,
+      )!
+      await type(report, '## **Server** getauscht\n\n- RAM\n- USV')
+      await click(modal.button(t('markdown.preview')))
+      await vi.waitFor(() => expect(modal.root.querySelector('.app-markdown h2')).not.toBeNull())
+      expect(modal.root.querySelector('.app-markdown h2')!.textContent).toBe('Server getauscht')
+      expect(modal.root.querySelectorAll('.app-markdown li')).toHaveLength(2)
+
+      await click(modal.button(t('common.save')))
+      expect(api.lastBody('POST', '/time-tracking/')).toMatchObject({
+        description: 'Server getauscht',
+        report: '## **Server** getauscht\n\n- RAM\n- USV',
+      })
     })
 
     it('works out the duration from typed start and end, minus breaks', async () => {

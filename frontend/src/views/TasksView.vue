@@ -5,13 +5,14 @@ import { useI18n } from 'vue-i18n'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
-import Textarea from 'primevue/textarea'
 import AppPageHeader from '../components/ui/AppPageHeader.vue'
 import AppDataTable from '../components/ui/AppDataTable.vue'
 import AppIconButton from '../components/ui/AppIconButton.vue'
 import AppStatusTag from '../components/ui/AppStatusTag.vue'
 import AppPriority from '../components/ui/AppPriority.vue'
 import AppModal from '../components/ui/AppModal.vue'
+import AppFormTabs from '../components/ui/AppFormTabs.vue'
+import AppMarkdownEditor from '../components/ui/AppMarkdownEditor.vue'
 import NumberField from '../components/NumberField.vue'
 import AppFormField from '../components/ui/AppFormField.vue'
 import AppFilterBar, { type ActiveFilter } from '../components/ui/AppFilterBar.vue'
@@ -127,9 +128,6 @@ async function toggleDone(task: Task) {
       :rows="rows"
       :loading="pagination.loading.value"
       lazy
-      selectable
-      :delete-row="(row) => tasksApi.remove(row.id)"
-      @bulk-deleted="load"
       :total-records="pagination.totalRecords.value"
       :first="pagination.first.value"
       :page-size="pagination.pageSize.value"
@@ -185,7 +183,7 @@ async function toggleDone(task: Task) {
           </AppFormField>
         </AppFilterBar>
       </template>
-      <Column :header="''" class="w-8" :reorderable-column="false">
+      <Column column-key="done" header-style="width: 3.5rem" :reorderable-column="false">
         <template #body="{ data }"
           ><AppIconButton
             :icon="data.status === 'done' ? 'pi pi-check-circle' : 'pi pi-circle'"
@@ -195,7 +193,12 @@ async function toggleDone(task: Task) {
             @click.stop="toggleDone(data)"
         /></template>
       </Column>
-      <Column field="number" :header="t('common.numberShort')" sortable />
+      <Column
+        field="number"
+        :header="t('common.numberShort')"
+        header-style="width: 6.5rem"
+        sortable
+      />
       <Column class="app-text" field="title" :header="t('tasks.task')" sortable>
         <template #body="{ data }"
           ><span :class="{ 'line-through text-surface-500': data.status === 'done' }">{{
@@ -208,6 +211,7 @@ async function toggleDone(task: Task) {
         field="customer_name"
         sort-field="customer__name"
         :header="t('projects.customer')"
+        header-style="width: 12rem"
         sortable
       />
       <Column
@@ -215,9 +219,10 @@ async function toggleDone(task: Task) {
         field="project_name"
         sort-field="project__name"
         :header="t('projects.project')"
+        header-style="width: 12rem"
         sortable
       />
-      <Column field="due_date" :header="t('tasks.dueDate')" sortable>
+      <Column field="due_date" :header="t('tasks.dueDate')" header-style="width: 7rem" sortable>
         <template #body="{ data }"
           ><AppDateTimeDisplay
             :value="data.due_date"
@@ -227,12 +232,21 @@ async function toggleDone(task: Task) {
       <Column field="priority" :header="t('tasks.priority')" sortable>
         <template #body="{ data }"><AppPriority :priority="data.priority" /></template>
       </Column>
-      <Column field="status" :header="t('common.status')" sortable>
+      <Column
+        field="created_at"
+        :header="t('common.createdAt')"
+        header-style="width: 7rem"
+        sortable
+        hidden
+      >
+        <template #body="{ data }"><AppDateTimeDisplay :value="data.created_at" /></template>
+      </Column>
+      <Column field="status" :header="t('common.status')" header-style="width: 8.5rem" sortable>
         <template #body="{ data }"
           ><AppStatusTag :status="data.status" :label="t(`tasks.status.${data.status}`)"
         /></template>
       </Column>
-      <Column :header="t('common.actions')" :reorderable-column="false">
+      <Column :reorderable-column="false">
         <template #body="{ data }"
           ><AppIconButton
             icon="pi pi-trash"
@@ -267,44 +281,55 @@ async function toggleDone(task: Task) {
       ref="modal"
       :form="form"
       :title="editing ? `${t('tasks.edit')} · ${editing.number}` : t('tasks.new')"
+      size="lg"
       @confirm="save"
     >
-      <div class="flex flex-col gap-4">
-        <NumberField v-if="editing" v-model="form.number" />
-        <AppFormField field="title" :label="t('tasks.task')" required
-          ><InputText v-model="form.title" class="w-full"
-        /></AppFormField>
-        <AppFormField field="customer" :label="t('projects.customer')"
-          ><CustomerSelect v-model="form.customer"
-        /></AppFormField>
-        <AppFormField field="project" :label="t('projects.project')"
-          ><ProjectSelect v-model="form.project" :customer-id="form.customer"
-        /></AppFormField>
-        <AppFormField field="description" :label="t('time.description')"
-          ><Textarea v-model="form.description" rows="2" class="w-full"
-        /></AppFormField>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <AppFormField field="due_date" :label="t('tasks.dueDate')"
-            ><AppDateInput v-model="form.due_date as any"
-          /></AppFormField>
-          <AppFormField :label="t('tasks.priority')">
-            <AppEnumSelect
-              v-model="form.priority"
-              :options="priorities"
-              label-prefix="tasks.priorities"
-              class="w-full"
-            />
-          </AppFormField>
-          <AppFormField :label="t('common.status')">
-            <AppEnumSelect
-              v-model="form.status"
-              :options="statuses"
-              label-prefix="tasks.status"
-              class="w-full"
-            />
-          </AppFormField>
-        </div>
-      </div>
+      <AppFormTabs :report-label="t('time.description')" dialog>
+        <template #details>
+          <div class="flex flex-col gap-4">
+            <NumberField v-if="editing" v-model="form.number" />
+            <AppFormField field="title" :label="t('tasks.task')" required
+              ><InputText v-model="form.title" class="w-full"
+            /></AppFormField>
+            <AppFormField field="customer" :label="t('projects.customer')"
+              ><CustomerSelect v-model="form.customer"
+            /></AppFormField>
+            <AppFormField field="project" :label="t('projects.project')"
+              ><ProjectSelect v-model="form.project" :customer-id="form.customer"
+            /></AppFormField>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <AppFormField field="due_date" :label="t('tasks.dueDate')"
+                ><AppDateInput v-model="form.due_date as any"
+              /></AppFormField>
+              <AppFormField :label="t('tasks.priority')">
+                <AppEnumSelect
+                  v-model="form.priority"
+                  :options="priorities"
+                  label-prefix="tasks.priorities"
+                  class="w-full"
+                />
+              </AppFormField>
+              <AppFormField :label="t('common.status')">
+                <AppEnumSelect
+                  v-model="form.status"
+                  :options="statuses"
+                  label-prefix="tasks.status"
+                  class="w-full"
+                />
+              </AppFormField>
+            </div>
+          </div>
+        </template>
+        <template #report="{ fill }">
+          <AppMarkdownEditor
+            :model-value="form.description ?? ''"
+            @update:model-value="(text: string) => (form.description = text)"
+            :rows="12"
+            :label="t('time.description')"
+            :fill="fill"
+          />
+        </template>
+      </AppFormTabs>
     </AppModal>
   </div>
 </template>

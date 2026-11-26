@@ -38,7 +38,7 @@ class TimeEntryViewSet(OwnedViewSet[TimeEntry]):
         "end_datetime": ["isnull"],
         "visit": ["exact"],
     }
-    search_fields = ["description", "project__name", "customer__name"]
+    search_fields = ["description", "report", "project__name", "customer__name"]
     ordering_fields = [
         "start_datetime",
         "end_datetime",

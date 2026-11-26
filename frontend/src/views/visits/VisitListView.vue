@@ -6,7 +6,6 @@ import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
-import Textarea from 'primevue/textarea'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFilterBar, { type ActiveFilter } from '../../components/ui/AppFilterBar.vue'
 import AppSearchInput from '../../components/ui/AppSearchInput.vue'
@@ -14,6 +13,9 @@ import { useQueryFilters } from '../../composables/useQueryFilters'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppModal from '../../components/ui/AppModal.vue'
+import AppFormTabs from '../../components/ui/AppFormTabs.vue'
+import AppMarkdownEditor from '../../components/ui/AppMarkdownEditor.vue'
+import { firstLine } from '../../markdown'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
 import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
@@ -30,6 +32,13 @@ const router = useRouter()
 const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const rows = ref<Visit[]>([])
+
+// "08:30–12:15"; an open end shows only the arrival.
+function visitTime(visit: Visit): string {
+  const hhmm = (time: string | null | undefined) => time?.slice(0, 5) ?? ''
+  if (!visit.arrival) return ''
+  return visit.departure ? `${hhmm(visit.arrival)}–${hhmm(visit.departure)}` : hhmm(visit.arrival)
+}
 const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
 const form = ref<Partial<Visit>>({ date: isoDate() })
@@ -99,9 +108,6 @@ async function save() {
       :rows="rows"
       :loading="pagination.loading.value"
       lazy
-      selectable
-      :delete-row="(row) => visitsApi.remove(row.id)"
-      @bulk-deleted="load"
       :total-records="pagination.totalRecords.value"
       :first="pagination.first.value"
       :page-size="pagination.pageSize.value"
@@ -138,15 +144,30 @@ async function save() {
           <template #end><AppSearchInput v-model="search" /></template>
         </AppFilterBar>
       </template>
-      <Column field="number" :header="t('common.numberShort')" sortable />
-      <Column field="date" :header="t('common.date')" sortable
+      <Column
+        field="number"
+        :header="t('common.numberShort')"
+        header-style="width: 6.5rem"
+        sortable
+      />
+      <Column field="date" :header="t('common.date')" header-style="width: 7rem" sortable
         ><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template
       ></Column>
+      <Column
+        column-key="time"
+        sort-field="arrival"
+        :header="t('time.time')"
+        header-style="width: 7.5rem"
+        sortable
+      >
+        <template #body="{ data }">{{ visitTime(data) }}</template>
+      </Column>
       <Column
         class="app-text"
         field="customer_name"
         sort-field="customer__name"
         :header="t('projects.customer')"
+        header-style="width: 12rem"
         sortable
       />
       <Column
@@ -154,10 +175,14 @@ async function save() {
         field="project_name"
         sort-field="project__name"
         :header="t('projects.project')"
+        header-style="width: 12rem"
         sortable
       />
       <Column class="app-text" field="location" :header="t('visits.location')" sortable />
-      <Column :header="t('common.actions')" :reorderable-column="false">
+      <Column class="app-text" field="notes" :header="t('visits.report')" hidden>
+        <template #body="{ data }">{{ firstLine(data.notes ?? '') }}</template>
+      </Column>
+      <Column :reorderable-column="false">
         <template #body="{ data }"
           ><AppIconButton
             icon="pi pi-trash"
@@ -179,31 +204,41 @@ async function save() {
     </AppDataTable>
 
     <AppModal ref="modal" :form="form" :title="t('visits.new')" :loading="saving" @confirm="save">
-      <div class="flex flex-col gap-4">
-        <AppFormField field="customer" :label="t('projects.customer')" required
-          ><CustomerSelect v-model="form.customer"
-        /></AppFormField>
-        <AppFormField field="project" :label="t('projects.project')"
-          ><ProjectSelect v-model="form.project" :customer-id="form.customer"
-        /></AppFormField>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <AppFormField field="date" :label="t('common.date')" required
-            ><AppDateInput v-model="form.date as any"
-          /></AppFormField>
-          <AppFormField field="arrival" :label="t('visits.arrival')"
-            ><InputText v-model="form.arrival" type="time" class="w-full"
-          /></AppFormField>
-          <AppFormField field="departure" :label="t('visits.departure')"
-            ><InputText v-model="form.departure" type="time" class="w-full"
-          /></AppFormField>
-        </div>
-        <AppFormField field="location" :label="t('visits.location')"
-          ><InputText v-model="form.location" class="w-full"
-        /></AppFormField>
-        <AppFormField field="notes" :label="t('common.notes')"
-          ><Textarea v-model="form.notes" rows="3" class="w-full"
-        /></AppFormField>
-      </div>
+      <AppFormTabs :report-label="t('visits.report')" dialog>
+        <template #details>
+          <div class="flex flex-col gap-4">
+            <AppFormField field="customer" :label="t('projects.customer')" required
+              ><CustomerSelect v-model="form.customer"
+            /></AppFormField>
+            <AppFormField field="project" :label="t('projects.project')"
+              ><ProjectSelect v-model="form.project" :customer-id="form.customer"
+            /></AppFormField>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <AppFormField field="date" :label="t('common.date')" required
+                ><AppDateInput v-model="form.date as any"
+              /></AppFormField>
+              <AppFormField field="arrival" :label="t('visits.arrival')"
+                ><InputText v-model="form.arrival" type="time" class="w-full"
+              /></AppFormField>
+              <AppFormField field="departure" :label="t('visits.departure')"
+                ><InputText v-model="form.departure" type="time" class="w-full"
+              /></AppFormField>
+            </div>
+            <AppFormField field="location" :label="t('visits.location')"
+              ><InputText v-model="form.location" class="w-full"
+            /></AppFormField>
+          </div>
+        </template>
+        <template #report="{ fill }">
+          <AppMarkdownEditor
+            :model-value="form.notes ?? ''"
+            :rows="12"
+            :label="t('visits.report')"
+            :fill="fill"
+            @update:model-value="(text: string) => (form.notes = text)"
+          />
+        </template>
+      </AppFormTabs>
     </AppModal>
   </div>
 </template>

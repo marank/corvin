@@ -11,6 +11,8 @@ import Textarea from 'primevue/textarea'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppStatusTag from '../../components/ui/AppStatusTag.vue'
+import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
+import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
@@ -105,9 +107,6 @@ async function save() {
       :rows="rows"
       :loading="pagination.loading.value"
       lazy
-      selectable
-      :delete-row="(row) => projectsApi.remove(row.id)"
-      @bulk-deleted="load"
       :total-records="pagination.totalRecords.value"
       :first="pagination.first.value"
       :page-size="pagination.pageSize.value"
@@ -146,7 +145,12 @@ async function save() {
           <template #end><AppSearchInput v-model="search" /></template>
         </AppFilterBar>
       </template>
-      <Column field="number" :header="t('common.numberShort')" sortable />
+      <Column
+        field="number"
+        :header="t('common.numberShort')"
+        header-style="width: 6.5rem"
+        sortable
+      />
       <Column class="app-text" field="name" :header="t('common.name')" sortable />
       <Column
         class="app-text"
@@ -155,12 +159,18 @@ async function save() {
         :header="t('projects.customer')"
         sortable
       />
-      <Column field="status" :header="t('common.status')" sortable>
+      <Column class="app-text" field="description" :header="t('time.description')" hidden />
+      <Column field="status" :header="t('common.status')" header-style="width: 8.5rem" sortable>
         <template #body="{ data }"
           ><AppStatusTag :status="data.status" :label="t(`projects.status.${data.status}`)"
         /></template>
       </Column>
-      <Column class="app-num" :header="t('projects.usedHours')">
+      <Column
+        class="app-num"
+        column-key="used_hours"
+        :header="t('projects.usedHours')"
+        header-style="width: 11rem"
+      >
         <template #body="{ data }">
           <span class="inline-flex items-center justify-end gap-2">
             <span
@@ -184,7 +194,23 @@ async function save() {
           </span>
         </template>
       </Column>
-      <Column :header="t('common.actions')" :reorderable-column="false">
+      <Column class="app-num" column-key="used_amount" :header="t('projects.usedAmount')" hidden>
+        <template #body="{ data }">
+          <AppMoneyDisplay :amount="data.used_amount" /><template v-if="data.budget_amount">
+            / <AppMoneyDisplay :amount="data.budget_amount"
+          /></template>
+        </template>
+      </Column>
+      <Column
+        field="created_at"
+        :header="t('common.createdAt')"
+        header-style="width: 7rem"
+        sortable
+        hidden
+      >
+        <template #body="{ data }"><AppDateTimeDisplay :value="data.created_at" /></template>
+      </Column>
+      <Column :reorderable-column="false">
         <template #body="{ data }"
           ><AppIconButton
             icon="pi pi-trash"

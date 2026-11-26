@@ -67,7 +67,9 @@
     "name": "Name",
     "number": "Nummer",
     "status": "Status",
+    "details": "Details",
     "notes": "Notizen",
+    "createdAt": "Angelegt am",
     "email": "E-Mail",
     "phone": "Telefon",
     "address": "Adresse",
@@ -98,22 +100,22 @@
     "otpHint": "Bitte den Code aus Ihrer Authenticator-App eingeben.",
     "otpFailed": "Der Code ist ungültig."
   },
+  "markdown": {
+    "write": "Schreiben",
+    "preview": "Vorschau",
+    "hint": "Markdown: **fett**, *kursiv*, - Liste, ## Überschrift, [Link](https://…)",
+    "empty": "Noch nichts geschrieben."
+  },
   "table": {
-    "select": "Auswählen",
-    "selected": "{count} ausgewählt",
     "selectPage": "Seite auswählen",
-    "clearSelection": "Auswahl aufheben",
-    "deleteSelected": "Löschen ({count})",
-    "bulkDeleteConfirm": "{count} ausgewählte Einträge wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
-    "bulkDeleted": "{count} gelöscht",
-    "bulkDeleteFailed": "{count} konnten nicht gelöscht werden (z. B. weil sie noch verwendet werden oder abgerechnet sind).",
     "sortBy": "Sortieren nach",
     "ascending": "Aufsteigend",
     "descending": "Absteigend",
     "pageReport": "{first}–{last} von {totalRecords}",
     "comfortable": "Mehr Abstand",
     "compact": "Kompakt",
-    "resetWidths": "Spaltenbreiten automatisch"
+    "columns": "Spalten",
+    "resetColumns": "Standard wiederherstellen"
   },
   "customers": {
     "salutationName": "Name in der Anrede",
@@ -204,6 +206,7 @@
     "pickDate": "Datum auswählen",
     "dateUnreadable": "Nicht lesbar – z. B. 021126, 2.11., 2 oder heute",
     "breaks": "Pausen",
+    "noBreaks": "Keine Pausen",
     "addBreak": "Pause hinzufügen",
     "description": "Beschreibung",
     "billable": "Abrechenbar",
@@ -216,6 +219,9 @@
     "openStoppedEntryPrompt": "Möchten Sie den gestoppten Zeiteintrag zur Bearbeitung öffnen?",
     "editEntry": "Zeiteintrag bearbeiten",
     "timerRunning": "Timer läuft",
+    "report": "Bericht",
+    "descriptionPlaceholder": "Kurzform – leer gelassen: die erste Zeile des Berichts",
+    "hasReport": "Mit Bericht",
     "invoiced": "Abgerechnet",
     "time": "Zeit",
     "startNow": "Starten",

@@ -205,9 +205,6 @@ async function run(action: () => Promise<unknown>) {
       :rows="rows"
       :loading="pagination.loading.value"
       lazy
-      selectable
-      :delete-row="(row) => timeTrackingApi.remove(row.id)"
-      @bulk-deleted="load"
       :total-records="pagination.totalRecords.value"
       :first="pagination.first.value"
       :page-size="pagination.pageSize.value"
@@ -272,10 +269,10 @@ async function run(action: () => Promise<unknown>) {
           </template>
         </AppFilterBar>
       </template>
-      <Column field="start_datetime" :header="t('common.date')" sortable
+      <Column field="start_datetime" :header="t('common.date')" header-style="width: 7rem" sortable
         ><template #body="{ data }"><AppDateTimeDisplay :value="data.start_datetime" /></template
       ></Column>
-      <Column :header="t('time.time')">
+      <Column column-key="time" :header="t('time.time')" header-style="width: 7rem">
         <template #body="{ data }">
           <AppDateTimeDisplay :value="data.start_datetime" type="time" />–<AppDateTimeDisplay
             v-if="data.end_datetime"
@@ -289,6 +286,7 @@ async function run(action: () => Promise<unknown>) {
         field="project_name"
         sort-field="project__name"
         :header="t('projects.project')"
+        header-style="width: 10rem"
         sortable
       />
       <Column
@@ -296,21 +294,49 @@ async function run(action: () => Promise<unknown>) {
         field="customer_name"
         sort-field="customer__name"
         :header="t('projects.customer')"
+        header-style="width: 10rem"
         sortable
       />
-      <Column class="app-text" field="description" :header="t('time.description')" />
-      <Column class="app-num" field="duration_minutes" :header="t('time.duration')" sortable>
+      <Column class="app-text" field="description" :header="t('time.description')">
+        <template #body="{ data }"
+          ><i
+            v-if="data.report"
+            class="pi pi-file-edit text-surface-500 mr-1.5 text-xs"
+            role="img"
+            :aria-label="t('time.hasReport')"
+            :title="t('time.hasReport')"
+          />{{ data.description }}</template
+        >
+      </Column>
+      <Column
+        class="app-num"
+        field="duration_minutes"
+        :header="t('time.duration')"
+        header-style="width: 6rem"
+        sortable
+      >
         <template #body="{ data }">
           <Tag v-if="data.is_running" :value="t('time.timerRunning')" severity="warn" />
           <AppDurationDisplay v-else :minutes="data.duration_minutes" />
         </template>
       </Column>
-      <Column :header="t('time.billable')">
+      <Column
+        class="app-num"
+        field="break_minutes"
+        :header="t('time.breaks')"
+        header-style="width: 6rem"
+        hidden
+      >
+        <template #body="{ data }"
+          ><AppDurationDisplay v-if="data.break_minutes" :minutes="data.break_minutes"
+        /></template>
+      </Column>
+      <Column field="billable" :header="t('time.billable')" header-style="width: 6.5rem">
         <template #body="{ data }">
           <i v-if="data.billable" class="pi pi-check" />
         </template>
       </Column>
-      <Column :header="t('time.invoiced')">
+      <Column field="invoice_number" :header="t('time.invoiced')" header-style="width: 7rem">
         <template #body="{ data }">
           <router-link
             v-if="data.invoice"
@@ -321,7 +347,13 @@ async function run(action: () => Promise<unknown>) {
           >
         </template>
       </Column>
-      <Column class="app-text" field="contract_name" :header="t('invoices.contract')" />
+      <Column
+        class="app-text"
+        field="contract_name"
+        :header="t('invoices.contract')"
+        header-style="width: 9rem"
+        hidden
+      />
       <Column :reorderable-column="false">
         <template #body="{ data }"
           ><AppIconButton
@@ -339,7 +371,14 @@ async function run(action: () => Promise<unknown>) {
       <template #card="{ row }">
         <div class="flex justify-between items-center">
           <div>
-            <div class="font-medium">{{ row.description || row.project_name || '—' }}</div>
+            <div class="font-medium">
+              <i
+                v-if="row.report"
+                class="pi pi-file-edit text-surface-500 mr-1 text-xs"
+                role="img"
+                :aria-label="t('time.hasReport')"
+              />{{ row.description || row.project_name || '—' }}
+            </div>
             <div class="text-surface-500">
               <AppDateTimeDisplay :value="row.start_datetime" type="datetime" /> ·
               {{ row.customer_name }}

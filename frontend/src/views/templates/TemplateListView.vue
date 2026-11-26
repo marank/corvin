@@ -344,7 +344,7 @@ async function importTemplate(event: Event) {
           >
             <Column class="app-text" field="name" :header="t('common.name')" sortable />
             <Column field="page_size" :header="t('designer.pageSize')" sortable />
-            <Column :header="t('common.actions')" :reorderable-column="false">
+            <Column header-style="width: 7.5rem" :reorderable-column="false">
               <template #body="{ data }">
                 <AppIconButton
                   icon="pi pi-copy"
@@ -387,8 +387,9 @@ async function importTemplate(event: Event) {
                   .join(', ')
               }}</template>
             </Column>
+            <Column class="app-text" field="subject" :header="t('invoices.mailSubject')" hidden />
             <Column class="app-num" field="derived_count" :header="t('designer.derived')" />
-            <Column :header="t('common.actions')" :reorderable-column="false">
+            <Column header-style="width: 5.5rem" :reorderable-column="false">
               <template #body="{ data }">
                 <AppIconButton
                   icon="pi pi-copy"
@@ -425,7 +426,13 @@ async function importTemplate(event: Event) {
           >
             <Column class="app-text" field="name" :header="t('common.name')" sortable />
             <Column field="key" :header="t('designer.textBlockKey')" sortable />
-            <Column :header="t('common.actions')" :reorderable-column="false">
+            <Column
+              class="app-text"
+              field="content"
+              :header="t('designer.textBlockContent')"
+              hidden
+            />
+            <Column :reorderable-column="false">
               <template #body="{ data }"
                 ><AppIconButton
                   icon="pi pi-trash"

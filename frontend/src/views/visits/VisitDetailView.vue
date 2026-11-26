@@ -9,7 +9,6 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
-import Textarea from 'primevue/textarea'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
@@ -19,6 +18,8 @@ import Column from 'primevue/column'
 import AppLoadState from '../../components/ui/AppLoadState.vue'
 import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
+import AppFormTabs from '../../components/ui/AppFormTabs.vue'
+import AppMarkdownEditor from '../../components/ui/AppMarkdownEditor.vue'
 import NumberField from '../../components/NumberField.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
 import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
@@ -93,30 +94,40 @@ async function save() {
     </AppPageHeader>
 
     <div class="flex flex-wrap items-start gap-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl flex-[1_1_48rem]">
-        <NumberField v-model="form.number" />
-        <AppFormField field="customer" :label="t('projects.customer')"
-          ><CustomerSelect v-model="form.customer"
-        /></AppFormField>
-        <AppFormField field="project" :label="t('projects.project')"
-          ><ProjectSelect v-model="form.project" :customer-id="form.customer"
-        /></AppFormField>
-        <AppFormField field="date" :label="t('common.date')"
-          ><AppDateInput v-model="form.date as any"
-        /></AppFormField>
-        <AppFormField field="location" :label="t('visits.location')"
-          ><InputText v-model="form.location" class="w-full"
-        /></AppFormField>
-        <AppFormField field="arrival" :label="t('visits.arrival')"
-          ><InputText v-model="form.arrival" type="time" class="w-full"
-        /></AppFormField>
-        <AppFormField field="departure" :label="t('visits.departure')"
-          ><InputText v-model="form.departure" type="time" class="w-full"
-        /></AppFormField>
-        <AppFormField field="notes" :label="t('visits.report')" class="md:col-span-2"
-          ><Textarea v-model="form.notes" rows="6" class="w-full"
-        /></AppFormField>
-      </div>
+      <AppFormTabs :report-label="t('visits.report')" class="max-w-3xl min-w-0 flex-[1_1_48rem]">
+        <template #details>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <NumberField v-model="form.number" />
+            <AppFormField field="customer" :label="t('projects.customer')"
+              ><CustomerSelect v-model="form.customer"
+            /></AppFormField>
+            <AppFormField field="project" :label="t('projects.project')"
+              ><ProjectSelect v-model="form.project" :customer-id="form.customer"
+            /></AppFormField>
+            <AppFormField field="date" :label="t('common.date')"
+              ><AppDateInput v-model="form.date as any"
+            /></AppFormField>
+            <AppFormField field="location" :label="t('visits.location')"
+              ><InputText v-model="form.location" class="w-full"
+            /></AppFormField>
+            <AppFormField field="arrival" :label="t('visits.arrival')"
+              ><InputText v-model="form.arrival" type="time" class="w-full"
+            /></AppFormField>
+            <AppFormField field="departure" :label="t('visits.departure')"
+              ><InputText v-model="form.departure" type="time" class="w-full"
+            /></AppFormField>
+          </div>
+        </template>
+        <template #report="{ fill }">
+          <AppMarkdownEditor
+            :model-value="form.notes ?? ''"
+            :rows="16"
+            :label="t('visits.report')"
+            :fill="fill"
+            @update:model-value="(text: string) => (form.notes = text)"
+          />
+        </template>
+      </AppFormTabs>
 
       <Tabs v-model:value="tab" class="min-w-0 flex-[1_1_28rem]">
         <TabList>

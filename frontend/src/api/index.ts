@@ -135,6 +135,7 @@ export interface TimeEntry {
   is_running: boolean
   is_paused: boolean
   description: string
+  report: string
   billable: boolean
   // Set by invoicing only (read-only).
   invoice: string | null

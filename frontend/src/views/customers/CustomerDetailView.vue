@@ -349,7 +349,7 @@ function removeAddress(a: Address) {
                 ><i v-if="data.is_invoice_contact" class="pi pi-check"
               /></template>
             </Column>
-            <Column :header="t('common.actions')" :reorderable-column="false">
+            <Column header-style="width: 5.5rem" :reorderable-column="false">
               <template #body="{ data }">
                 <AppIconButton icon="pi pi-pencil" @click.stop="openContact(data)" />
                 <AppIconButton
@@ -394,7 +394,7 @@ function removeAddress(a: Address) {
                 </span>
               </template>
             </Column>
-            <Column :header="t('common.actions')" :reorderable-column="false">
+            <Column header-style="width: 5.5rem" :reorderable-column="false">
               <template #body="{ data }">
                 <AppIconButton icon="pi pi-pencil" @click.stop="openAddress(data)" />
                 <AppIconButton

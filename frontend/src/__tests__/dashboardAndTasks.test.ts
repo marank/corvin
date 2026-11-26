@@ -209,8 +209,20 @@ describe('TasksView', () => {
     await click(screen.row('Server tauschen'))
     const modal = dialog(`${t('tasks.edit')} · A-003`)
     await choose(modal.field(t('common.status')), t('tasks.status.in_progress'))
+    // The description is Markdown, on its own tab.
+    await click(modal.button(t('time.description')))
+    await type(
+      modal.root.querySelector<HTMLTextAreaElement>(
+        `textarea[aria-label="${t('time.description')}"]`,
+      )!,
+      '- alten Server abbauen',
+    )
     await click(modal.button(t('common.save')))
-    expect(api.lastBody('PUT', '/tasks/t3/')).toMatchObject({ id: 't3', status: 'in_progress' })
+    expect(api.lastBody('PUT', '/tasks/t3/')).toMatchObject({
+      id: 't3',
+      status: 'in_progress',
+      description: '- alten Server abbauen',
+    })
   })
 
   it('filters by priority', async () => {

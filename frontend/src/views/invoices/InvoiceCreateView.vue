@@ -888,7 +888,7 @@ async function create() {
           :state-key="tableStateKeys.invoiceSourceEntries"
           @row-click="togglePick"
         >
-          <Column class="w-10" :reorderable-column="false">
+          <Column header-style="width: 3rem" :reorderable-column="false">
             <template #header
               ><Checkbox
                 :model-value="allPicked"

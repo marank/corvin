@@ -1,15 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import InvoiceListView from '../views/invoices/InvoiceListView.vue'
-import { mockApi, page, reply } from './helpers/api'
-import {
-  answerConfirm,
-  choose,
-  click,
-  confirmText,
-  screen,
-  toasts,
-  toggleCheckbox,
-} from './helpers/dom'
+import { mockApi, page } from './helpers/api'
+import { answerConfirm, choose, click, confirmText, screen } from './helpers/dom'
 import { customer, invoice } from './helpers/fixtures'
 import { render, t } from './helpers/render'
 
@@ -140,30 +132,6 @@ describe('InvoiceListView', () => {
     await answerConfirm(t('common.delete'))
     expect(api.requests('DELETE', '/invoices/inv-1/')).toHaveLength(1)
     expect(api.requests('GET', '/invoices/').length).toBe(before + 1)
-  })
-
-  it('deletes a selection one by one and reports the ones the backend refused', async () => {
-    const api = backend()
-    api.delete('/invoices/inv-1/')
-    api.delete('/invoices/inv-3/', reply(409, { detail: 'Finalized.' }))
-    await open()
-    await click(screen.button(t('table.select')))
-    await toggleCheckbox(screen.root.querySelectorAll('tbody tr')[0]!)
-    await toggleCheckbox(screen.root.querySelectorAll('tbody tr')[2]!)
-    expect(screen.text()).toContain(t('table.selected', { count: 2 }))
-
-    await click(screen.button(t('table.deleteSelected', { count: 2 })))
-    expect(confirmText()).toContain(t('table.bulkDeleteConfirm', { count: 2 }))
-    await answerConfirm(t('common.delete'))
-    expect(api.requests('DELETE', /^\/invoices\/inv-\d\/$/).map((c) => c.path)).toEqual([
-      '/invoices/inv-1/',
-      '/invoices/inv-3/',
-    ])
-    expect(toasts()).toEqual([
-      t('table.bulkDeleted', { count: 1 }),
-      t('table.bulkDeleteFailed', { count: 1 }),
-    ])
-    expect(screen.hasButton(t('table.select'))).toBe(true)
   })
 
   describe('on a phone', () => {

@@ -95,6 +95,7 @@ class TimeEntrySerializer(OwnedSerializer[TimeEntry]):
             "is_running",
             "is_paused",
             "description",
+            "report",
             "billable",
             "invoice",
             "created_at",

@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { defineComponent, h, ref, type PropType } from 'vue'
+import { defineComponent, h, type PropType } from 'vue'
 import Column from 'primevue/column'
 import AppDataTable from '../components/ui/AppDataTable.vue'
 import AppIconButton from '../components/ui/AppIconButton.vue'
 import { useTableDensity } from '../composables/useTableDensity'
-import { answerConfirm, choose, click, pressEnter, screen, toasts } from './helpers/dom'
+import { choose, click, pressEnter, screen } from './helpers/dom'
 import { render, t } from './helpers/render'
 
 interface Row {
@@ -26,30 +26,25 @@ const Host = defineComponent({
   props: {
     rows: { type: Array as PropType<Row[]>, default: () => rows },
     pageSize: { type: Number, default: 50 },
-    deleteRow: { type: Function as PropType<(row: Row) => Promise<unknown>>, default: undefined },
     stateKey: { type: String, default: undefined },
     onOpen: { type: Function as PropType<(row: Row) => void>, default: undefined },
   },
   setup(props) {
-    const deleted = ref(0)
     return () =>
       h('div', [
-        h('output', `deleted:${deleted.value}`),
         h(
           AppDataTable<Row>,
           {
             rows: props.rows,
             pageSize: props.pageSize,
-            selectable: !!props.deleteRow,
-            deleteRow: props.deleteRow,
             stateKey: props.stateKey,
             onRowClick: props.onOpen,
-            onBulkDeleted: () => deleted.value++,
           },
           () => [
             h(Column, { field: 'name', header: 'Name', sortable: true }),
             h(Column, { field: 'hours', header: 'Hours', sortable: true }),
             h(Column, { field: 'city.name', header: 'City' }),
+            h(Column, { field: 'name', columnKey: 'nick', header: 'Nick', hidden: true }),
             h(
               Column,
               { reorderableColumn: false },
@@ -95,7 +90,7 @@ describe('AppDataTable', () => {
   })
 
   it('switches the row density for all tables and remembers it', async () => {
-    await render(Host, { props: { deleteRow: () => Promise.resolve() } })
+    await render(Host)
     expect(useTableDensity().value).toBe('compact')
     await click(screen.button(t('table.comfortable')))
     expect(useTableDensity().value).toBe('comfortable')
@@ -121,49 +116,6 @@ describe('AppDataTable', () => {
     expect(cell.title).toBe('Bravo')
   })
 
-  describe('selection', () => {
-    it('selects a page, clears it and deletes only after confirmation', async () => {
-      const deleteRow = vi.fn((row: Row) =>
-        row.id === 'c' ? Promise.reject(new Error('protected')) : Promise.resolve(),
-      )
-      await render(Host, { props: { deleteRow, pageSize: 3 } })
-      await click(screen.button(t('table.select')))
-      await click(screen.button(t('table.selectPage')))
-      expect(screen.text()).toContain(t('table.selected', { count: 3 }))
-      await click(screen.button(t('table.clearSelection')))
-      expect(screen.text()).toContain(t('table.selected', { count: 0 }))
-      expect(screen.button(t('table.deleteSelected', { count: 0 })).hasAttribute('disabled')).toBe(
-        true,
-      )
-
-      // In selection mode a click on a row selects it instead of opening it.
-      await click(screen.row('Bravo'))
-      await click(screen.row('Charlie 10'))
-      await click(screen.row('Bravo'))
-      await click(screen.row('Alpha'))
-      await click(screen.button(t('table.deleteSelected', { count: 2 })))
-      await answerConfirm(t('common.cancel'))
-      expect(deleteRow).not.toHaveBeenCalled()
-
-      await click(screen.button(t('table.deleteSelected', { count: 2 })))
-      await answerConfirm(t('common.delete'))
-      expect(deleteRow.mock.calls.map(([row]) => row.id)).toEqual(['c', 'b'])
-      expect(toasts()).toEqual([
-        t('table.bulkDeleted', { count: 1 }),
-        t('table.bulkDeleteFailed', { count: 1 }),
-      ])
-      expect(screen.text()).toContain('deleted:1')
-      expect(screen.hasButton(t('table.select'))).toBe(true)
-    })
-
-    it('leaves selection mode with Done', async () => {
-      await render(Host, { props: { deleteRow: () => Promise.resolve() } })
-      await click(screen.button(t('table.select')))
-      await click(screen.button(t('common.done')))
-      expect(screen.hasButton(t('table.select'))).toBe(true)
-    })
-  })
-
   it('restores saved sorting and paging from the browser', async () => {
     localStorage.setItem(
       'people',
@@ -171,6 +123,55 @@ describe('AppDataTable', () => {
     )
     await render(Host, { props: { stateKey: 'people', pageSize: 2 } })
     expect(names()).toEqual(['Bravo', 'Alpha'])
+  })
+
+  describe('columns', () => {
+    const headers = () => [...screen.root.querySelectorAll('thead th')].map((th) => th.textContent)
+    const chooserBox = (label: string) =>
+      [...document.querySelectorAll('label')]
+        .find((el) => el.textContent.trim() === label)!
+        .querySelector('input')!
+
+    it('shows and hides columns from the chooser and remembers it per table', async () => {
+      await render(Host, { props: { stateKey: 'people' } })
+      expect(headers()).toEqual(['Name', 'Hours', 'City', ''])
+      await click(screen.button(t('table.columns')))
+      await click(chooserBox('Nick'))
+      await click(chooserBox('City'))
+      expect(headers()).toEqual(['Name', 'Hours', 'Nick', ''])
+      expect(JSON.parse(localStorage.getItem('people:columns')!)).toEqual({
+        widths: {},
+        visible: { nick: true, 'city.name': false },
+      })
+      await click(screen.button(t('table.resetColumns')))
+      expect(headers()).toEqual(['Name', 'Hours', 'City', ''])
+    })
+
+    it('keeps at least one column', async () => {
+      await render(Host, { props: { stateKey: 'people' } })
+      await click(screen.button(t('table.columns')))
+      await click(chooserBox('Hours'))
+      await click(chooserBox('City'))
+      expect(chooserBox('Name').disabled).toBe(true)
+    })
+
+    it('resizes a column by dragging its header edge, without sorting it', async () => {
+      await render(Host, { props: { stateKey: 'people' } })
+      const th = screen.root.querySelector<HTMLElement>('th[data-col-key="hours"]')!
+      th.getBoundingClientRect = () => ({ right: 300, width: 100 }) as DOMRect
+      const mouse = (type: string, target: EventTarget, clientX: number) =>
+        target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX }))
+      mouse('mousedown', th, 297)
+      mouse('mousemove', document, 347)
+      mouse('mouseup', document, 347)
+      await click(th)
+      expect(th.style.width).toBe('150px')
+      expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({ hours: 150 })
+      expect(names()).toEqual(['Bravo', 'Alpha', 'Charlie 10', 'Charlie 9'])
+      th.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, clientX: 299 }))
+      await click(document.body)
+      expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({})
+    })
   })
 
   describe('on a phone', () => {
@@ -214,19 +215,6 @@ describe('AppDataTable', () => {
       expect(order()).toEqual(['Charlie 10', 'Bravo', 'Charlie 9', 'Alpha'])
       await click(screen.button(t('table.descending')))
       expect(order()).toEqual(['Charlie 9', 'Bravo', 'Charlie 10', 'Alpha'])
-    })
-
-    it('selects cards with their checkboxes', async () => {
-      const deleteRow = vi.fn(() => Promise.resolve())
-      await render(Host, { viewport: 'mobile', props: { deleteRow } })
-      await click(screen.button(t('table.select')))
-      const box = screen.root.querySelector<HTMLInputElement>('input[type=checkbox]')!
-      box.checked = true
-      box.dispatchEvent(new Event('change', { bubbles: true }))
-      await click(cards()[0]!)
-      expect(screen.text()).toContain(t('table.selected', { count: 0 }))
-      await click(cards()[1]!)
-      expect(screen.text()).toContain(t('table.selected', { count: 1 }))
     })
 
     it('pages with the compact paginator', async () => {

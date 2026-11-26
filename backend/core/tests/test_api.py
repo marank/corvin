@@ -180,6 +180,26 @@ def test_create_time_entry_with_breaks(client, customer, project):
 
 
 @pytest.mark.django_db
+def test_time_entry_keeps_a_markdown_report_and_finds_it(client, customer):
+    report = "## Server\n\n- RAM getauscht\n- **USV** geprüft"
+    r = client.post(
+        "/api/v1/time-tracking/",
+        {
+            "customer": str(customer.id),
+            "start_datetime": "2026-09-01T09:00:00+02:00",
+            "end_datetime": "2026-09-01T10:00:00+02:00",
+            "description": "Server-Wartung",
+            "report": report,
+        },
+        format="json",
+    )
+    assert r.status_code == 201
+    assert r.json()["report"] == report
+    found = client.get("/api/v1/time-tracking/?search=USV").json()["results"]
+    assert [e["description"] for e in found] == ["Server-Wartung"]
+
+
+@pytest.mark.django_db
 def test_consolidate_endpoint(client, user, customer, project):
     HourlyRate.objects.create(
         owner=user,

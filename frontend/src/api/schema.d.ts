@@ -3014,6 +3014,7 @@ export interface components {
             normalized_end_datetime?: string | null;
             breaks?: components["schemas"]["TimeEntryBreakRequest"][];
             description?: string;
+            report?: string;
             billable?: boolean;
         };
         /** @description Sets owner from the request and scopes FK fields to the owner. */
@@ -3324,6 +3325,7 @@ export interface components {
             readonly is_running: boolean;
             readonly is_paused: boolean;
             description?: string;
+            report?: string;
             billable?: boolean;
             /** Format: uuid */
             readonly invoice: string | null;
@@ -3369,6 +3371,7 @@ export interface components {
             normalized_end_datetime?: string | null;
             breaks?: components["schemas"]["TimeEntryBreakRequest"][];
             description?: string;
+            report?: string;
             billable?: boolean;
         };
         /**

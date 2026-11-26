@@ -160,6 +160,7 @@ export const timeEntry = (over: Partial<TimeEntry> = {}): TimeEntry => ({
   is_running: false,
   is_paused: false,
   description: 'Homepage',
+  report: '',
   billable: true,
   invoice: null,
   ...over,

@@ -1,20 +1,22 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Textarea from 'primevue/textarea'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import AppFormField from './ui/AppFormField.vue'
+import AppFormTabs from './ui/AppFormTabs.vue'
 import AppCheckboxField from './ui/AppCheckboxField.vue'
 import AppDateTimeInput from './ui/AppDateTimeInput.vue'
 import AppDateTimeDisplay from './ui/AppDateTimeDisplay.vue'
 import AppIconButton from './ui/AppIconButton.vue'
+import AppMarkdownEditor from './ui/AppMarkdownEditor.vue'
 import CustomerSelect from './CustomerSelect.vue'
 import ProjectSelect from './ProjectSelect.vue'
 import { contractsApi, timeTrackingApi, type SupportContract, type TimeEntry } from '../api'
 import { useNotify } from '../composables/useNotify'
 import { formatDuration, parseDuration } from '../dateTimeInput'
+import { firstLine } from '../markdown'
 
 const props = defineProps<{ entry?: TimeEntry | null }>()
 const emit = defineEmits<{ saved: [entry: TimeEntry] }>()
@@ -37,6 +39,7 @@ const form = ref({
   duration_minutes: 0,
   breaks: [] as BreakForm[],
   description: '',
+  report: '',
   billable: true,
 })
 const saving = ref(false)
@@ -121,6 +124,7 @@ watch(
         end_datetime: b.end_datetime,
       })),
       description: e.description,
+      report: e.report,
       billable: e.billable,
     }
     durationText.value = formatDuration(e.duration_minutes)
@@ -172,7 +176,9 @@ async function save() {
       start_datetime: form.value.start_datetime,
       end_datetime: form.value.end_datetime,
       breaks: form.value.breaks,
-      description: form.value.description,
+      // The short form: as written, else the report's first line.
+      description: form.value.description.trim() || firstLine(form.value.report),
+      report: form.value.report,
       billable: form.value.billable,
     }
     const saved = props.entry
@@ -193,104 +199,131 @@ defineExpose({ save, saving, state })
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
-    <AppFormField field="customer" :label="t('projects.customer')"
-      ><CustomerSelect v-model="customerId"
-    /></AppFormField>
-    <AppFormField field="project" :label="t('projects.project')">
-      <ProjectSelect v-model="form.project" :customer-id="customerId" />
-    </AppFormField>
-    <AppFormField v-if="contracts.length" field="contract" :label="t('time.coveredByContract')">
-      <Select
-        v-model="form.contract"
-        :options="contractOptions"
-        option-label="name"
-        option-value="id"
-        class="w-full"
-      />
-    </AppFormField>
-    <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
-      <AppFormField field="start_datetime" class="sm:col-span-2" :label="t('time.start')" required
-        ><AppDateTimeInput v-model="form.start_datetime"
-      /></AppFormField>
-      <AppFormField field="end_datetime" class="sm:col-span-2" :label="t('time.end')"
-        ><AppDateTimeInput v-model="form.end_datetime" :reference="form.start_datetime"
-      /></AppFormField>
-      <AppFormField :label="t('time.duration')">
-        <InputText
-          v-model="durationText"
-          class="w-full"
-          :invalid="durationInvalid"
-          :placeholder="t('time.durationPlaceholder')"
-          @blur="commitDuration"
-          @keydown.enter.prevent="commitDuration"
-        />
-      </AppFormField>
-    </div>
-    <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
-      <AppFormField class="sm:col-span-2" :label="t('time.normalizedStart')">
-        <div
-          class="min-h-10 flex items-center px-3 border border-surface-300 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 text-sm"
-        >
-          <AppDateTimeDisplay
-            v-if="props.entry?.normalized_start_datetime"
-            :value="props.entry.normalized_start_datetime"
-            type="datetime"
+  <AppFormTabs :report-label="t('time.report')" dialog>
+    <template #details>
+      <div class="flex flex-col gap-4">
+        <AppFormField field="customer" :label="t('projects.customer')"
+          ><CustomerSelect v-model="customerId"
+        /></AppFormField>
+        <AppFormField field="project" :label="t('projects.project')">
+          <ProjectSelect v-model="form.project" :customer-id="customerId" />
+        </AppFormField>
+        <AppFormField v-if="contracts.length" field="contract" :label="t('time.coveredByContract')">
+          <Select
+            v-model="form.contract"
+            :options="contractOptions"
+            option-label="name"
+            option-value="id"
+            class="w-full"
           />
-          <span v-else class="text-surface-500">—</span>
-        </div>
-      </AppFormField>
-      <AppFormField class="sm:col-span-2" :label="t('time.normalizedEnd')">
-        <div
-          class="min-h-10 flex items-center px-3 border border-surface-300 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 text-sm"
-        >
-          <AppDateTimeDisplay
-            v-if="props.entry?.normalized_end_datetime"
-            :value="props.entry.normalized_end_datetime"
-            type="datetime"
+        </AppFormField>
+        <AppFormField field="description" :label="t('time.description')">
+          <InputText
+            v-model="form.description"
+            class="w-full"
+            maxlength="500"
+            :placeholder="t('time.descriptionPlaceholder')"
           />
-          <span v-else class="text-surface-500">—</span>
+        </AppFormField>
+        <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+          <AppFormField
+            field="start_datetime"
+            class="sm:col-span-2"
+            :label="t('time.start')"
+            required
+            ><AppDateTimeInput v-model="form.start_datetime"
+          /></AppFormField>
+          <AppFormField field="end_datetime" class="sm:col-span-2" :label="t('time.end')"
+            ><AppDateTimeInput v-model="form.end_datetime" :reference="form.start_datetime"
+          /></AppFormField>
+          <AppFormField :label="t('time.duration')">
+            <InputText
+              v-model="durationText"
+              class="w-full"
+              :invalid="durationInvalid"
+              :placeholder="t('time.durationPlaceholder')"
+              @blur="commitDuration"
+              @keydown.enter.prevent="commitDuration"
+            />
+          </AppFormField>
         </div>
-      </AppFormField>
-      <AppFormField :label="t('time.normalizedDuration')">
-        <div
-          class="min-h-10 flex items-center px-3 border border-surface-300 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 text-sm"
-        >
-          <span
-            v-if="props.entry?.normalized_start_datetime && props.entry?.normalized_end_datetime"
-            >{{ normalizedDurationText }}</span
+        <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+          <AppFormField class="sm:col-span-2" :label="t('time.normalizedStart')">
+            <div
+              class="min-h-10 flex items-center px-3 border border-surface-300 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 text-sm"
+            >
+              <AppDateTimeDisplay
+                v-if="props.entry?.normalized_start_datetime"
+                :value="props.entry.normalized_start_datetime"
+                type="datetime"
+              />
+              <span v-else class="text-surface-500">—</span>
+            </div>
+          </AppFormField>
+          <AppFormField class="sm:col-span-2" :label="t('time.normalizedEnd')">
+            <div
+              class="min-h-10 flex items-center px-3 border border-surface-300 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 text-sm"
+            >
+              <AppDateTimeDisplay
+                v-if="props.entry?.normalized_end_datetime"
+                :value="props.entry.normalized_end_datetime"
+                type="datetime"
+              />
+              <span v-else class="text-surface-500">—</span>
+            </div>
+          </AppFormField>
+          <AppFormField :label="t('time.normalizedDuration')">
+            <div
+              class="min-h-10 flex items-center px-3 border border-surface-300 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 text-sm"
+            >
+              <span
+                v-if="
+                  props.entry?.normalized_start_datetime && props.entry?.normalized_end_datetime
+                "
+                >{{ normalizedDurationText }}</span
+              >
+              <span v-else class="text-surface-500">—</span>
+            </div>
+          </AppFormField>
+        </div>
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium">{{ t('time.breaks') }}</span>
+            <Button
+              :label="t('time.addBreak')"
+              icon="pi pi-plus"
+              size="small"
+              text
+              @click="addBreak"
+            />
+          </div>
+          <p v-if="!form.breaks.length" class="text-sm text-surface-500">
+            {{ t('time.noBreaks') }}
+          </p>
+          <div
+            v-for="(b, index) in form.breaks"
+            :key="index"
+            class="grid grid-cols-[1fr_1fr_auto] sm:grid-cols-5 gap-3 items-end"
           >
-          <span v-else class="text-surface-500">—</span>
+            <AppFormField class="sm:col-span-2" :label="t('time.start')">
+              <AppDateTimeInput v-model="b.start_datetime" :reference="form.start_datetime" />
+            </AppFormField>
+            <AppFormField class="sm:col-span-2" :label="t('time.end')">
+              <AppDateTimeInput v-model="b.end_datetime" :reference="b.start_datetime" />
+            </AppFormField>
+            <AppIconButton
+              icon="pi pi-trash"
+              severity="danger"
+              :label="t('common.delete')"
+              @click="removeBreak(index)"
+            />
+          </div>
         </div>
-      </AppFormField>
-    </div>
-    <div class="flex flex-col gap-2">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-medium">{{ t('time.breaks') }}</span>
-        <Button :label="t('time.addBreak')" icon="pi pi-plus" size="small" text @click="addBreak" />
+        <AppCheckboxField v-model="form.billable" :label="t('time.billable')" class="self-start!" />
       </div>
-      <div
-        v-for="(b, index) in form.breaks"
-        :key="index"
-        class="grid grid-cols-[1fr_1fr_auto] sm:grid-cols-5 gap-3 items-end"
-      >
-        <AppFormField class="sm:col-span-2" :label="t('time.start')">
-          <AppDateTimeInput v-model="b.start_datetime" :reference="form.start_datetime" />
-        </AppFormField>
-        <AppFormField class="sm:col-span-2" :label="t('time.end')">
-          <AppDateTimeInput v-model="b.end_datetime" :reference="b.start_datetime" />
-        </AppFormField>
-        <AppIconButton
-          icon="pi pi-trash"
-          severity="danger"
-          :label="t('common.delete')"
-          @click="removeBreak(index)"
-        />
-      </div>
-    </div>
-    <AppFormField field="description" :label="t('time.description')">
-      <Textarea v-model="form.description" rows="3" class="w-full" />
-    </AppFormField>
-    <AppCheckboxField v-model="form.billable" :label="t('time.billable')" />
-  </div>
+    </template>
+    <template #report="{ fill }">
+      <AppMarkdownEditor v-model="form.report" :rows="16" :label="t('time.report')" :fill="fill" />
+    </template>
+  </AppFormTabs>
 </template>

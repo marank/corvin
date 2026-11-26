@@ -128,9 +128,6 @@ async function save() {
       :rows="rows"
       :loading="pagination.loading.value"
       lazy
-      selectable
-      :delete-row="(row) => contractsApi.remove(row.id)"
-      @bulk-deleted="load"
       :total-records="pagination.totalRecords.value"
       :first="pagination.first.value"
       :page-size="pagination.pageSize.value"
@@ -180,7 +177,12 @@ async function save() {
           <template #end><AppSearchInput v-model="search" /></template>
         </AppFilterBar>
       </template>
-      <Column field="number" :header="t('common.numberShort')" sortable />
+      <Column
+        field="number"
+        :header="t('common.numberShort')"
+        header-style="width: 6.5rem"
+        sortable
+      />
       <Column class="app-text" field="name" :header="t('common.name')" sortable />
       <Column
         class="app-text"
@@ -189,10 +191,18 @@ async function save() {
         :header="t('projects.customer')"
         sortable
       />
+      <Column
+        class="app-text"
+        field="project_name"
+        sort-field="project__name"
+        :header="t('projects.project')"
+        sortable
+        hidden
+      />
       <Column field="period" :header="t('contracts.period')" sortable>
         <template #body="{ data }">{{ t(`contracts.periods.${data.period}`) }}</template>
       </Column>
-      <Column class="app-num" :header="t('contracts.includedHours')">
+      <Column class="app-num" field="included_hours" :header="t('contracts.includedHours')">
         <template #body="{ data }"
           ><AppDurationDisplay :minutes="data.included_hours * 60"
         /></template>
@@ -200,17 +210,24 @@ async function save() {
       <Column class="app-num" field="fixed_price" :header="t('contracts.fixedPrice')" sortable>
         <template #body="{ data }"><AppMoneyDisplay :amount="data.fixed_price" /></template>
       </Column>
-      <Column :header="t('contracts.nextBilling')"
+      <Column field="start_date" :header="t('contracts.startDate')" hidden
+        ><template #body="{ data }"><AppDateTimeDisplay :value="data.start_date" /></template
+      ></Column>
+      <Column field="end_date" :header="t('contracts.endDate')" hidden
+        ><template #body="{ data }"
+          ><AppDateTimeDisplay v-if="data.end_date" :value="data.end_date" /></template
+      ></Column>
+      <Column field="next_billing_date" :header="t('contracts.nextBilling')"
         ><template #body="{ data }"><AppDateTimeDisplay :value="data.next_billing_date" /></template
       ></Column>
-      <Column :header="t('common.status')">
+      <Column column-key="status" :header="t('common.status')">
         <template #body="{ data }"
           ><AppStatusTag
             :status="data.active ? 'active' : 'inactive'"
             :label="data.active ? t('common.active') : t('common.inactive')"
         /></template>
       </Column>
-      <Column :header="t('common.actions')" :reorderable-column="false">
+      <Column :reorderable-column="false">
         <template #body="{ data }"
           ><AppIconButton
             icon="pi pi-trash"

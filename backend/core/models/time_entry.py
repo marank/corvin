@@ -49,7 +49,10 @@ class TimeEntry(OwnedModel):
     normalized_start_datetime = models.DateTimeField(null=True, blank=True)
     normalized_end_datetime = models.DateTimeField(null=True, blank=True)
     duration_minutes = models.PositiveIntegerField(default=0, editable=False)
+    # The short form, shown in lists and on invoices.
     description = models.CharField(max_length=500, blank=True)
+    # The full account of the work, as Markdown.
+    report = models.TextField(blank=True)
     billable = models.BooleanField(default=True)
     invoice = models.ForeignKey(
         "core.Invoice",

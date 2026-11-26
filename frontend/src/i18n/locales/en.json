@@ -67,7 +67,9 @@
     "name": "Name",
     "number": "Number",
     "status": "Status",
+    "details": "Details",
     "notes": "Notes",
+    "createdAt": "Created",
     "email": "Email",
     "phone": "Phone",
     "address": "Address",
@@ -98,22 +100,22 @@
     "otpHint": "Enter the code from your authenticator app.",
     "otpFailed": "The code is invalid."
   },
+  "markdown": {
+    "write": "Write",
+    "preview": "Preview",
+    "hint": "Markdown: **bold**, *italic*, - list, ## heading, [link](https://…)",
+    "empty": "Nothing written yet."
+  },
   "table": {
-    "select": "Select",
-    "selected": "{count} selected",
     "selectPage": "Select page",
-    "clearSelection": "Clear",
-    "deleteSelected": "Delete ({count})",
-    "bulkDeleteConfirm": "Really delete {count} selected entries? This cannot be undone.",
-    "bulkDeleted": "{count} deleted",
-    "bulkDeleteFailed": "{count} could not be deleted (e.g. still in use or already invoiced).",
     "sortBy": "Sort by",
     "ascending": "Ascending",
     "descending": "Descending",
     "pageReport": "{first}–{last} of {totalRecords}",
     "comfortable": "More spacing",
     "compact": "Compact",
-    "resetWidths": "Automatic column widths"
+    "columns": "Columns",
+    "resetColumns": "Restore defaults"
   },
   "customers": {
     "salutationName": "Name in the salutation",
@@ -204,6 +206,7 @@
     "pickDate": "Pick date",
     "dateUnreadable": "Can't read this – e.g. 021126, 2.11., 2 or today",
     "breaks": "Breaks",
+    "noBreaks": "No breaks",
     "addBreak": "Add break",
     "description": "Description",
     "billable": "Billable",
@@ -216,6 +219,9 @@
     "openStoppedEntryPrompt": "Do you want to open the stopped time entry for editing?",
     "editEntry": "Edit time entry",
     "timerRunning": "Timer running",
+    "report": "Report",
+    "descriptionPlaceholder": "Short form – left empty: the first line of the report",
+    "hasReport": "Has a report",
     "invoiced": "Invoiced",
     "time": "Time",
     "startNow": "Start",

@@ -504,7 +504,11 @@ async function save() {
               />
               <Column field="iban" :header="t('settings.iban')" sortable />
               <Column field="bic" :header="t('settings.bic')" sortable />
-              <Column :header="t('settings.defaultBankAccount')" :reorderable-column="false">
+              <Column
+                :header="t('settings.defaultBankAccount')"
+                header-style="width: 6rem"
+                :reorderable-column="false"
+              >
                 <template #body="{ data }">
                   <i v-if="form.default_bank_account === data.id" class="pi pi-check" />
                   <Button
@@ -516,7 +520,7 @@ async function save() {
                   />
                 </template>
               </Column>
-              <Column :header="t('common.actions')" :reorderable-column="false">
+              <Column :reorderable-column="false">
                 <template #body="{ data }"
                   ><AppIconButton
                     icon="pi pi-trash"
@@ -548,7 +552,7 @@ async function save() {
               <Column class="app-text" field="role" :header="t('customers.role')" sortable />
               <Column class="app-text" field="email" :header="t('common.email')" sortable />
               <Column class="app-text" field="phone" :header="t('common.phone')" sortable />
-              <Column :header="t('common.actions')" :reorderable-column="false">
+              <Column :reorderable-column="false">
                 <template #body="{ data }"
                   ><AppIconButton
                     icon="pi pi-trash"

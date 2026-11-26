@@ -272,7 +272,7 @@ async function save() {
           :state-key="tableStateKeys.invoiceImportEntries"
           @row-click="togglePick"
         >
-          <Column class="w-10" :reorderable-column="false">
+          <Column header-style="width: 3rem" :reorderable-column="false">
             <template #body="{ data }"
               ><Checkbox
                 :model-value="picked.has(data.id)"

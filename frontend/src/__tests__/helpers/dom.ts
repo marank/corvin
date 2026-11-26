@@ -107,11 +107,15 @@ export function dialog(title?: string) {
   return within(found)
 }
 
-/** The tab panel on show (PrimeVue keeps the others in the DOM, hidden). */
-export function activeTab() {
-  const panel = [...document.querySelectorAll<HTMLElement>('[role="tabpanel"]')].find(
+/**
+ * The tab panel on show (PrimeVue keeps the others in the DOM, hidden). With two sets of tabs
+ * on the page, `last` picks the panel of the later one.
+ */
+export function activeTab(which: 'first' | 'last' = 'first') {
+  const shown = [...document.querySelectorAll<HTMLElement>('[role="tabpanel"]')].filter(
     (p) => p.style.display !== 'none',
   )
+  const panel = which === 'first' ? shown[0] : shown.at(-1)
   if (!panel) throw new Error('no tab panel is shown')
   return within(panel)
 }

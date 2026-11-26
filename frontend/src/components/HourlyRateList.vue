@@ -122,7 +122,7 @@ function remove(rate: HourlyRate) {
           ><AppMoneyDisplay :amount="data.amount" />{{ t('rates.perHour') }}</template
         >
       </Column>
-      <Column :header="t('common.actions')" :reorderable-column="false">
+      <Column :reorderable-column="false">
         <template #body="{ data }">
           <AppIconButton
             icon="pi pi-trash"

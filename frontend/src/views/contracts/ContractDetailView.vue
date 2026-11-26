@@ -17,6 +17,7 @@ import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
+import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import ContractUsageBar from '../../components/ContractUsageBar.vue'
 import ContractFormFields from '../../components/ContractFormFields.vue'
@@ -195,6 +196,14 @@ async function runNow() {
                     sortable
                   />
                   <Column
+                    class="app-text"
+                    field="project_name"
+                    :header="t('projects.project')"
+                    sortable
+                    hidden
+                  />
+                  <Column field="invoice_number" :header="t('time.invoiced')" hidden />
+                  <Column
                     class="app-num"
                     field="duration_minutes"
                     :header="t('time.duration')"
@@ -213,14 +222,34 @@ async function runNow() {
                   :state-key="tableStateKeys.contractInvoices"
                   @row-click="(r: Invoice) => router.push(`/invoices/${r.id}`)"
                 >
-                  <Column field="number" :header="t('common.numberShort')" sortable />
+                  <Column
+                    field="number"
+                    :header="t('common.numberShort')"
+                    header-style="width: 6.5rem"
+                    sortable
+                  />
                   <Column field="issue_date" :header="t('invoices.issueDate')" sortable
                     ><template #body="{ data }"
                       ><AppDateTimeDisplay :value="data.issue_date" /></template
                   ></Column>
+                  <Column field="due_date" :header="t('invoices.dueDate')" sortable hidden
+                    ><template #body="{ data }"
+                      ><AppDateTimeDisplay :value="data.due_date" /></template
+                  ></Column>
                   <Column class="app-num" field="total" :header="t('common.total')" sortable>
                     <template #body="{ data }"
                       ><AppMoneyDisplay :amount="data.total" :currency="data.currency"
+                    /></template>
+                  </Column>
+                  <Column field="status" :header="t('common.status')" sortable>
+                    <template #body="{ data }"
+                      ><AppStatusTag
+                        :status="data.partially_paid ? 'partially_paid' : data.status"
+                        :label="
+                          t(
+                            `invoices.status.${data.partially_paid ? 'partially_paid' : data.status}`,
+                          )
+                        "
                     /></template>
                   </Column>
                 </AppDataTable>

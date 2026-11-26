@@ -37,7 +37,7 @@ describe('InvoiceDetailView', () => {
       await open()
       expect(screen.text()).toContain('RE-2026-001')
       expect(screen.text()).toContain(t('invoices.status.draft'))
-      expect(screen.rows()[0]).toEqual(['1', 'Consulting', '2', '100,00 €', '200,00 €'])
+      expect(screen.rows()[0]).toEqual(['1', 'Consulting', '2 Stunden', '100,00 €', '200,00 €'])
       expect(screen.text()).toContain(`${t('invoices.subtotal')}200,00 €`)
       expect(screen.text()).toContain(`${t('invoices.vat')}38,00 €`)
       expect(screen.text()).toContain(`${t('common.total')}238,00 €`)

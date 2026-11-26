@@ -12688,6 +12688,9 @@
                         "type": "string",
                         "maxLength": 500
                     },
+                    "report": {
+                        "type": "string"
+                    },
                     "billable": {
                         "type": "boolean"
                     }
@@ -13538,6 +13541,9 @@
                         "type": "string",
                         "maxLength": 500
                     },
+                    "report": {
+                        "type": "string"
+                    },
                     "billable": {
                         "type": "boolean"
                     },
@@ -13668,6 +13674,9 @@
                     "description": {
                         "type": "string",
                         "maxLength": 500
+                    },
+                    "report": {
+                        "type": "string"
                     },
                     "billable": {
                         "type": "boolean"
