@@ -251,6 +251,7 @@
     "generatedInvoice": "Invoice created"
   },
   "invoices": {
+    "editTitle": "Edit invoice {number}",
     "showMore": "Show more",
     "showLess": "Show less",
     "template": "Template",
@@ -326,9 +327,6 @@
     "reviewStep": "Review & create",
     "selectedEntries": "{selected} of {total} entries selected",
     "summary": "Summary",
-    "editInvoice": "Edit invoice",
-    "editLine": "Edit line",
-    "lineDeleteHint": "Deleting a line makes the time entries billed on it billable again.",
     "noIbanHint": "To finalize, the invoice needs a bank account with an IBAN (on the customer, the invoice or as the default).",
     "noIbanLink": "Add a bank account",
     "receivable": "Payment",

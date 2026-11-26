@@ -251,6 +251,7 @@
     "generatedInvoice": "Rechnung erstellt"
   },
   "invoices": {
+    "editTitle": "Rechnung {number} bearbeiten",
     "showMore": "Mehr anzeigen",
     "showLess": "Weniger anzeigen",
     "template": "Vorlage",
@@ -326,9 +327,6 @@
     "reviewStep": "Prüfen & erstellen",
     "selectedEntries": "{selected} von {total} Einträgen ausgewählt",
     "summary": "Zusammenfassung",
-    "editInvoice": "Rechnung bearbeiten",
-    "editLine": "Position bearbeiten",
-    "lineDeleteHint": "Wird eine Position gelöscht, sind die darin abgerechneten Zeiteinträge wieder abrechenbar.",
     "noIbanHint": "Zum Finalisieren braucht die Rechnung ein Bankkonto mit IBAN (am Kunden, an der Rechnung oder als Standard).",
     "noIbanLink": "Bankkonto anlegen",
     "receivable": "Zahlung",

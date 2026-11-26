@@ -22,6 +22,5 @@ export const tableStateKeys = {
   invoiceSourceEntries: 'invoice-source-entries-v2',
   invoiceManualLines: 'invoice-manual-lines-v2',
   invoiceItems: 'invoice-items-v2',
-  invoiceDraftItems: 'invoice-draft-items-v1',
   invoicePayments: 'invoice-payments-v2',
 } as const

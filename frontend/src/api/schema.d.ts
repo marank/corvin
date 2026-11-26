@@ -657,6 +657,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/{id}/draft/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description A draft as the create page edits it (GET), or saved back from the page (PUT):
+         *     header and lines replaced, entries no longer on a line open again.
+         */
+        get: operations["invoices_draft_retrieve"];
+        /**
+         * @description A draft as the create page edits it (GET), or saved back from the page (PUT):
+         *     header and lines replaced, entries no longer on a line open again.
+         */
+        put: operations["invoices_draft_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/draft_preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Like `consolidate_preview`, with the entries this draft bills counted as open. */
+        post: operations["invoices_draft_preview_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices/{id}/email_draft/": {
         parameters: {
             query?: never;
@@ -1564,6 +1605,47 @@ export interface components {
             always_show_timer_widget?: boolean;
             open_stopped_time_entry?: components["schemas"]["OpenStoppedTimeEntryEnum"];
         };
+        ConsolidatePreview: {
+            lines: components["schemas"]["PreviewLine"][];
+            entry_count: number;
+            /** Format: decimal */
+            subtotal: string;
+            /** Format: decimal */
+            vat_rate: string;
+            /** Format: decimal */
+            vat_amount: string;
+            /** Format: decimal */
+            total: string;
+        };
+        ConsolidateRequest: {
+            /** Format: uuid */
+            customer_id: string;
+            entry_ids?: string[];
+            contact_ids?: string[];
+            extra_lines?: components["schemas"]["ManualLineRequest"][];
+            /** Format: uuid */
+            project_id?: string | null;
+            /** Format: uuid */
+            bank_account_id?: string | null;
+            /** Format: date */
+            date_from?: string | null;
+            /** Format: date */
+            date_to?: string | null;
+            /** @default entry */
+            group_by: components["schemas"]["GroupByEnum"];
+            entry_lines?: components["schemas"]["EntryLineRequest"][];
+            /** Format: date */
+            issue_date?: string | null;
+            /** Format: date */
+            due_date?: string | null;
+            /** Format: decimal */
+            vat_rate?: string | null;
+            /** Format: uuid */
+            template_id?: string | null;
+            notes?: string;
+            number?: string;
+            e_invoice_format?: components["schemas"]["EInvoiceFormatEnum"];
+        };
         /** @description Sets owner from the request and scopes FK fields to the owner. */
         Contact: {
             /** Format: uuid */
@@ -1757,6 +1839,15 @@ export interface components {
             /** @description Empty: a default in LANGUAGE_CODE. */
             mail_body?: string;
         };
+        /** @description A draft as the create page holds it (see services.draft_editing). */
+        DraftState: {
+            group_by: string;
+            entries: components["schemas"]["TimeEntry"][];
+            texts: {
+                [key: string]: string;
+            };
+            own_lines: components["schemas"]["ManualLine"][];
+        };
         /**
          * @description * `none` - None
          *     * `zugferd` - ZUGFeRD (PDF/A-3 + XML)
@@ -1774,6 +1865,17 @@ export interface components {
          * @enum {string}
          */
         EntityEnum: "customer" | "project" | "invoice" | "contract" | "visit" | "task";
+        EntryLineRequest: {
+            entry_ids: string[];
+            description: string;
+        };
+        /**
+         * @description * `entry` - Per entry
+         *     * `day` - Per day
+         *     * `project` - Per project
+         * @enum {string}
+         */
+        GroupByEnum: "entry" | "day" | "project";
         HealthStatus: {
             status: string;
         };
@@ -1950,6 +2052,30 @@ export interface components {
             username: string;
             password: string;
             otp_code?: string;
+        };
+        ManualLine: {
+            description: string;
+            /**
+             * Format: decimal
+             * @default 1.00
+             */
+            quantity: string;
+            /** @default flat */
+            unit: components["schemas"]["UnitEnum"];
+            /** Format: decimal */
+            unit_price: string;
+        };
+        ManualLineRequest: {
+            description: string;
+            /**
+             * Format: decimal
+             * @default 1.00
+             */
+            quantity: string;
+            /** @default flat */
+            unit: components["schemas"]["UnitEnum"];
+            /** Format: decimal */
+            unit_price: string;
         };
         Me: {
             id: number;
@@ -2626,6 +2752,28 @@ export interface components {
          * @enum {string}
          */
         PeriodEnum: "monthly" | "quarterly" | "yearly";
+        PreviewLine: {
+            description: string;
+            /**
+             * Format: decimal
+             * @default 1.00
+             */
+            quantity: string;
+            /** @default flat */
+            unit: components["schemas"]["UnitEnum"];
+            /** Format: decimal */
+            unit_price: string;
+            /** Format: decimal */
+            total: string;
+            key: string | null;
+            entry_ids: string[];
+            default_description?: string;
+            project_name?: string | null;
+            /** Format: date */
+            date_from?: string;
+            /** Format: date */
+            date_to?: string;
+        };
         /**
          * @description * `low` - Low
          *     * `medium` - Medium
@@ -5074,6 +5222,84 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Invoice"];
+                };
+            };
+        };
+    };
+    invoices_draft_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der invoice identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftState"];
+                };
+            };
+        };
+    };
+    invoices_draft_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der invoice identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsolidateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ConsolidateRequest"];
+                "multipart/form-data": components["schemas"]["ConsolidateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+        };
+    };
+    invoices_draft_preview_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der invoice identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsolidateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ConsolidateRequest"];
+                "multipart/form-data": components["schemas"]["ConsolidateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsolidatePreview"];
                 };
             };
         };

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { isoDate } from '../../dateTimeInput'
-import AppEnumSelect from '../../components/ui/AppEnumSelect.vue'
 import { computed, ref } from 'vue'
 import { useLoadFailed } from '../../composables/useLoadFailed'
 import { useI18n } from 'vue-i18n'
@@ -9,9 +8,7 @@ import Button from 'primevue/button'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
 import Message from 'primevue/message'
-import MultiSelect from 'primevue/multiselect'
 import Textarea from 'primevue/textarea'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
@@ -24,7 +21,6 @@ import AppStatusTag from '../../components/ui/AppStatusTag.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppModal from '../../components/ui/AppModal.vue'
-import NumberField from '../../components/NumberField.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
@@ -32,23 +28,11 @@ import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
 import InvoicePreviewFrame from '../../components/InvoicePreviewFrame.vue'
-import {
-  bankAccountsApi,
-  contactsApi,
-  customersApi,
-  invoiceItemsApi,
-  invoicesApi,
-  paymentsApi,
-  type BankAccount,
-  type Contact,
-  type Invoice,
-  type LineItem,
-} from '../../api'
+import { customersApi, invoicesApi, paymentsApi, type Invoice } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
 import { useConfirm } from 'primevue/useconfirm'
 import { tableStateKeys } from '../../tableStateKeys'
-import { lineItemUnitValues as units, eInvoiceFormatValues as formats } from '../../utils/enums'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -59,7 +43,6 @@ const confirm = useConfirm()
 const id = route.params.id as string
 
 const invoice = ref<Invoice | null>(null)
-const bankAccounts = ref<BankAccount[]>([])
 const busy = ref(false)
 const emailModal = ref<InstanceType<typeof AppModal>>()
 const paymentModal = ref<InstanceType<typeof AppModal>>()
@@ -85,13 +68,8 @@ const statusKey = computed(() =>
 const canReceivePayment = computed(() => ['issued', 'sent'].includes(invoice.value?.status ?? ''))
 
 async function load() {
-  const [loadedInvoice, accountPage] = await Promise.all([
-    invoicesApi.get(id),
-    bankAccountsApi.list(),
-  ])
-  invoice.value = loadedInvoice
+  invoice.value = await invoicesApi.get(id)
   previewVersion.value++
-  bankAccounts.value = accountPage.results.filter((account) => account.is_active)
 }
 
 // Prefill the recipient from the invoice contacts, falling back to the customer's address,
@@ -111,64 +89,6 @@ async function openEmail() {
   emailModal.value?.open()
 }
 
-// Draft editing: header fields in one modal, line items one at a time.
-const headerModal = ref<InstanceType<typeof AppModal>>()
-const headerForm = ref<Partial<Invoice> & { contact_ids?: string[] }>({})
-const customerContacts = ref<Contact[]>([])
-const itemModal = ref<InstanceType<typeof AppModal>>()
-const editingItem = ref<LineItem | null>(null)
-const itemForm = ref<Partial<LineItem>>({})
-
-async function openHeader() {
-  if (!invoice.value) return
-  const { issue_date, due_date, vat_rate, notes, e_invoice_format, contacts } = invoice.value
-  headerForm.value = {
-    number: invoice.value.number,
-    issue_date,
-    due_date,
-    vat_rate: Number(vat_rate),
-    notes,
-    e_invoice_format,
-    contact_ids: contacts.map((contact) => contact.id),
-  }
-  customerContacts.value = (await contactsApi.list(invoice.value.customer)).results
-  headerModal.value?.open()
-}
-
-async function saveHeader() {
-  await act(async () => {
-    await invoicesApi.patch(id, headerForm.value)
-    headerModal.value?.close()
-    notify.ok(t('common.saved'))
-  })
-}
-
-function openItem(item?: LineItem) {
-  if (!isDraft.value) return
-  editingItem.value = item ?? null
-  itemForm.value = item
-    ? {
-        description: item.description,
-        quantity: Number(item.quantity),
-        unit: item.unit,
-        unit_price: Number(item.unit_price),
-      }
-    : { description: '', quantity: 1, unit: 'flat', unit_price: 0 }
-  itemModal.value?.open()
-}
-
-async function saveItem() {
-  await act(async () => {
-    if (editingItem.value) await invoiceItemsApi.update(editingItem.value.id, itemForm.value)
-    else await invoiceItemsApi.create({ ...itemForm.value, invoice: id })
-    itemModal.value?.close()
-  })
-}
-
-async function updateBankAccount(value: string | null) {
-  if (!invoice.value) return
-  await act(() => invoicesApi.update(id, { ...invoice.value!, bank_account_override: value }))
-}
 const loadFailed = useLoadFailed(load)
 
 async function act(fn: () => Promise<unknown>) {
@@ -238,6 +158,14 @@ async function addPayment() {
         <AppStatusTag :status="statusKey" :label="t(`invoices.status.${statusKey}`)" />
       </template>
       <template #actions>
+        <!-- A draft is edited on the create page; nothing is changed here. -->
+        <Button
+          v-if="isDraft"
+          :label="t('common.edit')"
+          icon="pi pi-pencil"
+          outlined
+          @click="router.push(`/invoices/${id}/edit`)"
+        />
         <Button
           v-if="isDraft"
           :label="t('invoices.finalize')"
@@ -297,16 +225,7 @@ async function addPayment() {
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
       <div>
-        <div class="relative app-card p-4 mb-4 grid grid-cols-2 gap-3 text-sm">
-          <Button
-            v-if="isDraft"
-            :label="t('common.edit')"
-            icon="pi pi-pencil"
-            text
-            size="small"
-            class="absolute! top-2 right-2"
-            @click="openHeader"
-          />
+        <div class="app-card p-4 mb-4 grid grid-cols-2 gap-3 text-sm">
           <div>
             <span class="text-surface-500">{{
               t('invoices.issueDate')
@@ -337,59 +256,13 @@ async function addPayment() {
             <span class="text-surface-500">{{ t('common.notes') }}</span><br />{{ invoice.notes }}
           </div>
           <div class="col-span-2">
-            <span class="text-surface-500">{{ t('settings.bankAccount') }}</span>
-            <Select
-              v-if="isDraft"
-              :aria-label="t('settings.bankAccount')"
-              :model-value="invoice.bank_account_override"
-              :options="bankAccounts"
-              option-label="name"
-              option-value="id"
-              show-clear
-              :placeholder="invoice.bank_account?.name || t('invoices.inheritedBankAccount')"
-              class="w-full mt-1"
-              @update:model-value="updateBankAccount"
-            />
-            <div v-else>{{ invoice.bank_account?.name || '—' }}</div>
+            <span class="text-surface-500">{{ t('settings.bankAccount') }}</span><br />{{
+              invoice.bank_account?.name || '—'
+            }}
           </div>
         </div>
 
-        <AppDataTable
-          v-if="isDraft"
-          :rows="invoice.items"
-          :state-key="tableStateKeys.invoiceDraftItems"
-          @row-click="openItem"
-        >
-          <Column field="position" header="#" class="w-10" sortable />
-          <Column class="app-text" field="description" :header="t('time.description')" sortable />
-          <Column class="app-num" :header="t('invoices.quantity')"
-            ><template #body="{ data }"><AppNumberDisplay :value="data.quantity" /></template
-          ></Column>
-          <Column class="app-num" :header="t('invoices.unitPrice')">
-            <template #body="{ data }"
-              ><AppMoneyDisplay :amount="data.unit_price" :currency="invoice!.currency"
-            /></template>
-          </Column>
-          <Column class="app-num" :header="t('common.total')">
-            <template #body="{ data }"
-              ><AppMoneyDisplay :amount="data.total" :currency="invoice!.currency"
-            /></template>
-          </Column>
-          <Column :reorderable-column="false">
-            <template #body="{ data }"
-              ><AppIconButton
-                icon="pi pi-trash"
-                severity="danger"
-                @click.stop="
-                  confirmDelete(async () => {
-                    await invoiceItemsApi.remove(data.id)
-                    await load()
-                  })
-                "
-            /></template>
-          </Column>
-        </AppDataTable>
-        <AppDataTable v-else :rows="invoice.items" :state-key="tableStateKeys.invoiceItems">
+        <AppDataTable :rows="invoice.items" :state-key="tableStateKeys.invoiceItems">
           <Column field="position" header="#" class="w-10" sortable />
           <Column class="app-text" field="description" :header="t('time.description')" sortable />
           <Column class="app-num" :header="t('invoices.quantity')"
@@ -407,18 +280,6 @@ async function addPayment() {
           </Column>
         </AppDataTable>
 
-        <div
-          v-if="isDraft"
-          class="border border-t-0 border-surface-200 dark:border-surface-800 px-2 py-1"
-        >
-          <Button
-            :label="t('invoices.addLine')"
-            icon="pi pi-plus"
-            text
-            size="small"
-            @click="openItem()"
-          />
-        </div>
         <div class="border border-t-0 border-surface-200 dark:border-surface-800 p-4 text-sm">
           <div class="flex justify-between">
             <span>{{ t('invoices.subtotal') }}</span><AppMoneyDisplay
@@ -548,101 +409,6 @@ async function addPayment() {
         <AppFormField field="body" :label="t('designer.mailBody')"
           ><Textarea v-model="emailForm.body" rows="8" class="w-full"
         /></AppFormField>
-      </div>
-    </AppModal>
-
-    <AppModal
-      ref="headerModal"
-      :form="headerForm"
-      :title="t('invoices.editInvoice')"
-      :loading="busy"
-      @confirm="saveHeader"
-    >
-      <div class="flex flex-col gap-4">
-        <NumberField v-model="headerForm.number" />
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <AppFormField field="issue_date" :label="t('invoices.issueDate')" required
-            ><AppDateInput v-model="headerForm.issue_date as any"
-          /></AppFormField>
-          <AppFormField field="due_date" :label="t('invoices.dueDate')"
-            ><AppDateInput v-model="headerForm.due_date as any"
-          /></AppFormField>
-          <AppFormField field="vat_rate" :label="t('invoices.vatRate')"
-            ><InputNumber
-              v-model="headerForm.vat_rate"
-              :min="0"
-              :max="100"
-              :max-fraction-digits="2"
-              suffix=" %"
-              class="w-full"
-              fluid
-          /></AppFormField>
-          <AppFormField field="e_invoice_format" :label="t('invoices.eInvoice')">
-            <AppEnumSelect
-              v-model="headerForm.e_invoice_format"
-              :options="formats"
-              label-prefix="invoices.eInvoiceFormats"
-              class="w-full"
-            />
-          </AppFormField>
-        </div>
-        <AppFormField field="contact_ids" :label="t('invoices.contacts')">
-          <MultiSelect
-            v-model="headerForm.contact_ids"
-            :show-toggle-all="false"
-            :options="customerContacts"
-            option-label="name"
-            option-value="id"
-            display="chip"
-            class="w-full"
-          />
-        </AppFormField>
-        <AppFormField field="notes" :label="t('common.notes')"
-          ><Textarea v-model="headerForm.notes" rows="3" class="w-full"
-        /></AppFormField>
-      </div>
-    </AppModal>
-
-    <AppModal
-      ref="itemModal"
-      :form="itemForm"
-      :title="editingItem ? t('invoices.editLine') : t('invoices.addLine')"
-      :loading="busy"
-      @confirm="saveItem"
-    >
-      <div class="flex flex-col gap-4">
-        <AppFormField field="description" :label="t('time.description')" required
-          ><Textarea v-model="itemForm.description" rows="2" auto-resize class="w-full"
-        /></AppFormField>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <AppFormField field="quantity" :label="t('invoices.quantity')" required
-            ><InputNumber
-              v-model="itemForm.quantity"
-              :min="0"
-              :max-fraction-digits="2"
-              class="w-full"
-              fluid
-          /></AppFormField>
-          <AppFormField field="unit" :label="t('invoices.unit')">
-            <AppEnumSelect
-              v-model="itemForm.unit"
-              :options="units"
-              label-prefix="invoices.units"
-              class="w-full"
-            />
-          </AppFormField>
-          <AppFormField field="unit_price" :label="t('invoices.unitPrice')" required
-            ><InputNumber
-              v-model="itemForm.unit_price"
-              mode="currency"
-              :currency="invoice.currency"
-              class="w-full"
-              fluid
-          /></AppFormField>
-        </div>
-        <p v-if="editingItem" class="text-xs text-surface-500">
-          {{ t('invoices.lineDeleteHint') }}
-        </p>
       </div>
     </AppModal>
 

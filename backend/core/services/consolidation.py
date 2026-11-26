@@ -10,7 +10,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import override
@@ -146,14 +146,19 @@ def billable_entries(
     date_from: date | None = None,
     date_to: date | None = None,
     entry_ids: list[Any] | None = None,
+    invoice: Invoice | None = None,
 ) -> QuerySet[TimeEntry]:
     """Uninvoiced, billable, finished entries of a customer that a new invoice may bill.
-    `entry_ids` narrows them to the user's selection (ids outside the set are ignored)."""
+    `entry_ids` narrows them to the user's selection (ids outside the set are ignored).
+    With `invoice` (a draft being edited), the entries it bills count as open too."""
+    open_ = Q(invoice__isnull=True)
+    if invoice is not None:
+        open_ |= Q(invoice=invoice)
     qs = TimeEntry.objects.filter(
+        open_,
         owner=owner,
         customer=customer,
         billable=True,
-        invoice__isnull=True,
         contract__isnull=True,  # contract-covered entries bill via the contract
         end_datetime__isnull=False,  # running timers excluded
     ).select_related("customer", "project")
@@ -252,7 +257,7 @@ def lines_from_specs(
     return lines
 
 
-def _entry_lines(
+def make_entry_lines(
     *,
     owner: User,
     customer: Customer,
@@ -265,7 +270,7 @@ def _entry_lines(
     return lines_from_specs(owner=owner, customer=customer, entries=entries, specs=entry_lines)
 
 
-def _spec_entry_ids(entry_lines: list[EntryLineSpec] | None, entry_ids: Any) -> Any:
+def spec_entry_ids(entry_lines: list[EntryLineSpec] | None, entry_ids: Any) -> Any:
     """With explicit lines, the entries are the ones they name."""
     if entry_lines is None:
         return entry_ids
@@ -284,7 +289,7 @@ def _line_context(entries: list[TimeEntry]) -> dict[str, Any]:
     }
 
 
-def _only_project(lines: list[EntryLine]) -> Project | None:
+def only_project(lines: list[EntryLine]) -> Project | None:
     """The project all lines bill, if they bill exactly one."""
     projects = {e.project_id: e.project for built in lines for e in built["entries"]}
     return next(iter(projects.values())) if len(projects) == 1 else None
@@ -306,6 +311,7 @@ def preview(
     entry_lines: list[EntryLineSpec] | None = None,
     extra_lines: list[Line] | None = None,
     vat_rate: Decimal | None = None,
+    invoice: Invoice | None = None,
 ) -> dict[str, Any]:
     """What `consolidate` would create, without writing anything. Lines built from entries
     carry their entries (and, grouped, their key and generated text), so a client can take
@@ -317,10 +323,11 @@ def preview(
             project=project,
             date_from=date_from,
             date_to=date_to,
-            entry_ids=_spec_entry_ids(entry_lines, entry_ids),
+            entry_ids=spec_entry_ids(entry_lines, entry_ids),
+            invoice=invoice,
         )
     )
-    built = _entry_lines(
+    built = make_entry_lines(
         owner=owner, customer=customer, entries=entries, group_by=group_by, entry_lines=entry_lines
     )
     lines: list[dict[str, Any]] = [
@@ -376,16 +383,16 @@ def consolidate(
         project=project,
         date_from=date_from,
         date_to=date_to,
-        entry_ids=_spec_entry_ids(entry_lines, entry_ids),
+        entry_ids=spec_entry_ids(entry_lines, entry_ids),
     )
     entries = list(qs)
     if not entries and not extra_lines:
         raise ValidationError(_("No billable, uninvoiced time entries found."))
-    lines = _entry_lines(
+    lines = make_entry_lines(
         owner=owner, customer=customer, entries=entries, group_by=group_by, entry_lines=entry_lines
     )
     # Without a project of its own, an invoice that bills one project belongs to it.
-    project = project or _only_project(lines)
+    project = project or only_project(lines)
 
     company: CompanySettings | None = getattr(owner, "company_settings", None)
     issue_date = issue_date or timezone.localdate()
@@ -413,17 +420,24 @@ def consolidate(
         e_invoice_format=e_invoice_format or defaults["e_invoice_format"],
         template=template,
         bank_account_override=bank_account,
+        group_by=group_by if lines else "",
     )
 
     invoice.contacts.set(
         contacts if contacts is not None else customer.contacts.filter(is_invoice_contact=True)
     )
 
+    create_items(invoice, lines, extra_lines)
+    return invoice
+
+
+def create_items(invoice: Invoice, lines: list[EntryLine], extra_lines: list[Line] | None) -> None:
+    """Saves the lines in order, entry lines first, links their entries and totals up."""
     position = 0
     for built in lines:
         position += 1
         item = InvoiceLineItem.objects.create(
-            owner=owner, invoice=invoice, position=position, **built["line"]
+            owner=invoice.owner, invoice=invoice, position=position, **built["line"]
         )
         TimeEntry.objects.filter(id__in=[e.id for e in built["entries"]]).update(
             invoice=invoice, invoice_item=item
@@ -432,7 +446,7 @@ def consolidate(
     for line in extra_lines or []:
         position += 1
         InvoiceLineItem.objects.create(
-            owner=owner,
+            owner=invoice.owner,
             invoice=invoice,
             position=position,
             description=line["description"],
@@ -442,4 +456,3 @@ def consolidate(
         )
 
     invoice.recalc_totals()
-    return invoice

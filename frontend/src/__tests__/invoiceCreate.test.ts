@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import InvoiceCreateView from '../views/invoices/InvoiceCreateView.vue'
 import type { ApiCall } from './helpers/api'
-import type { ConsolidatePreviewLine, ConsolidateRequest } from '../api'
+import type { ConsolidatePreviewLine, ConsolidateRequest, Invoice } from '../api'
 import { mockApi, page, reply, type ApiMock } from './helpers/api'
 import {
   answerConfirm,
@@ -287,7 +287,7 @@ describe('InvoiceCreateView', () => {
     expect(screen.input(t('invoices.dueDate')).value).toBe('15.01.2027')
   })
 
-  it('hides rarely needed fields until asked, and shows them once set', async () => {
+  it('hides rarely needed fields until asked', async () => {
     const api = backend()
     api.post('/invoices/consolidate/', invoice({ id: 'inv-9' }))
     await open()
@@ -301,8 +301,6 @@ describe('InvoiceCreateView', () => {
 
     await choose(screen.field(t('invoices.template')), template().name)
     await type(screen.input(t('common.notes')), 'Thanks!')
-    // Set fields can't be hidden any more.
-    expect(screen.hasButton(t('invoices.showLess'))).toBe(false)
 
     await fetchAll()
     await click(screen.button(t('invoices.createDraft')))
@@ -379,5 +377,102 @@ describe('InvoiceCreateView', () => {
     await click(screen.button(t('common.cancel')))
     expect(confirmText()).toBe('')
     expect(router.currentRoute.value.path).toBe('/invoices')
+  })
+
+  describe('editing a draft', () => {
+    /** The draft bills Homepage (text edited) and has an own line; Hosting is open. */
+    async function openDraft(over: Partial<Invoice> = {}) {
+      const api = backend()
+      api.get('/time-tracking/', page([entries[1]]))
+      api.get(
+        '/invoices/inv-1/',
+        invoice({ contacts: [contact()], e_invoice_format: 'zugferd', ...over }),
+      )
+      api.get('/invoices/inv-1/draft/', {
+        group_by: 'entry',
+        entries: [entries[0]],
+        texts: { 'entry:te-1': 'Edited' },
+        own_lines: [{ description: 'Travel', quantity: '1.00', unit: 'flat', unit_price: '30.00' }],
+      })
+      api.post('/invoices/inv-1/draft_preview/', previewOf)
+      const view = await render(InvoiceCreateView, {
+        path: '/invoices/:id/edit',
+        url: '/invoices/inv-1/edit',
+      })
+      await waitForPreview()
+      return { api, ...view }
+    }
+
+    it('shows the draft as saved and leaves it without asking', async () => {
+      const { api, router } = await openDraft()
+      expect(screen.text()).toContain(t('invoices.editTitle', { number: 'RE-2026-001' }))
+      expect(screen.input(t('common.number')).value).toBe('RE-2026-001')
+      expect(screen.input(t('invoices.issueDate')).value).toBe('20.11.2026')
+      expect(screen.input(t('invoices.dueDate')).value).toBe('04.12.2026')
+      expect(lineText('Edited')).toBeTruthy()
+      expect(lineText('Travel')).toBeTruthy()
+      expect(api.lastBody('POST', '/invoices/inv-1/draft_preview/')).toMatchObject({
+        entry_ids: ['te-1'],
+        group_by: 'entry',
+      })
+      expect(api.requests('POST', '/invoices/consolidate_preview/')).toHaveLength(0)
+      // The customer stays.
+      expect(screen.field(t('projects.customer')).querySelector('.p-disabled')).toBeTruthy()
+
+      await click(screen.button(t('common.cancel')))
+      expect(confirmText()).toBe('')
+      expect(router.currentRoute.value.path).toBe('/invoices/inv-1')
+    })
+
+    it('saves the page back onto the draft', async () => {
+      const { api, router } = await openDraft()
+      api.put('/invoices/inv-1/draft/', invoice())
+      await type(screen.input(t('common.number')), 'RE-2026-007')
+      await type(lineText('Edited'), 'Edited again')
+      await click(screen.button(t('common.save')))
+
+      expect(api.lastBody('PUT', '/invoices/inv-1/draft/')).toMatchObject({
+        customer_id: 'cus-1',
+        number: 'RE-2026-007',
+        contact_ids: ['con-1'],
+        e_invoice_format: 'zugferd',
+        issue_date: '2026-11-20',
+        due_date: '2026-12-04',
+        vat_rate: 19,
+        entry_lines: [{ entry_ids: ['te-1'], description: 'Edited again' }],
+        extra_lines: [{ description: 'Travel', quantity: 1, unit: 'flat', unit_price: 30 }],
+      })
+      expect(router.currentRoute.value.path).toBe('/invoices/inv-1')
+    })
+
+    it('offers entries removed from the draft again', async () => {
+      await openDraft()
+      await click(
+        lineText('Edited')
+          .closest('tr')!
+          .querySelector(`[aria-label="${t('common.delete')}"]`)!,
+      )
+      await click(screen.button(t('invoices.fetchPositions')))
+      const offered = dialog(t('invoices.fetchPositions')).rows()
+      expect(offered.map((row) => row[3])).toEqual(['Homepage', 'Hosting'])
+    })
+
+    it('opens the rarely needed fields only when one of them is set', async () => {
+      await openDraft()
+      expect(() => screen.field(t('invoices.template'))).toThrow()
+      expect(screen.hasButton(t('invoices.showMore'))).toBe(true)
+    })
+
+    it('shows set rarely needed fields right away', async () => {
+      await openDraft({ notes: 'Thanks!' })
+      expect(screen.input(t('common.notes')).value).toBe('Thanks!')
+      await click(screen.button(t('invoices.showLess')))
+      expect(() => screen.field(t('common.notes'))).toThrow()
+    })
+
+    it('sends a finalized invoice back to its page', async () => {
+      const { router } = await openDraft({ status: 'issued' })
+      expect(router.currentRoute.value.path).toBe('/invoices/inv-1')
+    })
   })
 })

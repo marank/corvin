@@ -3,7 +3,7 @@ import Select from 'primevue/select'
 import { onMounted, ref } from 'vue'
 import { customersApi, type Customer } from '../api'
 
-defineProps<{ placeholder?: string }>()
+defineProps<{ placeholder?: string; disabled?: boolean }>()
 const emit = defineEmits<{ select: [customer: Customer | null] }>()
 const model = defineModel<string | null>()
 const customers = ref<Customer[]>([])
@@ -25,6 +25,7 @@ function onChange(id: string | null) {
     option-label="name"
     option-value="id"
     :placeholder="placeholder"
+    :disabled="disabled"
     filter
     show-clear
     class="w-full"

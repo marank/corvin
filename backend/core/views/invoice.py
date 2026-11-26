@@ -9,6 +9,7 @@ from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.clickjacking import xframe_options_exempt
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -16,12 +17,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
-from core.models import CompanySettings, Invoice
+from core.models import CompanySettings, Invoice, InvoiceLineItem
 from core.request_helpers import request_user
-from core.serializers import InvoiceSerializer
+from core.serializers import InvoiceSerializer, TimeEntrySerializer
 from core.serializers.base import validate_template_syntax
 from core.services.archiving import archive_invoice
 from core.services.consolidation import consolidate, header_defaults, preview
+from core.services.draft_editing import draft_state, update_draft
 from core.services.erechnung import build_xrechnung_xml
 from core.services.mailer import queue_invoice_email, render_invoice_email
 from core.services.pdf import render_invoice_html, render_invoice_pdf
@@ -33,7 +35,9 @@ from .base import OwnedViewSet
 class ManualLineSerializer(serializers.Serializer[Any]):
     description = serializers.CharField(max_length=500)
     quantity = serializers.DecimalField(max_digits=10, decimal_places=2, default=Decimal(1))
-    unit = serializers.ChoiceField(choices=["hours", "flat", "piece"], default="flat")
+    unit = serializers.ChoiceField(
+        choices=InvoiceLineItem.Unit.choices, default=InvoiceLineItem.Unit.FLAT
+    )
     unit_price = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 
@@ -52,7 +56,9 @@ class ConsolidateSerializer(serializers.Serializer[Any]):
     bank_account_id = serializers.UUIDField(required=False, allow_null=True)
     date_from = serializers.DateField(required=False, allow_null=True)
     date_to = serializers.DateField(required=False, allow_null=True)
-    group_by = serializers.ChoiceField(choices=["entry", "day", "project"], default="entry")
+    group_by = serializers.ChoiceField(
+        choices=Invoice.GroupBy.choices, default=Invoice.GroupBy.ENTRY
+    )
     # Lines the user put together from entries (each: the entries and the text); replaces
     # the grouping. Omitted: lines are grouped by `group_by`.
     entry_lines = EntryLineSerializer(many=True, required=False)
@@ -64,9 +70,11 @@ class ConsolidateSerializer(serializers.Serializer[Any]):
     )
     template_id = serializers.UUIDField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_blank=True)
+    # Editing a draft only: its number, corrected by hand (omitted: unchanged).
+    number = serializers.CharField(max_length=50, required=False)
     # Omitted: the customer's default.
     e_invoice_format = serializers.ChoiceField(
-        choices=["none", "zugferd", "xrechnung"], required=False
+        choices=Invoice.EInvoiceFormat.choices, required=False
     )
 
 
@@ -90,6 +98,16 @@ class ConsolidatePreviewSerializer(serializers.Serializer[Any]):
     vat_rate = serializers.DecimalField(max_digits=5, decimal_places=2)
     vat_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     total = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+
+class DraftStateSerializer(serializers.Serializer[Any]):
+    """A draft as the create page holds it (see services.draft_editing)."""
+
+    group_by = serializers.CharField()
+    entries = TimeEntrySerializer(many=True)
+    # The user's line texts by line key, where they differ from the generated ones.
+    texts = serializers.DictField(child=serializers.CharField())
+    own_lines = ManualLineSerializer(many=True)
 
 
 class SendEmailSerializer(serializers.Serializer[Any]):
@@ -252,11 +270,13 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
             "issue_date": d.get("issue_date"),
             "due_date": d.get("due_date"),
             "notes": d.get("notes", ""),
+            "number": d.get("number"),
         }
 
     @action(detail=False, methods=["post"])
     def consolidate(self, request: Request) -> Response:
         args = self._consolidation_args(request)
+        args.pop("number")  # a new invoice gets the next number of its scheme
         try:
             invoice = consolidate(**args)
         except DjangoValidationError as e:
@@ -269,6 +289,9 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
     @action(detail=False, methods=["post"])
     def consolidate_preview(self, request: Request) -> Response:
         """Line items and totals `consolidate` would create, without creating anything."""
+        return self._preview(request)
+
+    def _preview(self, request: Request, invoice: Invoice | None = None) -> Response:
         args = self._consolidation_args(request)
         for key in (
             "contacts",
@@ -278,13 +301,36 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
             "issue_date",
             "due_date",
             "notes",
+            "number",
         ):
             args.pop(key)
         try:
-            result = preview(**args)
+            result = preview(**args, invoice=invoice)
         except DjangoValidationError as e:
             raise ValidationError(_validation_detail(e)) from e
         return Response(ConsolidatePreviewSerializer(result).data)
+
+    @extend_schema(methods=["GET"], request=None, responses=DraftStateSerializer)
+    @extend_schema(methods=["PUT"], request=ConsolidateSerializer, responses=InvoiceSerializer)
+    @action(detail=True, methods=["get", "put"])
+    def draft(self, request: Request, pk: str | None = None) -> Response:
+        """A draft as the create page edits it (GET), or saved back from the page (PUT):
+        header and lines replaced, entries no longer on a line open again."""
+        invoice = self.get_object()
+        if request.method == "GET":
+            state = DraftStateSerializer(draft_state(invoice), context={"request": request})
+            return Response(state.data)
+        try:
+            invoice = update_draft(invoice, **self._consolidation_args(request))
+        except DjangoValidationError as e:
+            raise ValidationError(_validation_detail(e)) from e
+        return Response(InvoiceSerializer(invoice, context={"request": request}).data)
+
+    @extend_schema(request=ConsolidateSerializer, responses=ConsolidatePreviewSerializer)
+    @action(detail=True, methods=["post"])
+    def draft_preview(self, request: Request, pk: str | None = None) -> Response:
+        """Like `consolidate_preview`, with the entries this draft bills counted as open."""
+        return self._preview(request, self.get_object())
 
     @action(detail=True, methods=["post"])
     def finalize(self, request: Request, pk: str | None = None) -> Response:

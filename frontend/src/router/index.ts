@@ -69,6 +69,12 @@ const router = createRouter({
           component: () => import('../views/invoices/InvoiceCreateView.vue'),
         },
         {
+          // A draft on the create page (see InvoiceCreateView).
+          path: 'invoices/:id/edit',
+          name: 'invoice-edit',
+          component: () => import('../views/invoices/InvoiceCreateView.vue'),
+        },
+        {
           path: 'invoices/:id',
           name: 'invoice-detail',
           component: () => import('../views/invoices/InvoiceDetailView.vue'),

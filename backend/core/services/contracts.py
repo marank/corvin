@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
@@ -10,6 +10,7 @@ from django.utils import timezone
 from core.models import Invoice, InvoiceLineItem, SupportContract, TimeEntry
 from core.models.support_contract import add_periods
 
+from .consolidation import header_defaults
 from .numbering import next_number
 from .rates import resolve_rate
 
@@ -50,20 +51,7 @@ def generate_invoice(contract: SupportContract) -> Invoice:
 
     company = getattr(owner, "company_settings", None)
     issue_date = timezone.localdate()
-    payment_terms_days = (
-        contract.customer.payment_terms_days
-        if contract.customer.payment_terms_days is not None
-        else company.payment_terms_days
-        if company
-        else 14
-    )
-    vat_rate = (
-        company.default_vat_rate
-        if company and company.vat_enabled
-        else Decimal(0)
-        if company
-        else Decimal(19)
-    )
+    defaults = header_defaults(contract.customer, company, issue_date)
     invoice = Invoice.objects.create(
         owner=owner,
         number=next_number(
@@ -85,10 +73,10 @@ def generate_invoice(contract: SupportContract) -> Invoice:
         project=contract.project,
         contract=contract,
         issue_date=issue_date,
-        due_date=issue_date + timedelta(days=payment_terms_days),
-        vat_rate=vat_rate,
-        currency=company.currency if company else "EUR",
-        e_invoice_format=contract.customer.e_invoice_format,
+        due_date=defaults["due_date"],
+        vat_rate=defaults["vat_rate"],
+        currency=defaults["currency"],
+        e_invoice_format=defaults["e_invoice_format"],
         template=contract.template,
     )
 

@@ -20,6 +20,11 @@ class Invoice(OwnedModel):
         PAID = "paid", "Paid"
         CANCELLED = "cancelled", "Cancelled"
 
+    class GroupBy(models.TextChoices):
+        ENTRY = "entry", "Per entry"
+        DAY = "day", "Per day"
+        PROJECT = "project", "Per project"
+
     # Shared with Customer, whose e_invoice_format is the default for its invoices.
     EInvoiceFormat = EInvoiceFormat
 
@@ -51,6 +56,9 @@ class Invoice(OwnedModel):
         default=EInvoiceFormat.NONE,
     )
     notes = models.TextField(blank=True)
+    # How the lines group the time entries they bill (the create page's choice); blank for
+    # invoices without such lines and ones from before it was kept.
+    group_by = models.CharField(max_length=10, choices=GroupBy.choices, blank=True)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     vat_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)

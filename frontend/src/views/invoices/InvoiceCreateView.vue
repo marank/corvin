@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppEnumSelect from '../../components/ui/AppEnumSelect.vue'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
@@ -24,6 +24,7 @@ import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import CustomerSelect from '../../components/CustomerSelect.vue'
+import NumberField from '../../components/NumberField.vue'
 import ProjectSelect from '../../components/ProjectSelect.vue'
 import {
   bankAccountsApi,
@@ -57,10 +58,24 @@ const confirm = useConfirm()
 // only picks which time entries the invoice bills; the grouping above the table decides
 // how they become lines (per entry, day or project). Hours and prices come from the
 // entries and rates (computed by the server); the text of each line is the user's.
-const query = useRoute().query
+// The same page edits a draft (/invoices/:id/edit): it loads the draft's entries, grouping,
+// texts and fields, and saving replaces them (entries no longer on a line are open again).
+const route = useRoute()
+const query = route.query
+const invoiceId = typeof route.params.id === 'string' ? route.params.id : null
+const invoiceNumber = ref('')
+// The draft's number, correctable by hand until it is finalized.
+const numberInput = ref<string | undefined>(undefined)
+const backTo = invoiceId ? `/invoices/${invoiceId}` : '/invoices'
+// While the draft is loading, the watchers below must not react to its values.
+let loadingDraft = invoiceId !== null
 // Prefilled from customer/project overviews ("Rechnung erstellen").
-const customerId = ref<string | null>(typeof query.customer === 'string' ? query.customer : null)
-const projectId = ref<string | null>(typeof query.project === 'string' ? query.project : null)
+const customerId = ref<string | null>(
+  !invoiceId && typeof query.customer === 'string' ? query.customer : null,
+)
+const projectId = ref<string | null>(
+  !invoiceId && typeof query.project === 'string' ? query.project : null,
+)
 const eInvoiceFormat = ref('none')
 const availableContacts = ref<Contact[]>([])
 const contactIds = ref<string[]>([])
@@ -95,8 +110,8 @@ const templates = ref<DocumentTemplate[]>([])
 // Empty: the template assigned to invoices in the settings.
 const templateId = ref<string | null>(null)
 const notes = ref('')
-// Rarely needed fields sit behind "Mehr anzeigen"; they show by themselves once one of them
-// differs from its default, so nothing set is hidden.
+// Rarely needed fields sit behind "Mehr anzeigen"; a loaded draft opens it when one of them
+// differs from its default, so nothing set is hidden at first.
 const showMore = ref(false)
 const moreDeviates = computed(
   () =>
@@ -153,39 +168,80 @@ const companyLoaded = (async () => {
   vatRate.value = defaultVatRate.value
 })()
 
-watch(
-  customerId,
-  async (value, previous) => {
-    // Lines bill the previous customer's entries.
-    if (previous !== undefined) {
-      billed.value = []
-      texts.value = {}
-    }
-    if (!value) {
-      availableContacts.value = []
-      contactIds.value = []
-      customerPaymentTerms.value = null
-      return
-    }
-    // The customer's defaults for bank account and e-invoice.
-    const [customer] = await Promise.all([customersApi.get(value), companyLoaded])
-    defaultBankAccountId.value = customer.bank_account ?? companyBankAccountId.value
-    bankAccountId.value = defaultBankAccountId.value
-    defaultEInvoiceFormat.value = customer.e_invoice_format
-    eInvoiceFormat.value = customer.e_invoice_format
-    customerPaymentTerms.value = customer.payment_terms_days
-    availableContacts.value = (await contactsApi.list(value)).results
-    contactIds.value = availableContacts.value
-      .filter((contact) => contact.is_invoice_contact)
-      .map((contact) => contact.id)
-  },
-  { immediate: true },
-)
+watch(customerId, async (value) => {
+  if (loadingDraft) return
+  // Lines bill the previous customer's entries.
+  billed.value = []
+  texts.value = {}
+  await loadCustomer(value)
+})
+
+// The customer's defaults (bank account, e-invoice, payment terms) and invoice contacts.
+async function loadCustomer(value: string | null) {
+  if (!value) {
+    availableContacts.value = []
+    contactIds.value = []
+    customerPaymentTerms.value = null
+    return
+  }
+  const [customer] = await Promise.all([customersApi.get(value), companyLoaded])
+  defaultBankAccountId.value = customer.bank_account ?? companyBankAccountId.value
+  bankAccountId.value = defaultBankAccountId.value
+  defaultEInvoiceFormat.value = customer.e_invoice_format
+  eInvoiceFormat.value = customer.e_invoice_format
+  customerPaymentTerms.value = customer.payment_terms_days
+  availableContacts.value = (await contactsApi.list(value)).results
+  contactIds.value = availableContacts.value
+    .filter((contact) => contact.is_invoice_contact)
+    .map((contact) => contact.id)
+}
+
+// Entries the draft billed when loaded; removed from it, they are offered again.
+const draftEntries = ref<TimeEntry[]>([])
+
+async function loadDraft(id: string) {
+  const [invoice, state] = await Promise.all([invoicesApi.get(id), invoicesApi.draft(id)])
+  if (invoice.status !== 'draft') {
+    void router.replace(`/invoices/${id}`)
+    return
+  }
+  invoiceNumber.value = invoice.number
+  numberInput.value = invoice.number
+  customerId.value = invoice.customer
+  projectId.value = invoice.project
+  await loadCustomer(invoice.customer)
+  contactIds.value = invoice.contacts.map((contact) => contact.id)
+  bankAccountId.value = invoice.bank_account_override ?? defaultBankAccountId.value
+  eInvoiceFormat.value = invoice.e_invoice_format
+  issueDate.value = invoice.issue_date
+  dueDate.value = invoice.due_date
+  vatRate.value = Number(invoice.vat_rate)
+  templateId.value = invoice.template
+  notes.value = invoice.notes
+  // Collapsed as on a new invoice, unless something in it differs from the defaults.
+  showMore.value = moreDeviates.value
+  groupBy.value = state.group_by
+  groupByKey.value++
+  billed.value = state.entries
+  draftEntries.value = state.entries
+  texts.value = state.texts
+  ownLines.value = state.own_lines.map((line) => ({
+    id: crypto.randomUUID(),
+    description: line.description,
+    quantity: Number(line.quantity),
+    unit: line.unit,
+    unit_price: Number(line.unit_price),
+  }))
+  await nextTick()
+  loadingDraft = false
+  markSaved()
+}
 
 // The invoice's project is a fixed filter for its lines: entries of other projects go when
 // it is set (after asking), and "Positionen holen" only offers its entries. Left empty, the
 // invoice takes the project of its lines if they all share one (done by the server).
 watch(projectId, (value, previous) => {
+  if (loadingDraft) return
   const others = billed.value.filter((entry) => value && entry.project !== value)
   if (!others.length) return
   // Cancelling (or closing the dialog) keeps the lines and the previous project. The cancel
@@ -242,9 +298,19 @@ const dateFrom = ref<string | null>(null)
 const dateTo = ref<string | null>(null)
 const openEntries = ref<TimeEntry[]>([])
 const picked = ref(new Set<string>())
-// Entries already on the invoice are not offered again.
+// Entries already on the invoice are not offered again; ones removed from the draft are.
+function matchesFilter(entry: TimeEntry) {
+  const day = isoDate(new Date(entry.start_datetime))
+  return (
+    (!fetchProjectId.value || entry.project === fetchProjectId.value) &&
+    (!dateFrom.value || day >= dateFrom.value) &&
+    (!dateTo.value || day <= dateTo.value)
+  )
+}
 const offeredEntries = computed(() =>
-  openEntries.value.filter((entry) => !billedIds.value.includes(entry.id)),
+  [...openEntries.value, ...draftEntries.value.filter(matchesFilter)]
+    .filter((entry) => !billedIds.value.includes(entry.id))
+    .sort((a, b) => a.start_datetime.localeCompare(b.start_datetime)),
 )
 const pickedMinutes = computed(() =>
   offeredEntries.value
@@ -354,7 +420,9 @@ onBeforeUnmount(() => clearTimeout(previewTimer))
 async function loadPreview(value: ConsolidateRequest) {
   const request = ++previewRequest
   try {
-    const result = await invoicesApi.consolidatePreview(value)
+    const result = invoiceId
+      ? await invoicesApi.draftPreview(invoiceId, value)
+      : await invoicesApi.consolidatePreview(value)
     if (request !== previewRequest) return
     preview.value = result
     previewError.value = ''
@@ -389,19 +457,30 @@ function ownTotal(line: OwnLine) {
   return Math.round(line.quantity * line.unit_price * 100) / 100
 }
 
-useUnsavedChanges(
+const { markSaved } = useUnsavedChanges(
   computed(() => ({
+    number: numberInput.value,
     customer: customerId.value,
     project: projectId.value,
+    contacts: contactIds.value,
     issueDate: issueDate.value,
     dueDate: ownDueDate.value,
-    more: moreDeviates.value,
+    bankAccount: bankAccountId.value,
+    eInvoice: eInvoiceFormat.value,
+    vatRate: vatRate.value,
+    template: templateId.value,
+    notes: notes.value,
+    groupBy: groupBy.value,
     billed: billedIds.value,
     texts: texts.value,
     own: ownLines.value,
   })),
-  () => !created.value,
+  () => !created.value && !loadingDraft,
 )
+
+if (invoiceId) void loadDraft(invoiceId)
+// The defaults filled in after loading (VAT rate, bank account, contacts) are no changes.
+else void Promise.all([companyLoaded, loadCustomer(customerId.value)]).then(markSaved)
 
 // Created as shown: these entries under these texts, and the own lines.
 const createBody = computed<ConsolidateRequest | null>(() => {
@@ -418,6 +497,7 @@ const createBody = computed<ConsolidateRequest | null>(() => {
     ...(dueDate.value ? { due_date: dueDate.value } : {}),
     template_id: templateId.value,
     notes: notes.value,
+    ...(invoiceId && numberInput.value !== undefined ? { number: numberInput.value } : {}),
     entry_lines: entryLines.value.map((line) => ({
       entry_ids: line.entry_ids,
       description: lineText(line.key!, line.description),
@@ -436,7 +516,9 @@ async function create() {
   if (!createBody.value || !canCreate.value) return
   creating.value = true
   try {
-    const inv = await invoicesApi.consolidate(createBody.value)
+    const inv = invoiceId
+      ? await invoicesApi.saveDraft(invoiceId, createBody.value)
+      : await invoicesApi.consolidate(createBody.value)
     created.value = true
     void router.push(`/invoices/${inv.id}`)
   } catch (e) {
@@ -449,11 +531,15 @@ async function create() {
 
 <template>
   <div>
-    <AppPageHeader back-to="/invoices" :back-label="t('nav.invoices')" :title="t('invoices.new')">
+    <AppPageHeader
+      :back-to="backTo"
+      :back-label="invoiceId ? invoiceNumber : t('nav.invoices')"
+      :title="invoiceId ? t('invoices.editTitle', { number: invoiceNumber }) : t('invoices.new')"
+    >
       <template #actions>
-        <Button :label="t('common.cancel')" text @click="router.push('/invoices')" />
+        <Button :label="t('common.cancel')" text @click="router.push(backTo)" />
         <Button
-          :label="t('invoices.createDraft')"
+          :label="invoiceId ? t('common.save') : t('invoices.createDraft')"
           icon="pi pi-check"
           :loading="creating"
           :disabled="!canCreate"
@@ -467,7 +553,7 @@ async function create() {
         <h2 class="font-semibold mb-4">{{ t('invoices.general') }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <AppFormField :label="t('projects.customer')" required
-            ><CustomerSelect v-model="customerId"
+            ><CustomerSelect v-model="customerId" :disabled="!!invoiceId"
           /></AppFormField>
           <AppFormField :label="t('projects.project')"
             ><ProjectSelect v-model="projectId" :customer-id="customerId" customer-only
@@ -483,6 +569,7 @@ async function create() {
               class="w-full"
             />
           </AppFormField>
+          <NumberField v-if="invoiceId" v-model="numberInput" />
           <AppFormField :label="t('invoices.issueDate')" required
             ><AppDateInput v-model="issueDate"
           /></AppFormField>
@@ -491,7 +578,6 @@ async function create() {
           /></AppFormField>
         </div>
         <button
-          v-if="!moreDeviates"
           type="button"
           class="mt-3 text-sm text-surface-500 hover:text-primary inline-flex items-center gap-1"
           :aria-expanded="showMore"
@@ -500,10 +586,7 @@ async function create() {
           <i :class="showMore ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="text-xs" />
           {{ showMore ? t('invoices.showLess') : t('invoices.showMore') }}
         </button>
-        <div
-          v-if="showMore || moreDeviates"
-          class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-4"
-        >
+        <div v-if="showMore" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-4">
           <AppFormField :label="t('settings.bankAccount')">
             <Select
               v-model="bankAccountId"

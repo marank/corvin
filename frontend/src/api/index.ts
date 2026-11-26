@@ -432,6 +432,8 @@ export interface ConsolidateRequest {
   vat_rate?: number
   template_id?: string | null
   notes?: string
+  // Editing a draft only: its number, corrected by hand.
+  number?: string
 }
 
 export interface ConsolidatePreviewLine extends Pick<
@@ -457,6 +459,14 @@ export interface ConsolidatePreview {
   total: string
 }
 
+// A draft as the create page holds it: its entries, grouping, edited texts and own lines.
+export interface InvoiceDraftState {
+  group_by: string
+  entries: TimeEntry[]
+  texts: Record<string, string>
+  own_lines: Pick<LineItem, 'description' | 'quantity' | 'unit' | 'unit_price'>[]
+}
+
 export const invoicesApi = {
   list: (params = '') => api.get<Page<Invoice>>(`${base}/invoices/?${params}`),
   get: (id: string) => api.get<Invoice>(`${base}/invoices/${id}/`),
@@ -466,6 +476,12 @@ export const invoicesApi = {
   consolidate: (d: ConsolidateRequest) => api.post<Invoice>(`${base}/invoices/consolidate/`, d),
   consolidatePreview: (d: ConsolidateRequest) =>
     api.post<ConsolidatePreview>(`${base}/invoices/consolidate_preview/`, d),
+  // Editing a draft on the create page; its own entries count as open in the preview.
+  draft: (id: string) => api.get<InvoiceDraftState>(`${base}/invoices/${id}/draft/`),
+  saveDraft: (id: string, d: ConsolidateRequest) =>
+    api.put<Invoice>(`${base}/invoices/${id}/draft/`, d),
+  draftPreview: (id: string, d: ConsolidateRequest) =>
+    api.post<ConsolidatePreview>(`${base}/invoices/${id}/draft_preview/`, d),
   finalize: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/finalize/`),
   markSent: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/mark_sent/`),
   cancel: (id: string) => api.post<Invoice>(`${base}/invoices/${id}/cancel/`),
