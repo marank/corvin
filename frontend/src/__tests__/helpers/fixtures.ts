@@ -92,6 +92,7 @@ export const lineItem = (over: Partial<LineItem> = {}): LineItem => ({
   unit: 'hours',
   unit_price: 100,
   total: 200,
+  time_entry_ids: [],
   ...over,
 })
 
@@ -112,6 +113,7 @@ export const invoice = (over: Partial<Invoice> = {}): Invoice => ({
   project: null,
   project_name: null,
   contract: null,
+  contract_name: null,
   issue_date: '2026-11-20',
   due_date: '2026-12-04',
   status: 'draft',

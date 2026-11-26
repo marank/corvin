@@ -26,9 +26,10 @@ import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
 import AppDateTimeDisplay from '../../components/ui/AppDateTimeDisplay.vue'
 import AppNumberDisplay from '../../components/ui/AppNumberDisplay.vue'
+import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
 import InvoicePreviewFrame from '../../components/InvoicePreviewFrame.vue'
-import { customersApi, invoicesApi, paymentsApi, type Invoice } from '../../api'
+import { customersApi, invoicesApi, paymentsApi, type Invoice, type TimeEntry } from '../../api'
 import { useNotify } from '../../composables/useNotify'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
 import { useConfirm } from 'primevue/useconfirm'
@@ -67,9 +68,32 @@ const statusKey = computed(() =>
 )
 const canReceivePayment = computed(() => ['issued', 'sent'].includes(invoice.value?.status ?? ''))
 
+// Unpaid after its due date (only once it went out).
+const overdue = computed(
+  () =>
+    canReceivePayment.value &&
+    Number(invoice.value?.remaining) > 0 &&
+    !!invoice.value?.due_date &&
+    invoice.value.due_date < isoDate(),
+)
+
+// The time entries the invoice bills; the position of the line billing each comes from the
+// lines (contract-covered entries are on none).
+const tab = ref('items')
+const timeEntries = ref<TimeEntry[]>([])
+const positions = computed(
+  () =>
+    new Map(
+      (invoice.value?.items ?? []).flatMap((item) =>
+        item.time_entry_ids.map((entryId) => [entryId, item.position] as const),
+      ),
+    ),
+)
+
 async function load() {
   invoice.value = await invoicesApi.get(id)
   previewVersion.value++
+  timeEntries.value = invoice.value.has_time_entries ? await invoicesApi.timeEntries(id) : []
 }
 
 // Prefill the recipient from the invoice contacts, falling back to the customer's address,
@@ -223,138 +247,225 @@ async function addPayment() {
       }}</router-link>
     </Message>
 
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <div>
-        <div class="app-card p-4 mb-4 grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <span class="text-surface-500">{{
-              t('invoices.issueDate')
-            }}</span><br /><AppDateTimeDisplay :value="invoice.issue_date" />
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+      <div class="flex flex-col gap-4 min-w-0">
+        <section class="app-card p-4">
+          <div class="flex flex-wrap gap-x-8 gap-y-3 items-end">
+            <div>
+              <p class="text-sm text-surface-500">{{ t('common.total') }}</p>
+              <p class="text-2xl font-semibold">
+                <AppMoneyDisplay :amount="invoice.total" :currency="invoice.currency" />
+              </p>
+            </div>
+            <template v-if="!isDraft">
+              <div>
+                <p class="text-sm text-surface-500">{{ t('invoices.paid') }}</p>
+                <p class="text-lg tabular-nums">
+                  <AppMoneyDisplay :amount="invoice.amount_paid" :currency="invoice.currency" />
+                </p>
+              </div>
+              <div>
+                <p class="text-sm text-surface-500">{{ t('invoices.remaining') }}</p>
+                <p class="text-lg tabular-nums" :class="{ 'text-danger': overdue }">
+                  <AppMoneyDisplay :amount="invoice.remaining" :currency="invoice.currency" />
+                </p>
+              </div>
+            </template>
+            <div>
+              <p class="text-sm text-surface-500">{{ t('invoices.dueDate') }}</p>
+              <p class="text-lg" :class="{ 'text-danger font-medium': overdue }">
+                <AppDateTimeDisplay :value="invoice.due_date" />
+                <span v-if="overdue" class="text-sm">
+                  · {{ t('invoices.receivables.overdue') }}</span
+                >
+              </p>
+            </div>
+            <div v-if="invoice.sent_at">
+              <p class="text-sm text-surface-500">{{ t('invoices.sentAt') }}</p>
+              <p class="text-lg"><AppDateTimeDisplay :value="invoice.sent_at" /></p>
+            </div>
           </div>
-          <div>
-            <span class="text-surface-500">{{
-              t('invoices.dueDate')
-            }}</span><br /><AppDateTimeDisplay :value="invoice.due_date" />
-          </div>
-          <div>
-            <span class="text-surface-500">{{ t('invoices.eInvoice') }}</span><br />{{
-              t(`invoices.eInvoiceFormats.${invoice.e_invoice_format}`)
-            }}
-          </div>
-          <div>
-            <span class="text-surface-500">{{ t('invoices.vatRate') }}</span><br /><AppNumberDisplay
-              :value="invoice.vat_rate"
-              :maximum-fraction-digits="2"
-            />%
-          </div>
-          <div v-if="invoice.contacts.length" class="col-span-2">
-            <span class="text-surface-500">{{ t('invoices.contacts') }}</span><br />{{
-              invoice.contacts.map((contact) => contact.name).join(', ')
-            }}
-          </div>
-          <div v-if="invoice.notes" class="col-span-2 whitespace-pre-line">
-            <span class="text-surface-500">{{ t('common.notes') }}</span><br />{{ invoice.notes }}
-          </div>
-          <div class="col-span-2">
-            <span class="text-surface-500">{{ t('settings.bankAccount') }}</span><br />{{
-              invoice.bank_account?.name || '—'
-            }}
-          </div>
-        </div>
+        </section>
 
-        <AppDataTable :rows="invoice.items" :state-key="tableStateKeys.invoiceItems">
-          <Column field="position" header="#" class="w-10" sortable />
-          <Column class="app-text" field="description" :header="t('time.description')" sortable />
-          <Column class="app-num" :header="t('invoices.quantity')"
-            ><template #body="{ data }"><AppNumberDisplay :value="data.quantity" /></template
-          ></Column>
-          <Column class="app-num" :header="t('invoices.unitPrice')">
-            <template #body="{ data }"
-              ><AppMoneyDisplay :amount="data.unit_price" :currency="invoice!.currency"
-            /></template>
-          </Column>
-          <Column class="app-num" :header="t('common.total')">
-            <template #body="{ data }"
-              ><AppMoneyDisplay :amount="data.total" :currency="invoice!.currency"
-            /></template>
-          </Column>
-        </AppDataTable>
-
-        <div class="border border-t-0 border-surface-200 dark:border-surface-800 p-4 text-sm">
-          <div class="flex justify-between">
-            <span>{{ t('invoices.subtotal') }}</span><AppMoneyDisplay
-              :amount="invoice.subtotal"
-              :currency="invoice.currency"
-            />
-          </div>
-          <div class="flex justify-between">
-            <span>{{ t('invoices.vat') }}</span><AppMoneyDisplay
-              :amount="invoice.vat_amount"
-              :currency="invoice.currency"
-            />
-          </div>
-          <div class="flex justify-between font-semibold text-base mt-1">
-            <span>{{ t('common.total') }}</span><AppMoneyDisplay
-              :amount="invoice.total"
-              :currency="invoice.currency"
-            />
-          </div>
-          <div v-if="Number(invoice.amount_paid) > 0" class="flex justify-between text-success">
-            <span>{{ t('invoices.paid') }}</span><AppMoneyDisplay
-              :amount="invoice.amount_paid"
-              :currency="invoice.currency"
-            />
-          </div>
+        <section class="app-card p-4">
+          <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <div>
+              <dt class="text-surface-500">{{ t('projects.customer') }}</dt>
+              <dd>
+                <router-link :to="`/customers/${invoice.customer}`" class="hover:underline">{{
+                  invoice.customer_name
+                }}</router-link>
+              </dd>
+            </div>
+            <div v-if="invoice.project">
+              <dt class="text-surface-500">{{ t('projects.project') }}</dt>
+              <dd>
+                <router-link :to="`/projects/${invoice.project}`" class="hover:underline">{{
+                  invoice.project_name
+                }}</router-link>
+              </dd>
+            </div>
+            <div v-if="invoice.contract">
+              <dt class="text-surface-500">{{ t('invoices.contract') }}</dt>
+              <dd>
+                <router-link :to="`/contracts/${invoice.contract}`" class="hover:underline">{{
+                  invoice.contract_name
+                }}</router-link>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-surface-500">{{ t('invoices.issueDate') }}</dt>
+              <dd><AppDateTimeDisplay :value="invoice.issue_date" /></dd>
+            </div>
+            <div v-if="invoice.contacts.length">
+              <dt class="text-surface-500">{{ t('invoices.contacts') }}</dt>
+              <dd>{{ invoice.contacts.map((contact) => contact.name).join(', ') }}</dd>
+            </div>
+            <div>
+              <dt class="text-surface-500">{{ t('settings.bankAccount') }}</dt>
+              <dd>{{ invoice.bank_account?.name || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-surface-500">{{ t('invoices.eInvoice') }}</dt>
+              <dd>{{ t(`invoices.eInvoiceFormats.${invoice.e_invoice_format}`) }}</dd>
+            </div>
+            <div>
+              <dt class="text-surface-500">{{ t('invoices.vatRate') }}</dt>
+              <dd><AppNumberDisplay :value="invoice.vat_rate" :maximum-fraction-digits="2" /> %</dd>
+            </div>
+            <div v-if="invoice.notes" class="col-span-2">
+              <dt class="text-surface-500">{{ t('common.notes') }}</dt>
+              <dd class="whitespace-pre-line">{{ invoice.notes }}</dd>
+            </div>
+          </dl>
           <div
-            v-if="Number(invoice.remaining) > 0"
-            class="flex justify-between"
-            :class="{ 'text-danger': !isDraft }"
+            class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-surface-200 dark:border-surface-800"
           >
-            <span>{{ t('invoices.remaining') }}</span><AppMoneyDisplay
-              :amount="invoice.remaining"
-              :currency="invoice.currency"
+            <span class="text-sm text-surface-500 me-1">{{ t('invoices.documents') }}</span>
+            <Button
+              as="a"
+              :href="pdfUrl"
+              target="_blank"
+              :label="t('invoices.downloadPdf')"
+              icon="pi pi-file-pdf"
+              size="small"
+              outlined
+            />
+            <Button
+              v-if="invoice.e_invoice_format === 'xrechnung'"
+              as="a"
+              :href="xmlUrl"
+              target="_blank"
+              :label="t('invoices.downloadXml')"
+              icon="pi pi-code"
+              size="small"
+              outlined
+            />
+            <Button
+              v-if="invoice.has_time_entries"
+              as="a"
+              :href="timeReportUrl"
+              target="_blank"
+              :label="t('invoices.downloadTimeReport')"
+              icon="pi pi-list"
+              size="small"
+              outlined
             />
           </div>
-        </div>
+        </section>
 
-        <div class="flex gap-2 mt-3">
-          <Button
-            as="a"
-            :href="pdfUrl"
-            target="_blank"
-            :label="t('invoices.downloadPdf')"
-            icon="pi pi-file-pdf"
-            size="small"
-          />
-          <Button
-            v-if="invoice.e_invoice_format === 'xrechnung'"
-            as="a"
-            :href="xmlUrl"
-            target="_blank"
-            :label="t('invoices.downloadXml')"
-            icon="pi pi-code"
-            size="small"
-            severity="secondary"
-          />
-          <Button
-            v-if="invoice.has_time_entries"
-            as="a"
-            :href="timeReportUrl"
-            target="_blank"
-            :label="t('invoices.downloadTimeReport')"
-            icon="pi pi-list"
-            size="small"
-            severity="secondary"
-          />
-        </div>
-
-        <Tabs value="payments" class="mt-6">
+        <Tabs v-model:value="tab">
           <TabList>
-            <Tab value="payments">{{ t('invoices.payments') }}</Tab>
+            <Tab value="items">{{ t('invoices.positions') }}</Tab>
+            <Tab v-if="invoice.has_time_entries" value="times">{{ t('invoices.times') }}</Tab>
+            <Tab v-if="!isDraft" value="payments">{{ t('invoices.payments') }}</Tab>
             <Tab value="attachments">{{ t('customers.attachments') }}</Tab>
           </TabList>
           <TabPanels>
-            <TabPanel value="payments" class="pt-4">
+            <TabPanel value="items" class="pt-4">
+              <AppDataTable :rows="invoice.items" :state-key="tableStateKeys.invoiceItems">
+                <Column field="position" header="#" class="w-10" sortable />
+                <Column
+                  class="app-text"
+                  field="description"
+                  :header="t('time.description')"
+                  sortable
+                />
+                <Column class="app-num" :header="t('invoices.quantity')"
+                  ><template #body="{ data }"><AppNumberDisplay :value="data.quantity" /></template
+                ></Column>
+                <Column class="app-num" :header="t('invoices.unitPrice')">
+                  <template #body="{ data }"
+                    ><AppMoneyDisplay :amount="data.unit_price" :currency="invoice!.currency"
+                  /></template>
+                </Column>
+                <Column class="app-num" :header="t('common.total')">
+                  <template #body="{ data }"
+                    ><AppMoneyDisplay :amount="data.total" :currency="invoice!.currency"
+                  /></template>
+                </Column>
+              </AppDataTable>
+              <div class="flex justify-end pt-3">
+                <div class="w-72 flex flex-col gap-1 text-sm tabular-nums">
+                  <div class="flex justify-between">
+                    <span class="text-surface-500">{{
+                      t('invoices.subtotal')
+                    }}</span><AppMoneyDisplay
+                      :amount="invoice.subtotal"
+                      :currency="invoice.currency"
+                    />
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-surface-500">{{ t('invoices.vat') }}</span><AppMoneyDisplay
+                      :amount="invoice.vat_amount"
+                      :currency="invoice.currency"
+                    />
+                  </div>
+                  <div
+                    class="flex justify-between font-semibold pt-1 border-t border-surface-200 dark:border-surface-800"
+                  >
+                    <span>{{ t('common.total') }}</span><AppMoneyDisplay
+                      :amount="invoice.total"
+                      :currency="invoice.currency"
+                    />
+                  </div>
+                </div>
+              </div>
+            </TabPanel>
+            <TabPanel v-if="invoice.has_time_entries" value="times" class="pt-4">
+              <AppDataTable :rows="timeEntries" :state-key="tableStateKeys.invoiceTimeEntries">
+                <Column field="start_datetime" :header="t('common.date')" sortable
+                  ><template #body="{ data }"
+                    ><AppDateTimeDisplay :value="data.start_datetime" type="datetime" /></template
+                ></Column>
+                <Column :header="t('invoices.position')"
+                  ><template #body="{ data }">{{ positions.get(data.id) ?? '—' }}</template></Column
+                >
+                <Column
+                  class="app-text"
+                  field="project_name"
+                  :header="t('projects.project')"
+                  sortable
+                />
+                <Column
+                  class="app-text"
+                  field="description"
+                  :header="t('time.description')"
+                  sortable
+                />
+                <Column
+                  class="app-num"
+                  field="duration_minutes"
+                  :header="t('time.duration')"
+                  sortable
+                >
+                  <template #body="{ data }"
+                    ><AppDurationDisplay :minutes="data.duration_minutes"
+                  /></template>
+                </Column>
+              </AppDataTable>
+            </TabPanel>
+            <TabPanel v-if="!isDraft" value="payments" class="pt-4">
               <AppDataTable :rows="invoice.payments" :state-key="tableStateKeys.invoicePayments">
                 <Column field="date" :header="t('common.date')" sortable
                   ><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template
@@ -387,7 +498,10 @@ async function addPayment() {
         </Tabs>
       </div>
 
-      <div class="border border-surface-200 dark:border-surface-800 h-150 min-h-96">
+      <!-- The invoice as it prints: as tall as the window allows, staying in view. -->
+      <div
+        class="border border-surface-200 dark:border-surface-800 h-[calc(100vh-8rem)] min-h-96 xl:sticky xl:top-4"
+      >
         <InvoicePreviewFrame :url="previewUrl" />
       </div>
     </div>

@@ -1,15 +1,25 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { Invoice } from '../api'
+import type { Invoice, TimeEntry } from '../api'
 import InvoiceDetailView from '../views/invoices/InvoiceDetailView.vue'
 import { mockApi, page, reply } from './helpers/api'
-import { answerConfirm, click, confirmText, dialog, screen, toasts, type } from './helpers/dom'
-import { contact, customer, invoice, payment } from './helpers/fixtures'
+import {
+  activeTab,
+  answerConfirm,
+  click,
+  confirmText,
+  dialog,
+  screen,
+  toasts,
+  type,
+} from './helpers/dom'
+import { contact, customer, invoice, lineItem, payment, timeEntry } from './helpers/fixtures'
 import { render, t } from './helpers/render'
 
 /** Opens the detail page of `inv`; the backend returns `state.invoice` on every reload. */
-async function open(inv: Invoice = invoice()) {
+async function open(inv: Invoice = invoice(), entries: TimeEntry[] = []) {
   const state = { invoice: inv }
   const api = mockApi()
+  api.get('/invoices/inv-1/time-entries/', entries)
   api.get('/invoices/inv-1/', () => state.invoice)
   api.get('/attachments/content_types/', { invoice: 7 })
   api.get('/attachments/', page([]))
@@ -68,6 +78,26 @@ describe('InvoiceDetailView', () => {
       expect(screen.text()).toContain(t('invoices.status.draft'))
     })
 
+    it('has no payments yet, and links customer and project', async () => {
+      await open(invoice({ project: 'prj-1', project_name: 'Website' }))
+      expect(screen.hasButton(t('invoices.payments'))).toBe(false)
+      expect(screen.button('Acme GmbH').getAttribute('href')).toBe('/customers/cus-1')
+      expect(screen.button('Website').getAttribute('href')).toBe('/projects/prj-1')
+    })
+
+    it('lists the time entries it bills with their line', async () => {
+      const { api } = await open(
+        invoice({
+          has_time_entries: true,
+          items: [lineItem({ id: 'item-1', position: 3, time_entry_ids: ['te-1'] })],
+        }),
+        [timeEntry({ invoice: 'inv-1' })],
+      )
+      expect(api.requests('GET', '/invoices/inv-1/time-entries/')).toHaveLength(1)
+      await click(screen.button(t('invoices.times')))
+      expect(activeTab().rows()[0]!.slice(1)).toEqual(['3', 'Website', 'Homepage', '2:00 h'])
+    })
+
     it('is edited on the create page, not here', async () => {
       const { router } = await open()
       expect(screen.hasButton(t('invoices.addLine'))).toBe(false)
@@ -102,6 +132,11 @@ describe('InvoiceDetailView', () => {
       expect(screen.hasButton(t('invoices.addLine'))).toBe(false)
       expect(screen.hasButton(t('common.edit'))).toBe(false)
       expect(screen.text()).toContain(`${t('settings.bankAccount')}Hausbank`)
+    })
+
+    it('marks an unpaid invoice past its due date as overdue', async () => {
+      await open(issued({ due_date: '2026-11-22' }))
+      expect(screen.text()).toContain(t('invoices.receivables.overdue'))
     })
 
     it('links the PDF, and the XML only for XRechnung', async () => {

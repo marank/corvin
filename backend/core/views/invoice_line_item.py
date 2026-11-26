@@ -4,7 +4,7 @@ from django.utils.translation import gettext as _
 from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import BaseSerializer
 
-from core.models import Invoice, InvoiceLineItem, TimeEntry
+from core.models import Invoice, InvoiceLineItem
 from core.serializers import InvoiceLineItemSerializer
 
 from .base import OwnedViewSet
@@ -50,7 +50,7 @@ class InvoiceLineItemViewSet(OwnedViewSet[InvoiceLineItem]):
         invoice = instance.invoice
         _require_draft(invoice)
         # The entries billed on this line become billable again.
-        TimeEntry.objects.filter(invoice_item=instance).update(invoice=None, invoice_item=None)
+        instance.time_entries.update(invoice=None, invoice_item=None)
         instance.delete()
         for position, item in enumerate(invoice.items.order_by("position", "id"), start=1):
             if item.position != position:

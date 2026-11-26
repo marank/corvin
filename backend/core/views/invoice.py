@@ -154,7 +154,7 @@ class InvoiceFilter(django_filters.FilterSet):
 class InvoiceViewSet(OwnedViewSet[Invoice]):
     queryset = Invoice.objects.select_related(
         "customer", "project", "contract", "template"
-    ).prefetch_related("contacts", "items", "payments")
+    ).prefetch_related("contacts", "items__time_entries", "payments")
     serializer_class = InvoiceSerializer
     filterset_class = InvoiceFilter
 
@@ -386,6 +386,18 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
             content_type="application/pdf",
             headers={"Content-Disposition": f'attachment; filename="{invoice.number}.pdf"'},
         )
+
+    @extend_schema(responses=TimeEntrySerializer(many=True))
+    @action(detail=True, methods=["get"], url_path="time-entries")
+    def time_entries(self, request: Request, pk: str | None = None) -> Response:
+        """The time entries the invoice bills (its lines say which line bills which)."""
+        entries = (
+            self.get_object()
+            .time_entries.select_related("customer", "project", "contract")
+            .prefetch_related("breaks")
+            .order_by("start_datetime")
+        )
+        return Response(TimeEntrySerializer(entries, many=True, context={"request": request}).data)
 
     @action(detail=True, methods=["get"], url_path="time-report")
     def time_report(self, request: Request, pk: str | None = None) -> HttpResponse:

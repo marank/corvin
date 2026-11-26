@@ -134,6 +134,7 @@ export interface TimeEntry {
   is_paused: boolean
   description: string
   billable: boolean
+  // Set by invoicing only (read-only).
   invoice: string | null
 }
 
@@ -187,6 +188,8 @@ export interface LineItem {
   unit: string
   unit_price: number
   total: number
+  // The time entries the line bills (read-only).
+  time_entry_ids: string[]
 }
 
 export interface Payment {
@@ -205,6 +208,7 @@ export interface Invoice {
   project: string | null
   project_name: string | null
   contract: string | null
+  contract_name: string | null
   issue_date: string
   due_date: string | null
   status: string
@@ -491,6 +495,7 @@ export const invoicesApi = {
     api.post<Invoice>(`${base}/invoices/${id}/send_email/`, d),
   pdfUrl: (id: string) => `${base}/invoices/${id}/pdf/`,
   xmlUrl: (id: string) => `${base}/invoices/${id}/xrechnung/`,
+  timeEntries: (id: string) => api.get<TimeEntry[]>(`${base}/invoices/${id}/time-entries/`),
   timeReportUrl: (id: string) => `${base}/invoices/${id}/time-report/`,
   previewUrl: (id: string) => `${base}/invoices/${id}/preview/`,
 }

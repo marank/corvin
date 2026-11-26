@@ -251,6 +251,10 @@
     "generatedInvoice": "Rechnung erstellt"
   },
   "invoices": {
+    "contract": "Vertrag",
+    "sentAt": "Gesendet am",
+    "documents": "Dokumente",
+    "times": "Zeiten",
     "editTitle": "Rechnung {number} bearbeiten",
     "showMore": "Mehr anzeigen",
     "showLess": "Weniger anzeigen",

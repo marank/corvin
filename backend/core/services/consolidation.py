@@ -439,9 +439,8 @@ def create_items(invoice: Invoice, lines: list[EntryLine], extra_lines: list[Lin
         item = InvoiceLineItem.objects.create(
             owner=invoice.owner, invoice=invoice, position=position, **built["line"]
         )
-        TimeEntry.objects.filter(id__in=[e.id for e in built["entries"]]).update(
-            invoice=invoice, invoice_item=item
-        )
+        item.time_entries.add(*built["entries"])
+        invoice.time_entries.add(*built["entries"])
 
     for line in extra_lines or []:
         position += 1

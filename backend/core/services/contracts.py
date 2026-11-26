@@ -113,13 +113,14 @@ def generate_invoice(contract: SupportContract) -> Invoice:
         )
 
     # link covered entries to the generated invoice for traceability
-    TimeEntry.objects.filter(
+    covered = TimeEntry.objects.filter(
         contract=contract,
         start_datetime__date__gte=start,
         start_datetime__date__lt=end,
         end_datetime__isnull=False,
         invoice__isnull=True,
-    ).update(invoice=invoice)
+    )
+    invoice.time_entries.add(*covered)
 
     invoice.recalc_totals()
     return invoice

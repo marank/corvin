@@ -251,6 +251,10 @@
     "generatedInvoice": "Invoice created"
   },
   "invoices": {
+    "contract": "Contract",
+    "sentAt": "Sent on",
+    "documents": "Documents",
+    "times": "Time entries",
     "editTitle": "Edit invoice {number}",
     "showMore": "Show more",
     "showLess": "Show less",

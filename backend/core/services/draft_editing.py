@@ -148,9 +148,7 @@ def update_draft(
         raise ValidationError(_("Invoice has no line items."))
 
     # Contract-covered entries stay linked to their contract's invoice (they are on no line).
-    TimeEntry.objects.filter(invoice=invoice, invoice_item__isnull=False).update(
-        invoice=None, invoice_item=None
-    )
+    invoice.time_entries.filter(invoice_item__isnull=False).update(invoice=None, invoice_item=None)
     invoice.items.all().delete()
 
     company: CompanySettings | None = getattr(owner, "company_settings", None)

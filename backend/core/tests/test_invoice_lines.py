@@ -212,3 +212,26 @@ def test_invoices_without_entries_have_no_time_report(client, customer):
     assert r.json()["has_time_entries"] is False
     listed = client.get("/api/v1/invoices/").json()["results"]
     assert listed[0]["has_time_entries"] is False
+
+
+@pytest.mark.django_db
+def test_lines_say_which_entries_they_bill(client, customer, entries):
+    invoice = _consolidate(client, customer, entry_ids=_ids(*entries), group_by="entry")
+    data = client.get(f"/api/v1/invoices/{invoice.id}/").json()
+    assert [item["time_entry_ids"] for item in data["items"]] == [[i] for i in _ids(*entries)]
+
+    listed = client.get(f"/api/v1/invoices/{invoice.id}/time-entries/").json()
+    assert [e["id"] for e in listed] == _ids(*entries)
+    assert all(e["invoice"] == str(invoice.id) for e in listed)
+
+
+@pytest.mark.django_db
+def test_entries_are_not_linked_through_the_time_api(client, customer, entries):
+    invoice = _consolidate(client, customer, entry_ids=_ids(entries[0]))
+    open_entry = entries[1]
+    r = client.patch(
+        f"/api/v1/time-tracking/{open_entry.id}/", {"invoice": str(invoice.id)}, format="json"
+    )
+    assert r.status_code == 200
+    open_entry.refresh_from_db()
+    assert open_entry.invoice is None

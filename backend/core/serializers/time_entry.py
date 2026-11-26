@@ -98,4 +98,5 @@ class TimeEntrySerializer(OwnedSerializer[TimeEntry]):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["duration_minutes", "created_at", "updated_at"]
+        # Invoicing links entries to invoices (creating or editing one), never this API.
+        read_only_fields = ["duration_minutes", "invoice", "created_at", "updated_at"]

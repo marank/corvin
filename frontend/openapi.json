@@ -4408,6 +4408,147 @@
                 }
             }
         },
+        "/api/v1/invoices/{id}/time-entries/": {
+            "get": {
+                "operationId": "invoices_time_entries_list",
+                "description": "The time entries the invoice bills (its lines say which line bills which).",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "contract",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "customer",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der invoice identifiziert.",
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "issue_date__gte",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "issue_date__lte",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "ordering",
+                        "required": false,
+                        "in": "query",
+                        "description": "Feld, das zum Sortieren der Ergebnisse verwendet werden soll.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "Eine Seitenzahl in der paginierten Ergebnismenge.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Anzahl der pro Seite zurückzugebenden Ergebnisse.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "project",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "receivable",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "open",
+                                "overdue"
+                            ]
+                        },
+                        "description": "* `open` - open\n* `overdue` - overdue"
+                    },
+                    {
+                        "name": "search",
+                        "required": false,
+                        "in": "query",
+                        "description": "Ein Suchbegriff.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "status",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "cancelled",
+                                "draft",
+                                "issued",
+                                "paid",
+                                "sent"
+                            ]
+                        },
+                        "description": "* `draft` - Draft\n* `issued` - Issued\n* `sent` - Sent\n* `paid` - Paid\n* `cancelled` - Cancelled"
+                    }
+                ],
+                "tags": [
+                    "invoices"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedTimeEntryList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/invoices/{id}/time-report/": {
             "get": {
                 "operationId": "invoices_time_report_retrieve",
@@ -9525,6 +9666,14 @@
                         "pattern": "^-?\\d{0,10}(?:\\.\\d{0,2})?$",
                         "readOnly": true
                     },
+                    "time_entry_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "readOnly": true
+                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
@@ -9541,6 +9690,7 @@
                     "description",
                     "id",
                     "invoice",
+                    "time_entry_ids",
                     "total",
                     "unit_price",
                     "updated_at"
@@ -11414,11 +11564,6 @@
                     },
                     "billable": {
                         "type": "boolean"
-                    },
-                    "invoice": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
                     }
                 }
             },
@@ -12269,6 +12414,7 @@
                     "invoice": {
                         "type": "string",
                         "format": "uuid",
+                        "readOnly": true,
                         "nullable": true
                     },
                     "created_at": {
@@ -12290,6 +12436,7 @@
                     "duration_minutes",
                     "hours",
                     "id",
+                    "invoice",
                     "is_paused",
                     "is_running",
                     "project_name",
@@ -12393,11 +12540,6 @@
                     },
                     "billable": {
                         "type": "boolean"
-                    },
-                    "invoice": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
                     }
                 },
                 "required": [

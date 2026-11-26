@@ -800,6 +800,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/{id}/time-entries/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The time entries the invoice bills (its lines say which line bills which). */
+        get: operations["invoices_time_entries_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices/{id}/time-report/": {
         parameters: {
             query?: never;
@@ -1979,6 +1996,7 @@ export interface components {
             unit_price: string;
             /** Format: decimal */
             readonly total: string;
+            readonly time_entry_ids: string[];
             /** Format: date-time */
             readonly created_at: string;
             /** Format: date-time */
@@ -2716,8 +2734,6 @@ export interface components {
             breaks?: components["schemas"]["TimeEntryBreakRequest"][];
             description?: string;
             billable?: boolean;
-            /** Format: uuid */
-            invoice?: string | null;
         };
         /** @description Sets owner from the request and scopes FK fields to the owner. */
         Payment: {
@@ -3028,7 +3044,7 @@ export interface components {
             description?: string;
             billable?: boolean;
             /** Format: uuid */
-            invoice?: string | null;
+            readonly invoice: string | null;
             /** Format: date-time */
             readonly created_at: string;
             /** Format: date-time */
@@ -3072,8 +3088,6 @@ export interface components {
             breaks?: components["schemas"]["TimeEntryBreakRequest"][];
             description?: string;
             billable?: boolean;
-            /** Format: uuid */
-            invoice?: string | null;
         };
         /**
          * @description * `nearest` - Nearest
@@ -5450,6 +5464,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Invoice"];
+                };
+            };
+        };
+    };
+    invoices_time_entries_list: {
+        parameters: {
+            query?: {
+                contract?: string;
+                customer?: string;
+                issue_date__gte?: string;
+                issue_date__lte?: string;
+                /** @description Feld, das zum Sortieren der Ergebnisse verwendet werden soll. */
+                ordering?: string;
+                /** @description Eine Seitenzahl in der paginierten Ergebnismenge. */
+                page?: number;
+                /** @description Anzahl der pro Seite zurückzugebenden Ergebnisse. */
+                page_size?: number;
+                project?: string;
+                /**
+                 * @description * `open` - open
+                 *     * `overdue` - overdue
+                 */
+                receivable?: "open" | "overdue";
+                /** @description Ein Suchbegriff. */
+                search?: string;
+                /**
+                 * @description * `draft` - Draft
+                 *     * `issued` - Issued
+                 *     * `sent` - Sent
+                 *     * `paid` - Paid
+                 *     * `cancelled` - Cancelled
+                 */
+                status?: "cancelled" | "draft" | "issued" | "paid" | "sent";
+            };
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der invoice identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedTimeEntryList"];
                 };
             };
         };
