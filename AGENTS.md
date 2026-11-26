@@ -15,6 +15,12 @@ The `justfile` holds every command (`just` lists them); CI (`.github/workflows/b
 - Dependabot doesn't update these — bump by hand: `TRIVY_IMAGE` (tag + digest) and the PostgreSQL major of the CI service in `.github/workflows/build.yaml` (together with `compose.yml` and `PG_MAJOR` in the `Dockerfile`), `SUPERVISOR_VERSION` in the `Dockerfile`, the actionlint and zizmor versions in the justfile, `rust-just==…` in the workflow.
 - Lint limits are on tangle, never on length: complexity and cognitive complexity ≤ 15, nesting ≤ 4, import layers (`lint-imports` in the backend, `no-restricted-imports` in the frontend). Split by responsibility when one fires; don't silence it.
 
+## Working rules
+
+- The repo is public: no personal or local terms (names, hostnames, paths, internal labels) in code, comments, commits or PRs.
+- Keep UI hints, placeholders and code comments short. No lengthy explanations.
+- Commit only when the user says so.
+
 ## Backend rules
 
 - One Django app, `core`, split into packages: `models/`, `serializers/`, `views/`, `services/`, `tests/` — one file per model/resource, `__init__.py` re-exports explicitly. Don't grow monolithic modules.
