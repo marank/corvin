@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTabQuery } from '../../composables/useTabQuery'
 import { isoDate } from '../../dateTimeInput'
 import { computed, ref } from 'vue'
 import { useLoadFailed } from '../../composables/useLoadFailed'
@@ -160,7 +161,7 @@ const overdue = computed(
 
 // The time entries the invoice bills; the position of the line billing each comes from the
 // lines (contract-covered entries are on none).
-const tab = ref('items')
+const tab = useTabQuery('items', ['items', 'times', 'payments', 'attachments'])
 const timeEntries = ref<TimeEntry[]>([])
 const positions = computed(
   () =>

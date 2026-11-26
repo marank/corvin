@@ -31,6 +31,7 @@ import { templateVariableGroups } from '../../composables/templateVariables'
 import { useConfirmDelete } from '../../composables/useConfirmDelete'
 import { useLoadFailed } from '../../composables/useLoadFailed'
 import { useNotify } from '../../composables/useNotify'
+import { useTabQuery } from '../../composables/useTabQuery'
 import { useUnsavedChanges } from '../../composables/useUnsavedChanges'
 
 // An e-mail template: its HTML, with a base only blocks overriding the base's (prefilled
@@ -48,7 +49,7 @@ const others = ref<MailTemplate[]>([])
 const images = ref<CompanyImage[]>([])
 const textBlocks = ref<TextBlock[]>([])
 const saving = ref(false)
-const section = ref('general')
+const section = useTabQuery('general', ['general', 'html'])
 
 const base = computed(() => others.value.find((other) => other.id === template.value?.base))
 // Bases on offer: any other template (the backend refuses loops).
@@ -144,7 +145,7 @@ function remove() {
   confirmDelete(async () => {
     await mailTemplatesApi.remove(id)
     markSaved()
-    void router.push('/templates')
+    void router.push('/templates?tab=mailTemplates')
   })
 }
 </script>
@@ -152,7 +153,7 @@ function remove() {
 <template>
   <div v-if="template" class="h-full flex flex-col">
     <AppPageHeader
-      back-to="/templates"
+      back-to="/templates?tab=mailTemplates"
       :back-label="t('nav.templates')"
       :title="template.name"
       :subtitle="t('designer.mailTemplate')"
@@ -226,5 +227,10 @@ function remove() {
       </div>
     </div>
   </div>
-  <AppLoadState v-else :failed="loadFailed" back-to="/templates" :back-label="t('nav.templates')" />
+  <AppLoadState
+    v-else
+    :failed="loadFailed"
+    back-to="/templates?tab=mailTemplates"
+    :back-label="t('nav.templates')"
+  />
 </template>

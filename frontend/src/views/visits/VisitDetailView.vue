@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTabQuery } from '../../composables/useTabQuery'
 import { ref } from 'vue'
 import dayjs from 'dayjs'
 import { useFormattingStore } from '../../stores/formatting'
@@ -32,6 +33,7 @@ import { useConfirmDelete } from '../../composables/useConfirmDelete'
 import { tableStateKeys } from '../../tableStateKeys'
 
 const { t } = useI18n()
+const tab = useTabQuery('entries', ['entries', 'attachments'])
 const formatting = useFormattingStore()
 const route = useRoute()
 const router = useRouter()
@@ -116,7 +118,7 @@ async function save() {
         /></AppFormField>
       </div>
 
-      <Tabs value="entries" class="min-w-0 flex-[1_1_28rem]">
+      <Tabs v-model:value="tab" class="min-w-0 flex-[1_1_28rem]">
         <TabList>
           <Tab value="entries">{{ t('time.title') }}</Tab>
           <Tab value="attachments">{{ t('customers.attachments') }}</Tab>

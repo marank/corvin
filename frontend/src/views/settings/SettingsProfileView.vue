@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { useTabQuery } from '../../composables/useTabQuery'
 import AppEnumSelect from '../../components/ui/AppEnumSelect.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useUnsavedChanges } from '../../composables/useUnsavedChanges'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
@@ -54,10 +54,16 @@ interface NumberScheme {
 }
 
 const { t } = useI18n()
-// ?tab=bankAccounts etc. opens a tab directly (e.g. from the invoice IBAN hint).
-const tab = ref(
-  typeof useRoute().query.tab === 'string' ? (useRoute().query.tab as string) : 'company',
-)
+// In the URL (?tab=bankAccounts etc.): links open a tab directly (e.g. the invoice IBAN hint).
+const tab = useTabQuery('company', [
+  'company',
+  'bankAccounts',
+  'contacts',
+  'images',
+  'numbering',
+  'timeTracking',
+  'rates',
+])
 // Bank accounts, contacts and images save in their own dialogs; Save is for the form tabs.
 const formTabs = ['company', 'numbering', 'timeTracking']
 const notify = useNotify()

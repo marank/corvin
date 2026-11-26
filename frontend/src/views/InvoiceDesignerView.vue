@@ -33,6 +33,7 @@ import { ApiError } from '../api/client'
 import { errorText } from '../composables/formErrors'
 import { useNotify } from '../composables/useNotify'
 import { useConfirmDelete } from '../composables/useConfirmDelete'
+import { useTabQuery } from '../composables/useTabQuery'
 import { useUnsavedChanges } from '../composables/useUnsavedChanges'
 import { pageSizeValues } from '../utils/enums'
 
@@ -71,7 +72,7 @@ const colorFields = [
 ] as const
 // Below lg one column at a time (editor or preview); one set of editors serves both layouts.
 const mobileTab = ref('editor')
-const editorSection = ref('general')
+const editorSection = useTabQuery('general', ['general', 'header', 'body', 'footer', 'css'])
 const headerEditor = ref<InstanceType<typeof AppCodeEditor>>()
 const bodyEditor = ref<InstanceType<typeof AppCodeEditor>>()
 const footerEditor = ref<InstanceType<typeof AppCodeEditor>>()
@@ -158,7 +159,7 @@ function remove() {
   confirmDelete(async () => {
     await templatesApi.remove(id)
     markSaved() // nothing left to lose: don't ask about unsaved changes on the way out
-    void router.push('/templates')
+    void router.push('/templates?tab=templates')
   })
 }
 
@@ -184,7 +185,7 @@ async function save() {
 <template>
   <div v-if="template" class="h-full flex flex-col">
     <AppPageHeader
-      back-to="/templates"
+      back-to="/templates?tab=templates"
       :back-label="t('nav.templates')"
       :title="template.name"
       :subtitle="t('designer.title')"
@@ -338,5 +339,10 @@ async function save() {
       </div>
     </div>
   </div>
-  <AppLoadState v-else :failed="loadFailed" back-to="/templates" :back-label="t('nav.templates')" />
+  <AppLoadState
+    v-else
+    :failed="loadFailed"
+    back-to="/templates?tab=templates"
+    :back-label="t('nav.templates')"
+  />
 </template>

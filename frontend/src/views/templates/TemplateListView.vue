@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTabQuery } from '../../composables/useTabQuery'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -38,7 +39,12 @@ const notify = useNotify()
 const confirmDelete = useConfirmDelete()
 const importInput = ref<HTMLInputElement>()
 const textBlockModal = ref<InstanceType<typeof AppModal>>()
-const activeTab = ref('assignments')
+const activeTab = useTabQuery('assignments', [
+  'assignments',
+  'templates',
+  'mailTemplates',
+  'textBlocks',
+])
 const rows = ref<DocumentTemplate[]>([])
 const mailRows = ref<MailTemplate[]>([])
 const mailNames = computed(() => new Map(mailRows.value.map((row) => [row.id, row.name])))

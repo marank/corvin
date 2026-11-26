@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTabQuery } from '../../composables/useTabQuery'
 import { computed, ref } from 'vue'
 import { useLoadFailed } from '../../composables/useLoadFailed'
 import { useI18n } from 'vue-i18n'
@@ -54,7 +55,14 @@ const contacts = ref<Contact[]>([])
 const addresses = ref<Address[]>([])
 const bankAccounts = ref<BankAccount[]>([])
 const saving = ref(false)
-const tab = ref('overview')
+const tab = useTabQuery('overview', [
+  'overview',
+  'details',
+  'contacts',
+  'addresses',
+  'rates',
+  'attachments',
+])
 
 const form = ref<Partial<Customer>>({})
 const { markSaved } = useUnsavedChanges(form)

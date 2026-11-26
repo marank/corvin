@@ -123,6 +123,20 @@ describe('TemplateListView', () => {
     expect(router.currentRoute.value.path).toBe('/templates/mail/mt-9')
   })
 
+  it('keeps the open tab in the URL', async () => {
+    backend()
+    const { router } = await render(TemplateListView, {
+      path: '/templates',
+      url: '/templates?tab=mailTemplates',
+    })
+    expect(activeTab().text()).toContain('Standard-Layout')
+    await click(screen.button(t('designer.textBlocks')))
+    expect(router.currentRoute.value.query).toEqual({ tab: 'textBlocks' })
+    // The first tab is the default: no parameter.
+    await click(screen.button(t('designer.assignments')))
+    expect(router.currentRoute.value.query).toEqual({})
+  })
+
   it('duplicates templates', async () => {
     const api = backend()
     api.post('/document-templates/tpl-2/duplicate/', template({ id: 'tpl-3' }))
@@ -303,6 +317,7 @@ describe('InvoiceDesignerView', () => {
     await open()
     expect(previewFrame().getAttribute('srcdoc')).toBe('<p>Standard</p>')
     expect(previewFrame().getAttribute('sandbox')).toBe('allow-same-origin')
+    expect(screen.button(t('nav.templates')).getAttribute('href')).toBe('/templates?tab=templates')
 
     await type(screen.input(t('designer.templateName')), 'Winter')
     expect(api.requests('POST', '/document-templates/tpl-1/preview/')).toHaveLength(1)
@@ -444,6 +459,10 @@ describe('MailTemplateEditorView', () => {
   it('edits one HTML and previews the unsaved state', async () => {
     const api = backend()
     await open()
+    // Back to the tab it came from.
+    expect(screen.button(t('nav.templates')).getAttribute('href')).toBe(
+      '/templates?tab=mailTemplates',
+    )
     expect(screen.hasButton(t('designer.mailHtml'))).toBe(true)
     expect(screen.hasButton('inhalt')).toBe(false)
     expect(screen.root.querySelector('iframe')!.getAttribute('srcdoc')).toBe(

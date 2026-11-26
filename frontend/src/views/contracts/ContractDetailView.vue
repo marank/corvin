@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTabQuery } from '../../composables/useTabQuery'
 import { ref } from 'vue'
 import { useLoadFailed } from '../../composables/useLoadFailed'
 import { useI18n } from 'vue-i18n'
@@ -49,7 +50,7 @@ const entries = ref<TimeEntry[]>([])
 const invoices = ref<Invoice[]>([])
 const running = ref(false)
 const saving = ref(false)
-const tab = ref('overview')
+const tab = useTabQuery('overview', ['overview', 'details'])
 
 async function load() {
   contract.value = await contractsApi.get(id)

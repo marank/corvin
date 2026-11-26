@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTabQuery } from '../../composables/useTabQuery'
 import AppEnumSelect from '../../components/ui/AppEnumSelect.vue'
 import { ref } from 'vue'
 import { useLoadFailed } from '../../composables/useLoadFailed'
@@ -39,7 +40,7 @@ const project = ref<Project | null>(null)
 const form = ref<Partial<Project>>({})
 const { markSaved } = useUnsavedChanges(form)
 const saving = ref(false)
-const tab = ref('overview')
+const tab = useTabQuery('overview', ['overview', 'details', 'attachments'])
 
 async function load() {
   project.value = await projectsApi.get(id)
