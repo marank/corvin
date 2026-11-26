@@ -80,6 +80,7 @@ const previewUrl = computed(() => `${invoicesApi.previewUrl(id)}?v=${previewVers
 const pdfUrl = computed(() => invoicesApi.pdfUrl(id))
 const xmlUrl = computed(() => invoicesApi.xmlUrl(id))
 const timeReportUrl = computed(() => invoicesApi.timeReportUrl(id))
+const activityReportUrl = computed(() => invoicesApi.activityReportUrl(id))
 // The documents to download, behind "Dokumente" in the header.
 const documentsMenu = ref<InstanceType<typeof Menu>>()
 const documents = computed(() => [
@@ -90,6 +91,12 @@ const documents = computed(() => [
           label: t('invoices.documentTimeReport'),
           icon: 'pi pi-list',
           url: timeReportUrl.value,
+          target: '_blank',
+        },
+        {
+          label: t('invoices.documentActivityReport'),
+          icon: 'pi pi-file-edit',
+          url: activityReportUrl.value,
           target: '_blank',
         },
       ]

@@ -657,6 +657,26 @@ export interface paths {
         patch: operations["invoices_partial_update"];
         trace?: never;
     };
+    "/api/v1/invoices/{id}/activity-report/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description What was done for the hours the invoice bills: each entry's report, as a PDF
+         *     (Tätigkeitsbericht).
+         */
+        get: operations["invoices_activity_report_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices/{id}/cancel/": {
         parameters: {
             query?: never;
@@ -5508,6 +5528,28 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["PatchedInvoiceRequest"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+        };
+    };
+    invoices_activity_report_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der invoice identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

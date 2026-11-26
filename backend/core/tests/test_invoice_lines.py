@@ -203,6 +203,37 @@ def test_time_report_context_sums_per_line(user, customer, entries):
 
 
 @pytest.mark.django_db
+def test_activity_report_prints_each_entry_s_report(client, customer, entries):
+    invoice = _consolidate(client, customer, entry_ids=_ids(*entries))
+    r = client.get(f"/api/v1/invoices/{invoice.id}/activity-report/")
+    assert r.status_code == 200
+    assert r["Content-Type"] == "application/pdf"
+    assert f"{invoice.number}.pdf" in r["Content-Disposition"]
+    assert r.content.startswith(b"%PDF")
+
+
+@pytest.mark.django_db
+def test_activity_report_renders_markdown_and_escapes_html(user, customer, entries):
+    from core.services.activity_report import activity_report_context
+    from core.services.consolidation import consolidate
+
+    first, second = entries
+    first.description = "Serverraum"
+    first.report = "## USV\n\n- **Batterien** geprüft <script>alert(1)</script>"
+    first.save()
+    invoice = consolidate(owner=user, customer=customer, group_by="project")
+    [line] = activity_report_context(invoice)["lines"]
+    with_report, without = line["entries"]
+    assert with_report["description"] == "Serverraum"
+    html = str(with_report["report_html"])
+    assert "<h2>USV</h2>" in html
+    assert "<strong>Batterien</strong>" in html
+    assert "&lt;script&gt;" in html
+    assert "<script>" not in html
+    assert without["report_html"] == ""
+
+
+@pytest.mark.django_db
 def test_invoices_without_entries_have_no_time_report(client, customer):
     r = client.post(
         "/api/v1/invoices/",

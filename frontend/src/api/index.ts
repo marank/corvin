@@ -516,6 +516,7 @@ export const invoicesApi = {
   mail: (id: string, mailId: string) =>
     api.get<InvoiceMail & { html: string }>(`${base}/invoices/${id}/mails/${mailId}/`),
   timeReportUrl: (id: string) => `${base}/invoices/${id}/time-report/`,
+  activityReportUrl: (id: string) => `${base}/invoices/${id}/activity-report/`,
   previewUrl: (id: string) => `${base}/invoices/${id}/preview/`,
 }
 

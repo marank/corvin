@@ -103,7 +103,8 @@
   "markdown": {
     "write": "Schreiben",
     "preview": "Vorschau",
-    "hint": "Markdown: **fett**, *kursiv*, - Liste, ## Überschrift, [Link](https://…)",
+    "hint": "Markdown",
+    "examples": "**fett**, *kursiv*, - Liste, ## Überschrift, [Link](https://…)",
     "empty": "Noch nichts geschrieben."
   },
   "table": {
@@ -220,7 +221,7 @@
     "editEntry": "Zeiteintrag bearbeiten",
     "timerRunning": "Timer läuft",
     "report": "Bericht",
-    "descriptionPlaceholder": "Kurzform – leer gelassen: die erste Zeile des Berichts",
+    "descriptionPlaceholder": "Leer = erste Berichtszeile",
     "hasReport": "Mit Bericht",
     "invoiced": "Abgerechnet",
     "time": "Zeit",
@@ -284,6 +285,7 @@
     "reminderQueued": "Zahlungserinnerung wird versendet.",
     "documentPdf": "Rechnung (PDF)",
     "documentTimeReport": "Leistungsnachweis (PDF)",
+    "documentActivityReport": "Tätigkeitsbericht (PDF)",
     "documentXml": "E-Rechnung (XRechnung-XML)",
     "contract": "Vertrag",
     "sentAt": "Gesendet am",

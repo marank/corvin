@@ -3948,6 +3948,44 @@
                 }
             }
         },
+        "/api/v1/invoices/{id}/activity-report/": {
+            "get": {
+                "operationId": "invoices_activity_report_retrieve",
+                "description": "What was done for the hours the invoice bills: each entry's report, as a PDF\n(Tätigkeitsbericht).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der invoice identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "invoices"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Invoice"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/invoices/{id}/cancel/": {
             "post": {
                 "operationId": "invoices_cancel_create",

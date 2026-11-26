@@ -43,7 +43,7 @@ void markdownRenderer()
       </button>
       <span
         class="ml-auto min-w-0 truncate pr-2 text-xs text-surface-500 hidden sm:inline"
-        :title="t('markdown.hint')"
+        :title="t('markdown.examples')"
         >{{ t('markdown.hint') }}</span
       >
     </div>

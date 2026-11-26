@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Corvin\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-26 13:12+0100\n"
+"POT-Creation-Date: 2026-11-26 23:18+0100\n"
 "PO-Revision-Date: 2026-11-03 01:10+0100\n"
 "Last-Translator: Corvin\n"
 "Language-Team: German\n"
@@ -94,6 +94,17 @@ msgstr "Schriftnamen dürfen weder ; { } < > noch Backslashes enthalten."
 msgid "All contacts must belong to the invoice customer."
 msgstr "Alle Kontakte müssen zum Kunden der Rechnung gehören."
 
+msgid "Activity report"
+msgstr "Tätigkeitsbericht"
+
+msgctxt "time report"
+msgid "Item"
+msgstr "Pos."
+
+msgctxt "time report"
+msgid "Total"
+msgstr "Gesamt"
+
 #, python-format
 msgid "No hourly rate found for %(customer)s on %(date)s."
 msgstr "Für %(customer)s ist am %(date)s kein Stundensatz hinterlegt."
@@ -136,7 +147,6 @@ msgstr "Diese Nummer ist bereits vergeben."
 
 msgid "Some time entries are not open (any more)."
 msgstr "Einige Zeiten sind nicht (mehr) offen."
-"Eine Position rechnet Zeiten ab, die nicht offen sind oder doppelt vorkommen."
 
 msgid "As per the attached invoice"
 msgstr "Laut beigefügter Rechnung"
@@ -172,11 +182,11 @@ msgstr "Beratung"
 msgid "On-site support"
 msgstr "Vor-Ort-Einsatz"
 
-msgid "Time report"
-msgstr "Leistungsnachweis"
-
 msgid "Invoice"
 msgstr "Rechnung"
+
+msgid "Time report"
+msgstr "Leistungsnachweis"
 
 msgctxt "time report"
 msgid "Date"
@@ -197,14 +207,6 @@ msgstr "Beschreibung"
 msgctxt "time report"
 msgid "Duration"
 msgstr "Dauer"
-
-msgctxt "time report"
-msgid "Item"
-msgstr "Pos."
-
-msgctxt "time report"
-msgid "Total"
-msgstr "Gesamt"
 
 msgid "Invalid credentials."
 msgstr "Benutzername oder Passwort ist falsch."

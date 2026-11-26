@@ -103,7 +103,8 @@
   "markdown": {
     "write": "Write",
     "preview": "Preview",
-    "hint": "Markdown: **bold**, *italic*, - list, ## heading, [link](https://…)",
+    "hint": "Markdown",
+    "examples": "**bold**, *italic*, - list, ## heading, [link](https://…)",
     "empty": "Nothing written yet."
   },
   "table": {
@@ -220,7 +221,7 @@
     "editEntry": "Edit time entry",
     "timerRunning": "Timer running",
     "report": "Report",
-    "descriptionPlaceholder": "Short form – left empty: the first line of the report",
+    "descriptionPlaceholder": "Empty = first line of the report",
     "hasReport": "Has a report",
     "invoiced": "Invoiced",
     "time": "Time",
@@ -280,6 +281,7 @@
     "reminderQueued": "The payment reminder is being sent.",
     "documentPdf": "Invoice (PDF)",
     "documentTimeReport": "Time report (PDF)",
+    "documentActivityReport": "Activity report (PDF)",
     "documentXml": "E-invoice (XRechnung XML)",
     "contract": "Contract",
     "sentAt": "Sent on",

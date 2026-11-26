@@ -28,6 +28,7 @@ from core.serializers import (
     InvoiceSerializer,
     TimeEntrySerializer,
 )
+from core.services.activity_report import render_activity_report_pdf
 from core.services.archiving import archive_invoice
 from core.services.consolidation import consolidate, header_defaults, preview
 from core.services.draft_editing import draft_state, update_draft
@@ -525,6 +526,18 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
         filename = f"{_('Time report')} {invoice.number}.pdf"
         return HttpResponse(
             render_time_report_pdf(invoice),
+            content_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    @action(detail=True, methods=["get"], url_path="activity-report")
+    def activity_report(self, request: Request, pk: str | None = None) -> HttpResponse:
+        """What was done for the hours the invoice bills: each entry's report, as a PDF
+        (Tätigkeitsbericht)."""
+        invoice = self.get_object()
+        filename = f"{_('Activity report')} {invoice.number}.pdf"
+        return HttpResponse(
+            render_activity_report_pdf(invoice),
             content_type="application/pdf",
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )

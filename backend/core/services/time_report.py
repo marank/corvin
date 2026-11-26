@@ -18,16 +18,21 @@ from core.models import Invoice
 
 from .pdf import write_pdf
 
-REPORT_TEMPLATE = """<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
+# Page, type and title shared with the activity report (activity_report.py).
+BASE_STYLE = """
 @page { size: A4; margin: 18mm 15mm 18mm 20mm;
   @bottom-right { content: counter(page) " / " counter(pages); font-size: 8pt; color: #777; } }
 body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #161616; }
 h1 { font-size: 16pt; margin: 0 0 1mm; }
 .meta { color: #555; margin-bottom: 6mm; }
+"""
+
+REPORT_TEMPLATE = """<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+{{ base_style|safe }}
 table { width: 100%; border-collapse: collapse; }
 th { text-align: left; font-weight: 600; border-bottom: 0.4mm solid #161616; padding: 1.5mm 1mm; }
 td { padding: 1.2mm 1mm; border-bottom: 0.2mm solid #e5e5e5; vertical-align: top; }
@@ -69,7 +74,7 @@ thead { display: table-header-group; }
 </html>"""
 
 
-def _hours(minutes: int) -> str:
+def hours(minutes: int) -> str:
     return f"{minutes // 60}:{minutes % 60:02d} h"
 
 
@@ -87,7 +92,7 @@ def time_report_context(invoice: Invoice) -> dict[str, Any]:
             {
                 "position": item.position,
                 "description": item.description,
-                "duration": _hours(minutes),
+                "duration": hours(minutes),
                 "entries": [
                     {
                         "date": timezone.localdate(e.start_datetime),
@@ -95,25 +100,34 @@ def time_report_context(invoice: Invoice) -> dict[str, Any]:
                         "end": timezone.localtime(e.end_datetime) if e.end_datetime else None,
                         "project": e.project.name if e.project else "",
                         "description": e.description,
-                        "duration": _hours(e.duration_minutes),
+                        "report": e.report,
+                        "duration": hours(e.duration_minutes),
                     }
                     for e in entries
                 ],
             }
         )
-    return {"lines": lines, "total": _hours(total)}
+    return {"lines": lines, "total": hours(total)}
+
+
+def report_header(invoice: Invoice, title: str) -> dict[str, Any]:
+    """What both reports show above their entries: title, invoice and customer."""
+    return {
+        **time_report_context(invoice),
+        "base_style": BASE_STYLE,
+        "invoice": invoice,
+        "customer": invoice.customer,
+        "company": getattr(invoice.owner, "company_settings", None),
+        "title": title,
+        "invoice_label": _("Invoice"),
+    }
 
 
 def render_time_report_pdf(invoice: Invoice) -> bytes:
     with override(settings.LANGUAGE_CODE):
         context = Context(
             {
-                **time_report_context(invoice),
-                "invoice": invoice,
-                "customer": invoice.customer,
-                "company": getattr(invoice.owner, "company_settings", None),
-                "title": _("Time report"),
-                "invoice_label": _("Invoice"),
+                **report_header(invoice, _("Time report")),
                 "labels": {
                     "date": pgettext("time report", "Date"),
                     "time": pgettext("time report", "Time"),
