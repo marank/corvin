@@ -109,6 +109,8 @@ describe('VisitDetailView', () => {
     file: 'report.pdf',
     url: '/api/v1/attachments/att-1/file/',
     name: 'report.pdf',
+    size: 4,
+    preview: null,
     uploaded_at: '2026-11-20T12:00:00+01:00',
     content_type: 4,
     object_id: 'vis-1',
@@ -236,6 +238,38 @@ describe('VisitDetailView', () => {
     await click(activeTab('last').button(t('common.delete')))
     await answerConfirm(t('common.delete'))
     expect(activeTab('last').text()).toContain(t('common.empty'))
+  })
+
+  it('previews Markdown and text attachments in place, raw HTML escaped', async () => {
+    const { api } = backend([
+      attachment({ id: 'att-1', name: 'notes.md', preview: 'markdown' }),
+      attachment({
+        id: 'att-2',
+        url: '/api/v1/attachments/att-2/file/',
+        name: 'log.txt',
+        preview: 'text',
+      }),
+    ])
+    api.get('/attachments/att-1/file/', new Blob(['# Befund\n\n<img src=x onerror=alert(1)>']))
+    api.get('/attachments/att-2/file/', new Blob([new Uint8Array([0x47, 0x72, 0xfc, 0xdf, 0x65])]))
+    await open()
+    await click(screen.button(t('customers.attachments')))
+
+    await click(activeTab('last').button('notes.md'))
+    await settle()
+    const md = dialog('notes.md')
+    expect(md.root.querySelector('h1')?.textContent).toBe('Befund')
+    expect(md.root.querySelector('img')).toBeNull()
+    expect(md.text()).toContain('<img src=x onerror=alert(1)>')
+    expect(md.button(t('common.download')).getAttribute('href')).toBe(
+      '/api/v1/attachments/att-1/file/',
+    )
+    await click(md.button(t('common.close')))
+
+    await click(activeTab('last').button('log.txt'))
+    await settle()
+    // Not UTF-8: read as Windows-1252.
+    expect(dialog('log.txt').root.querySelector('pre')?.textContent).toBe('Grüße')
   })
 
   it('reports a failed upload', async () => {

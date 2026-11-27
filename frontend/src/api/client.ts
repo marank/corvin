@@ -34,7 +34,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data as T
 }
 
-// Binary responses (PDF previews) as a Blob, with the same headers and error handling.
+// Binary responses (PDF previews, attachments) as a Blob, with the same headers and error handling.
 async function requestBlob(path: string, options: RequestInit = {}): Promise<Blob> {
   const res = await fetch(path, {
     credentials: 'same-origin',
@@ -57,6 +57,7 @@ async function requestBlob(path: string, options: RequestInit = {}): Promise<Blo
 
 export const api = {
   get: <T>(path: string) => request<T>(path),
+  getBlob: (path: string) => requestBlob(path),
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'POST', body: JSON.stringify(body ?? {}) }),
   postBlob: (path: string, body?: unknown) =>

@@ -8990,6 +8990,20 @@
                         "type": "string",
                         "readOnly": true
                     },
+                    "size": {
+                        "type": "integer",
+                        "nullable": true,
+                        "readOnly": true
+                    },
+                    "preview": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/PreviewEnum"
+                            }
+                        ],
+                        "nullable": true,
+                        "readOnly": true
+                    },
                     "uploaded_at": {
                         "type": "string",
                         "format": "date-time",
@@ -9009,6 +9023,8 @@
                     "id",
                     "name",
                     "object_id",
+                    "preview",
+                    "size",
                     "uploaded_at",
                     "url"
                 ]
@@ -13479,6 +13495,15 @@
                 ],
                 "type": "string",
                 "description": "* `monthly` - Monthly\n* `quarterly` - Quarterly\n* `yearly` - Yearly"
+            },
+            "PreviewEnum": {
+                "enum": [
+                    "markdown",
+                    "text",
+                    "image",
+                    "pdf"
+                ],
+                "type": "string"
             },
             "PreviewLine": {
                 "type": "object",

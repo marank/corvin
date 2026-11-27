@@ -1694,6 +1694,8 @@ export interface components {
             file: string;
             readonly url: string;
             readonly name: string;
+            readonly size: number | null;
+            readonly preview: components["schemas"]["PreviewEnum"] | null;
             /** Format: date-time */
             readonly uploaded_at: string;
             content_type: number;
@@ -3210,6 +3212,8 @@ export interface components {
          * @enum {string}
          */
         PeriodEnum: "monthly" | "quarterly" | "yearly";
+        /** @enum {string} */
+        PreviewEnum: "markdown" | "text" | "image" | "pdf";
         PreviewLine: {
             description: string;
             /**

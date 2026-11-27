@@ -8,6 +8,7 @@ import { useConfirmDelete } from '../composables/useConfirmDelete'
 import AppEmptyState from './ui/AppEmptyState.vue'
 import AppIconButton from './ui/AppIconButton.vue'
 import AppDateTimeDisplay from './ui/AppDateTimeDisplay.vue'
+import AttachmentPreview from './AttachmentPreview.vue'
 
 const props = defineProps<{ model: string; objectId: string }>()
 const { t } = useI18n()
@@ -16,6 +17,7 @@ const confirmDelete = useConfirmDelete()
 const items = ref<Attachment[]>([])
 const contentType = ref<number | null>(null)
 const uploading = ref(false)
+const preview = ref<InstanceType<typeof AttachmentPreview>>()
 
 async function load() {
   try {
@@ -71,7 +73,15 @@ function remove(a: Attachment) {
     <ul v-else class="mt-3 divide-y divide-surface-200 dark:divide-surface-800">
       <li v-for="a in items" :key="a.id" class="flex items-center gap-3 py-2">
         <i class="pi pi-paperclip" />
-        <a :href="a.url" target="_blank" class="text-sm text-primary truncate flex-1">{{
+        <button
+          v-if="a.preview"
+          type="button"
+          class="text-sm text-primary truncate flex-1 text-left cursor-pointer"
+          @click="preview?.open(a)"
+        >
+          {{ a.name }}
+        </button>
+        <a v-else :href="a.url" :download="a.name" class="text-sm text-primary truncate flex-1">{{
           a.name
         }}</a>
         <AppDateTimeDisplay
@@ -82,5 +92,6 @@ function remove(a: Attachment) {
         <AppIconButton icon="pi pi-trash" severity="danger" @click="remove(a)" />
       </li>
     </ul>
+    <AttachmentPreview ref="preview" />
   </div>
 </template>

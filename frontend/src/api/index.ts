@@ -304,6 +304,8 @@ export interface Attachment {
   file: string
   url: string
   name: string
+  size: number | null
+  preview: 'markdown' | 'text' | 'image' | 'pdf' | null
   uploaded_at: string
   content_type: number
   object_id: string
@@ -669,6 +671,7 @@ export const attachmentsApi = {
     return api.upload<Attachment>(`${base}/attachments/`, form)
   },
   remove: (id: string) => api.delete(`${base}/attachments/${id}/`),
+  content: (a: Attachment) => api.getBlob(a.url),
 }
 
 export const companyContactsApi = {

@@ -112,3 +112,42 @@ def test_throttle_uses_last_forwarded_address(user):
         APIClient().get("/api/v1/health", HTTP_X_FORWARDED_FOR="6.6.6.6, 203.0.113.7").wsgi_request
     )
     assert LoginThrottle().get_ident(Request(request)) == "203.0.113.7"
+
+
+@pytest.mark.django_db
+def test_attachment_preview_only_for_safe_types(user, customer):
+    attach(user, customer, "notes.MD", b"# Hi")
+    attach(user, customer, "log.txt", b"line")
+    attach(user, customer, "scan.png", b"png")
+    attach(user, customer, "page.html", b"<script></script>")
+    attach(user, customer, "image.svg", b"<svg/>")
+
+    results = client_for(user).get("/api/v1/attachments/").json()["results"]
+
+    previews = {a["name"]: a["preview"] for a in results}
+    assert previews == {
+        "notes.MD": "markdown",
+        "log.txt": "text",
+        "scan.png": "image",
+        "page.html": None,
+        "image.svg": None,
+    }
+    assert {a["name"]: a["size"] for a in results}["notes.MD"] == 4
+
+
+@pytest.mark.django_db
+def test_large_text_attachment_has_no_preview():
+    from core.services.file_preview import TEXT_PREVIEW_LIMIT, preview_kind
+
+    assert preview_kind("big.txt", TEXT_PREVIEW_LIMIT + 1) is None
+    assert preview_kind("big.pdf", TEXT_PREVIEW_LIMIT + 1) == "pdf"
+    assert preview_kind("README", 10) is None
+
+
+@pytest.mark.django_db
+def test_attachment_with_missing_file_has_no_preview(user, customer):
+    attachment = attach(user, customer, "notes.md", b"# Hi")
+    attachment.file.storage.delete(attachment.file.name)
+
+    [listed] = client_for(user).get("/api/v1/attachments/").json()["results"]
+    assert (listed["size"], listed["preview"]) == (None, None)
