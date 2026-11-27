@@ -133,6 +133,10 @@ body {
   .app-data-table th[data-col-key]:hover::after {
     border-right-color: var(--p-surface-300);
   }
+  /* Fitted to width, the last content column's right edge is the table's own. */
+  .app-table-fit th[data-col-key]:not(:has(+ th[data-col-key]))::after {
+    display: none;
+  }
   .app-col-resizing .app-data-table th[data-col-key]::after {
     border-right-color: var(--p-primary-color);
   }

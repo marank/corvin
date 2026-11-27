@@ -116,6 +116,8 @@
     "comfortable": "More spacing",
     "compact": "Compact",
     "columns": "Columns",
+    "fitWidth": "Fit to width",
+    "freeWidth": "Free column widths",
     "resetColumns": "Restore defaults"
   },
   "customers": {

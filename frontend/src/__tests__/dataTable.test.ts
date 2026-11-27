@@ -155,22 +155,76 @@ describe('AppDataTable', () => {
       expect(chooserBox('Name').disabled).toBe(true)
     })
 
-    it('resizes a column by dragging its header edge, without sorting it', async () => {
+    const mouse = (type: string, target: EventTarget, clientX: number) =>
+      target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX }))
+    const header = (key: string, right: number, width: number) => {
+      const th = screen.root.querySelector<HTMLElement>(`th[data-col-key="${key}"]`)!
+      th.getBoundingClientRect = () => ({ right, width }) as DOMRect
+      return th
+    }
+    const drag = (th: HTMLElement, from: number, to: number) => {
+      mouse('mousedown', th, from)
+      mouse('mousemove', document, to)
+      mouse('mouseup', document, to)
+    }
+
+    it('resizes only the dragged column, pinning the others, without sorting', async () => {
       await render(Host, { props: { stateKey: 'people' } })
-      const th = screen.root.querySelector<HTMLElement>('th[data-col-key="hours"]')!
-      th.getBoundingClientRect = () => ({ right: 300, width: 100 }) as DOMRect
-      const mouse = (type: string, target: EventTarget, clientX: number) =>
-        target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX }))
-      mouse('mousedown', th, 297)
-      mouse('mousemove', document, 347)
-      mouse('mouseup', document, 347)
+      header('name', 200, 128)
+      const th = header('hours', 300, 100)
+      header('city.name', 500, 200)
+      drag(th, 297, 347)
       await click(th)
       expect(th.style.width).toBe('150px')
-      expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({ hours: 150 })
+      expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({
+        name: 128,
+        hours: 150,
+        'city.name': 200,
+      })
       expect(names()).toEqual(['Bravo', 'Alpha', 'Charlie 10', 'Charlie 9'])
       th.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, clientX: 299 }))
       await click(document.body)
-      expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({})
+      expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({
+        name: 128,
+        'city.name': 200,
+      })
+    })
+
+    describe('fitted to width', () => {
+      const fit = async () => click(screen.button(t('table.fitWidth')))
+
+      it('trades width between the two columns at the dragged edge', async () => {
+        await render(Host, { props: { stateKey: 'people' } })
+        await fit()
+        const th = header('name', 200, 128)
+        header('hours', 312, 112)
+        drag(th, 198, 298)
+        await click(document.body)
+        // Hours gives up what Name gains, but no more than down to 48px.
+        expect(JSON.parse(localStorage.getItem('people:columns')!)).toEqual({
+          widths: { name: 192, hours: 48 },
+          visible: {},
+          fit: true,
+        })
+      })
+
+      it("has no handle on the last content column's right edge", async () => {
+        await render(Host, { props: { stateKey: 'people' } })
+        await fit()
+        drag(header('city.name', 500, 200), 498, 400)
+        await click(document.body)
+        expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({})
+      })
+
+      it('drops the widths dragged in the other mode', async () => {
+        await render(Host, { props: { stateKey: 'people' } })
+        header('name', 200, 128)
+        drag(header('hours', 300, 100), 297, 347)
+        await click(document.body)
+        expect(JSON.parse(localStorage.getItem('people:columns')!).widths).not.toEqual({})
+        await fit()
+        expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({})
+      })
     })
   })
 

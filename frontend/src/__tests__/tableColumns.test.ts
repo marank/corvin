@@ -30,6 +30,19 @@ describe('readColumns', () => {
     ])
   })
 
+  it('reads optional columns and a minimum width for free text', () => {
+    const [note, date] = readColumns([
+      h(Column, { field: 'note', class: 'app-text', headerStyle: 'min-width: 11rem' }),
+      h(Column, { field: 'date', class: 'app-optional', headerStyle: 'width: 8rem' }),
+    ])
+    expect([note!.minWidth, note!.defaultWidth, note!.optional]).toEqual([
+      '11rem',
+      undefined,
+      false,
+    ])
+    expect([date!.minWidth, date!.defaultWidth, date!.optional]).toEqual([undefined, '8rem', true])
+  })
+
   it('takes `hidden` as hidden by default', () => {
     const [column] = readColumns([h(Column, { field: 'x', hidden: '' } as never)])
     expect(column!.defaultHidden).toBe(true)
@@ -56,11 +69,25 @@ describe('layoutColumns', () => {
     expect(layout.minWidth).toBe(96 + 128 + 128 + 112 + 56)
   })
 
-  it("keeps the user's widths, and lets the last column fill once all text is sized", () => {
-    const prefs = { widths: { note: 300, customer: 250 }, visible: {} }
+  it("keeps the user's widths once set: nothing fills, the table is their sum", () => {
+    const prefs = { widths: { note: 300 }, visible: {} }
     const layout = layoutColumns(columns, prefs, 500, REM)
-    expect(widths(layout)).toMatchObject({ customer: 250, note: 300, total: undefined })
-    expect(layout.minWidth).toBe(96 + 250 + 300 + 128 + 56)
+    expect(widths(layout)).toEqual({
+      number: 96,
+      customer: 192,
+      note: 300,
+      total: 112,
+      'col-4': 56,
+    })
+    expect(layout.width).toBe(96 + 192 + 300 + 112 + 56)
+    expect(layout.minWidth).toBe(layout.width)
+  })
+
+  it('keeps free text at its own minimum', () => {
+    const [note] = readColumns([
+      h(Column, { field: 'note', class: 'app-text', headerStyle: 'min-width: 11rem' }),
+    ])
+    expect(layoutColumns([note!], noPrefs, 100, REM).minWidth).toBe(176)
   })
 
   it('reads rem and px', () => {

@@ -9,6 +9,7 @@ import {
   watch,
   type VNode,
 } from 'vue'
+import { ArrowRightFromLine, Columns3Cog, Rows3, Rows4, UnfoldHorizontal } from '@lucide/vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import DataTable, {
@@ -21,7 +22,9 @@ import Popover from 'primevue/popover'
 import Select from 'primevue/select'
 import AppEmptyState from './AppEmptyState.vue'
 import {
+  MIN_WIDTH_PX,
   layoutColumns,
+  leastWidth,
   readColumns,
   useColumnPrefs,
   useColumnResize,
@@ -51,6 +54,7 @@ const props = withDefaults(
     stateKey?: string
     // Rows sharing this field's value get a #groupheader row (rows must be sorted by it).
     groupField?: string
+    emptyMessage?: string
   }>(),
   {
     loading: false,
@@ -65,6 +69,7 @@ const props = withDefaults(
     sortOptions: () => [],
     stateKey: undefined,
     groupField: undefined,
+    emptyMessage: undefined,
   },
 )
 const emit = defineEmits<{
@@ -82,8 +87,10 @@ const isDesktop = ref(desktopQuery.matches)
 const density = useTableDensity()
 const columnPrefs = useColumnPrefs(props.stateKey)
 const root = ref<HTMLElement>()
-useColumnResize(root, columnPrefs.setWidth)
 const chooser = ref<InstanceType<typeof Popover>>()
+const fitted = computed(() => !!columnPrefs.prefs.value.fit)
+// The toolbar's icons: one size and stroke, never squeezed by the button.
+const toolIcon = { size: 16, strokeWidth: 1.75, class: 'shrink-0' }
 const onMediaChange = (e: MediaQueryListEvent) => {
   isDesktop.value = e.matches
 }
@@ -95,24 +102,43 @@ const slots = useSlots()
 // The view's <Column>s (see tableColumns.ts): which are shown, and how wide.
 const columns = computed(() => readColumns(slots.default?.()))
 const choosable = computed(() => columns.value.filter((column) => !column.utility))
-const visibleColumns = computed(() => columns.value.filter(columnPrefs.isVisible))
 // Measured so free-text columns can give way before the table has to scroll.
 const available = ref(Number.POSITIVE_INFINITY)
 const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
-const layout = computed(() =>
-  layoutColumns(
-    visibleColumns.value,
-    columnPrefs.prefs.value,
-    // The table's border.
-    available.value - 2,
-    remPx,
-  ),
-)
+// The table's border.
+const layoutOf = (shown: TableColumn[]) =>
+  layoutColumns(shown, columnPrefs.prefs.value, available.value - 2, remPx)
+// Optional columns the user left alone drop out when the row is too narrow for all (as long
+// as the table fits its row; once sized by the user, it scrolls instead).
+const visibleColumns = computed(() => {
+  const chosen = columns.value.filter(columnPrefs.isVisible)
+  const all = layoutOf(chosen)
+  if (all.width !== undefined || all.minWidth <= available.value - 2) return chosen
+  return chosen.filter(
+    (column) => !column.optional || columnPrefs.prefs.value.visible[column.key] !== undefined,
+  )
+})
+const isShown = (column: TableColumn) => visibleColumns.value.includes(column)
+const layout = computed(() => layoutOf(visibleColumns.value))
+useColumnResize(root, columnPrefs.setWidth, {
+  fit: () => !!columnPrefs.prefs.value.fit,
+  leastOf: (key) => {
+    const column = columns.value.find((c) => c.key === key)
+    return column ? leastWidth(column, remPx) : MIN_WIDTH_PX
+  },
+  pin: () =>
+    columns.value
+      .filter((column) => column.optional && !isShown(column))
+      .forEach((column) => columnPrefs.setVisible(column, false)),
+})
 function headerStyle(column: TableColumn) {
   const px = layout.value.widths.get(column.key)
   return px === undefined ? undefined : { width: `${px}px` }
 }
-const tableStyle = computed(() => ({ minWidth: `${layout.value.minWidth}px` }))
+const tableStyle = computed(() => ({
+  minWidth: `${layout.value.minWidth}px`,
+  ...(layout.value.width === undefined ? {} : { width: `${layout.value.width}px` }),
+}))
 // jsdom (tests) has no ResizeObserver.
 const observer =
   typeof ResizeObserver === 'function'
@@ -124,7 +150,7 @@ onUnmounted(() => observer?.disconnect())
 function columnBindings(column: TableColumn) {
   return {
     columnKey: column.key,
-    hidden: !columnPrefs.isVisible(column),
+    hidden: !isShown(column),
     // Both spellings: the view's `header-style` would otherwise win over ours.
     headerStyle: headerStyle(column),
     'header-style': headerStyle(column),
@@ -303,7 +329,6 @@ function toggleSortOrder() {
       <div class="flex-1 min-w-0"><slot name="toolbar" /></div>
       <Button
         v-if="isDesktop && choosable.length > 1"
-        icon="pi pi-sliders-h"
         size="small"
         text
         severity="secondary"
@@ -311,7 +336,8 @@ function toggleSortOrder() {
         :title="t('table.columns')"
         aria-haspopup="true"
         @click="chooser?.toggle($event)"
-      />
+        ><template #icon><Columns3Cog v-bind="toolIcon" /></template
+      ></Button>
       <Popover ref="chooser">
         <div class="flex flex-col gap-1 min-w-48 max-h-96 overflow-y-auto">
           <div class="text-xs font-semibold text-surface-500 mb-1">{{ t('table.columns') }}</div>
@@ -321,9 +347,9 @@ function toggleSortOrder() {
             class="flex items-center gap-2 text-sm py-0.5 cursor-pointer"
           >
             <Checkbox
-              :model-value="columnPrefs.isVisible(column)"
+              :model-value="isShown(column)"
               binary
-              :disabled="columnPrefs.isVisible(column) && !canHide(column)"
+              :disabled="isShown(column) && !canHide(column)"
               @update:model-value="(on: boolean) => columnPrefs.setVisible(column, on)"
             />
             {{ column.header }}
@@ -340,16 +366,35 @@ function toggleSortOrder() {
           />
         </div>
       </Popover>
+      <!-- Layout switches: icon and label name what a click switches to. -->
       <Button
         v-if="isDesktop"
-        :icon="density === 'compact' ? 'pi pi-expand' : 'pi pi-compress'"
+        size="small"
+        text
+        severity="secondary"
+        :aria-label="fitted ? t('table.freeWidth') : t('table.fitWidth')"
+        :title="fitted ? t('table.freeWidth') : t('table.fitWidth')"
+        @click="columnPrefs.setFit(!fitted, columns)"
+      >
+        <template #icon
+          ><ArrowRightFromLine v-if="fitted" v-bind="toolIcon" /><UnfoldHorizontal
+            v-else
+            v-bind="toolIcon"
+        /></template>
+      </Button>
+      <Button
+        v-if="isDesktop"
         size="small"
         text
         severity="secondary"
         :aria-label="density === 'compact' ? t('table.comfortable') : t('table.compact')"
         :title="density === 'compact' ? t('table.comfortable') : t('table.compact')"
         @click="density = density === 'compact' ? 'comfortable' : 'compact'"
-      />
+      >
+        <template #icon
+          ><Rows3 v-if="density === 'compact'" v-bind="toolIcon" /><Rows4 v-else v-bind="toolIcon"
+        /></template>
+      </Button>
     </div>
 
     <DataTable
@@ -373,7 +418,10 @@ function toggleSortOrder() {
       paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
       :current-page-report-template="t('table.pageReport')"
       class="app-data-table border border-surface-200 dark:border-surface-800"
-      :class="{ 'app-table-comfortable': density === 'comfortable' }"
+      :class="{
+        'app-table-comfortable': density === 'comfortable',
+        'app-table-fit': columnPrefs.prefs.value.fit,
+      }"
       :row-class="() => (hasRowClickListener ? 'cursor-pointer' : '')"
       :row-group-mode="groupField ? 'subheader' : undefined"
       :group-rows-by="groupField"
@@ -383,7 +431,7 @@ function toggleSortOrder() {
       @sort="handleSort"
       @state-restore="handleStateRestore"
     >
-      <template #empty><AppEmptyState :message="t('common.empty')" /></template>
+      <template #empty><AppEmptyState :message="emptyMessage ?? t('common.empty')" /></template>
       <template v-if="groupField" #groupheader="{ data }"
         ><slot name="groupheader" :data="data"
       /></template>
@@ -416,7 +464,10 @@ function toggleSortOrder() {
         />
       </div>
       <div class="flex flex-col gap-1.5">
-        <AppEmptyState v-if="!loading && rows.length === 0" :message="t('common.empty')" />
+        <AppEmptyState
+          v-if="!loading && rows.length === 0"
+          :message="emptyMessage ?? t('common.empty')"
+        />
         <!-- eslint-disable-next-line vuejs-accessibility/no-static-element-interactions -- the card holds its own buttons, so it can't be role="button"; it is focusable and opens on Enter instead. -->
         <div
           v-for="(row, index) in visibleMobileRows"
