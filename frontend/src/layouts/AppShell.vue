@@ -123,9 +123,9 @@ async function logout() {
 
 <template>
   <div class="flex h-full">
-    <!-- Desktop sidebar (unchanged) -->
+    <!-- Sidebar (from the nav breakpoint on) -->
     <aside
-      class="hidden lg:flex w-56 shrink-0 flex-col border-r border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900"
+      class="hidden nav:flex w-56 shrink-0 flex-col border-r border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900"
     >
       <div class="h-14 flex items-center px-4 border-b border-surface-200 dark:border-surface-800">
         <AppLogo />
@@ -152,7 +152,7 @@ async function logout() {
       </nav>
     </aside>
 
-    <!-- Full-screen tile menu (below lg, where the sidebar is hidden) -->
+    <!-- Full-screen tile menu (below nav, where the sidebar is hidden) -->
     <Teleport to="body">
       <div v-if="menuOpen" class="fixed inset-0 z-50 bg-white dark:bg-surface-950 flex flex-col">
         <div
@@ -194,7 +194,7 @@ async function logout() {
       >
         <AppIconButton
           icon="pi pi-bars"
-          class="lg:hidden"
+          class="nav:hidden"
           :label="t('common.menu')"
           @click="menuOpen = true"
         />

@@ -8,7 +8,7 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
 import Select from 'primevue/select'
-import SelectButton from 'primevue/selectbutton'
+import AppSegmented from '../components/ui/AppSegmented.vue'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
@@ -202,13 +202,7 @@ async function save() {
             @click="exportTemplate"
           />
         </span>
-        <SelectButton
-          v-model="previewMode"
-          :options="previewModes"
-          option-label="label"
-          option-value="value"
-          :allow-empty="false"
-        />
+        <AppSegmented v-model="previewMode" :options="previewModes" />
         <Button :label="t('common.save')" icon="pi pi-save" :loading="saving" @click="save" />
       </template>
     </AppPageHeader>

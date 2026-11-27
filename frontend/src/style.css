@@ -9,6 +9,11 @@
 
 /* Map PrimeVue theme vars into Tailwind colors. The vars flip
    automatically under .dark (PrimeVue darkModeSelector). */
+/* From here on the sidebar shows instead of the tile menu. */
+@theme {
+  --breakpoint-nav: 56rem;
+}
+
 @theme inline {
   --color-surface-0: var(--p-surface-0);
   --color-surface-50: var(--p-surface-50);
