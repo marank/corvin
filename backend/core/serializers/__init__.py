@@ -18,6 +18,7 @@ from .support_contract import SupportContractSerializer
 from .task import TaskSerializer
 from .text_block import TextBlockSerializer
 from .time_entry import TimeEntrySerializer
+from .travel_rate import TravelRateSerializer
 from .visit import OnSiteVisitSerializer
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "ContactSerializer",
     "CustomerSerializer",
     "HourlyRateSerializer",
+    "TravelRateSerializer",
     "InvoiceLineItemSerializer",
     "InvoiceMailDetailSerializer",
     "InvoiceMailSerializer",

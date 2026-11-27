@@ -1529,6 +1529,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/travel-rates/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Scopes all queries to the requesting user. */
+        get: operations["travel_rates_list"];
+        put?: never;
+        /** @description Scopes all queries to the requesting user. */
+        post: operations["travel_rates_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/travel-rates/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Scopes all queries to the requesting user. */
+        get: operations["travel_rates_retrieve"];
+        /** @description Scopes all queries to the requesting user. */
+        put: operations["travel_rates_update"];
+        post?: never;
+        /** @description Scopes all queries to the requesting user. */
+        delete: operations["travel_rates_destroy"];
+        options?: never;
+        head?: never;
+        /** @description Scopes all queries to the requesting user. */
+        patch: operations["travel_rates_partial_update"];
+        trace?: never;
+    };
     "/api/v1/visits/": {
         parameters: {
             query?: never;
@@ -1565,6 +1603,46 @@ export interface paths {
         head?: never;
         /** @description Scopes all queries to the requesting user. */
         patch: operations["visits_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/visits/billable-travel/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The customer's trips an invoice may bill: not billed yet, not covered by a
+         *     contract.
+         */
+        get: operations["visits_billable_travel_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/visits/travel-terms/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The travel rate that applies to a visit, whether a contract includes the trip, and the
+         *     customer's distance.
+         */
+        get: operations["visits_travel_terms_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -1829,6 +1907,7 @@ export interface components {
             /** @default entry */
             group_by: components["schemas"]["GroupByEnum"];
             entry_lines?: components["schemas"]["EntryLineRequest"][];
+            travel?: components["schemas"]["TravelLineRequest"][];
             /** Format: date */
             issue_date?: string | null;
             /** Format: date */
@@ -1901,6 +1980,8 @@ export interface components {
             /** @description Round time entries up to this increment */
             rounding_increment_minutes?: number | null;
             payment_terms_days?: number | null;
+            /** Format: decimal */
+            travel_distance_km?: string | null;
             /** Format: uuid */
             bank_account?: string | null;
             e_invoice_format?: components["schemas"]["EInvoiceFormatEnum"];
@@ -1934,6 +2015,8 @@ export interface components {
             /** @description Round time entries up to this increment */
             rounding_increment_minutes?: number | null;
             payment_terms_days?: number | null;
+            /** Format: decimal */
+            travel_distance_km?: string | null;
             /** Format: uuid */
             bank_account?: string | null;
             e_invoice_format?: components["schemas"]["EInvoiceFormatEnum"];
@@ -2033,6 +2116,10 @@ export interface components {
             group_by: string;
             entries: components["schemas"]["TimeEntry"][];
             texts: {
+                [key: string]: string;
+            };
+            trips: components["schemas"]["OnSiteVisit"][];
+            trip_texts: {
                 [key: string]: string;
             };
             own_lines: components["schemas"]["ManualLine"][];
@@ -2402,6 +2489,16 @@ export interface components {
             /** Format: time */
             departure?: string | null;
             notes?: string;
+            bill_travel?: boolean;
+            /** Format: decimal */
+            distance_km?: string | null;
+            /** Format: decimal */
+            travel_price?: string | null;
+            /** Format: decimal */
+            readonly customer_distance_km: string;
+            /** Format: uuid */
+            readonly invoice: string | null;
+            readonly invoice_number: string;
             /** Format: date-time */
             readonly created_at: string;
             /** Format: date-time */
@@ -2422,6 +2519,11 @@ export interface components {
             /** Format: time */
             departure?: string | null;
             notes?: string;
+            bill_travel?: boolean;
+            /** Format: decimal */
+            distance_km?: string | null;
+            /** Format: decimal */
+            travel_price?: string | null;
         };
         /**
          * @description * `ask` - Ask
@@ -2745,6 +2847,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["TimeEntry"][];
         };
+        PaginatedTravelRateList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["TravelRate"][];
+        };
         /** @description Sets owner from the request and scopes FK fields to the owner. */
         PatchedAddressRequest: {
             /** Format: uuid */
@@ -2818,6 +2935,8 @@ export interface components {
             /** @description Round time entries up to this increment */
             rounding_increment_minutes?: number | null;
             payment_terms_days?: number | null;
+            /** Format: decimal */
+            travel_distance_km?: string | null;
             /** Format: uuid */
             bank_account?: string | null;
             e_invoice_format?: components["schemas"]["EInvoiceFormatEnum"];
@@ -2927,6 +3046,11 @@ export interface components {
             /** Format: time */
             departure?: string | null;
             notes?: string;
+            bill_travel?: boolean;
+            /** Format: decimal */
+            distance_km?: string | null;
+            /** Format: decimal */
+            travel_price?: string | null;
         };
         /** @description Sets owner from the request and scopes FK fields to the owner. */
         PatchedPaymentRequest: {
@@ -2985,6 +3109,7 @@ export interface components {
             /** Format: date */
             next_billing_date?: string;
             active?: boolean;
+            travel_included?: boolean;
             /** Format: uuid */
             template?: string | null;
         };
@@ -3036,6 +3161,21 @@ export interface components {
             description?: string;
             report?: string;
             billable?: boolean;
+        };
+        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        PatchedTravelRateRequest: {
+            /** Format: uuid */
+            customer?: string | null;
+            /** Format: uuid */
+            project?: string | null;
+            kind?: components["schemas"]["TravelRateKindEnum"];
+            /** Format: decimal */
+            amount?: string;
+            round_trip?: boolean;
+            /** Format: date */
+            valid_from?: string;
+            /** Format: date */
+            valid_to?: string | null;
         };
         /** @description Sets owner from the request and scopes FK fields to the owner. */
         Payment: {
@@ -3091,6 +3231,8 @@ export interface components {
             date_from?: string;
             /** Format: date */
             date_to?: string;
+            /** Format: uuid */
+            visit_id?: string;
         };
         /**
          * @description * `low` - Low
@@ -3200,6 +3342,7 @@ export interface components {
             /** Format: date */
             next_billing_date: string;
             active?: boolean;
+            travel_included?: boolean;
             /** Format: uuid */
             template?: string | null;
             /** Format: date-time */
@@ -3240,6 +3383,7 @@ export interface components {
             /** Format: date */
             next_billing_date: string;
             active?: boolean;
+            travel_included?: boolean;
             /** Format: uuid */
             template?: string | null;
         };
@@ -3410,18 +3554,80 @@ export interface components {
         TotpSetup: {
             config_url: string;
         };
+        TravelLineRequest: {
+            /** Format: uuid */
+            visit_id: string;
+            description?: string | null;
+        };
+        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        TravelRate: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            customer?: string | null;
+            readonly customer_name: string;
+            /** Format: uuid */
+            project?: string | null;
+            readonly project_name: string;
+            kind?: components["schemas"]["TravelRateKindEnum"];
+            /** Format: decimal */
+            amount: string;
+            round_trip?: boolean;
+            /** Format: date */
+            valid_from: string;
+            /** Format: date */
+            valid_to?: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /**
+         * @description * `flat` - Flat rate per trip
+         *     * `km` - Per kilometre
+         * @enum {string}
+         */
+        TravelRateKindEnum: "flat" | "km";
+        /** @description Sets owner from the request and scopes FK fields to the owner. */
+        TravelRateRequest: {
+            /** Format: uuid */
+            customer?: string | null;
+            /** Format: uuid */
+            project?: string | null;
+            kind?: components["schemas"]["TravelRateKindEnum"];
+            /** Format: decimal */
+            amount: string;
+            round_trip?: boolean;
+            /** Format: date */
+            valid_from: string;
+            /** Format: date */
+            valid_to?: string | null;
+        };
         /**
          * @description * `hours` - Hours
          *     * `flat` - Flat rate
          *     * `piece` - Piece
+         *     * `km` - Kilometre
          * @enum {string}
          */
-        UnitEnum: "hours" | "flat" | "piece";
+        UnitEnum: "hours" | "flat" | "piece" | "km";
         UserSession: {
             key: string;
             /** Format: date-time */
             expire_date: string;
             current: boolean;
+        };
+        _TravelTerms: {
+            rate: components["schemas"]["_TravelTermsRate"] | null;
+            included: boolean;
+            /** Format: decimal */
+            customer_distance_km: string | null;
+        };
+        _TravelTermsRate: {
+            kind?: components["schemas"]["TravelRateKindEnum"];
+            /** Format: decimal */
+            amount: string;
+            round_trip?: boolean;
         };
     };
     responses: never;
@@ -7644,6 +7850,162 @@ export interface operations {
             };
         };
     };
+    travel_rates_list: {
+        parameters: {
+            query?: {
+                customer?: string;
+                customer__isnull?: boolean;
+                /** @description Feld, das zum Sortieren der Ergebnisse verwendet werden soll. */
+                ordering?: string;
+                /** @description Eine Seitenzahl in der paginierten Ergebnismenge. */
+                page?: number;
+                /** @description Anzahl der pro Seite zurückzugebenden Ergebnisse. */
+                page_size?: number;
+                project?: string;
+                project__isnull?: boolean;
+                /** @description Ein Suchbegriff. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedTravelRateList"];
+                };
+            };
+        };
+    };
+    travel_rates_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TravelRateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TravelRateRequest"];
+                "multipart/form-data": components["schemas"]["TravelRateRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TravelRate"];
+                };
+            };
+        };
+    };
+    travel_rates_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der travel rate identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TravelRate"];
+                };
+            };
+        };
+    };
+    travel_rates_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der travel rate identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TravelRateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TravelRateRequest"];
+                "multipart/form-data": components["schemas"]["TravelRateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TravelRate"];
+                };
+            };
+        };
+    };
+    travel_rates_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der travel rate identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    travel_rates_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ein UUID-String, der travel rate identifiziert. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedTravelRateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedTravelRateRequest"];
+                "multipart/form-data": components["schemas"]["PatchedTravelRateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TravelRate"];
+                };
+            };
+        };
+    };
     visits_list: {
         parameters: {
             query?: {
@@ -7795,6 +8157,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OnSiteVisit"];
+                };
+            };
+        };
+    };
+    visits_billable_travel_list: {
+        parameters: {
+            query: {
+                customer: string;
+                date?: string;
+                date_from?: string;
+                date_to?: string;
+                /** @description A draft being edited */
+                invoice?: string;
+                /** @description Feld, das zum Sortieren der Ergebnisse verwendet werden soll. */
+                ordering?: string;
+                /** @description Eine Seitenzahl in der paginierten Ergebnismenge. */
+                page?: number;
+                /** @description Anzahl der pro Seite zurückzugebenden Ergebnisse. */
+                page_size?: number;
+                project?: string;
+                /** @description Ein Suchbegriff. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedOnSiteVisitList"];
+                };
+            };
+        };
+    };
+    visits_travel_terms_retrieve: {
+        parameters: {
+            query: {
+                customer: string;
+                date: string;
+                project?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["_TravelTerms"];
                 };
             };
         };

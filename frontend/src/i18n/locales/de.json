@@ -235,6 +235,30 @@
     "statuses": { "open": "Nicht abgerechnet", "invoiced": "Abgerechnet" },
     "entries": "{n} Eintrag | {n} Einträge"
   },
+  "travel": {
+    "rates": "Anfahrtssätze",
+    "newRate": "Neuer Anfahrtssatz",
+    "editRate": "Anfahrtssatz bearbeiten",
+    "kind": "Art",
+    "kinds": {
+      "flat": "Pauschale",
+      "km": "Pro km"
+    },
+    "roundTrip": "Hin und zurück",
+    "perKm": " / km",
+    "distance": "Entfernung (km)",
+    "oneWay": "Entfernung",
+    "pricePerKm": "Preis pro km",
+    "total": "Endbetrag",
+    "included": "Anfahrten inklusive",
+    "billedOn": "Abgerechnet mit",
+    "trips": "Anfahrten",
+    "trip": "Anfahrt",
+    "bill": "Abrechnen",
+    "inContract": "Im Vertrag enthalten",
+    "noRate": "Kein Anfahrtssatz",
+    "noDistance": "Keine Entfernung"
+  },
   "visits": {
     "title": "Vor-Ort-Termine",
     "visit": "Vor-Ort-Termin",
@@ -352,7 +376,7 @@
     "manualLines": "Manuelle Positionen",
     "addLine": "Position hinzufügen",
     "unit": "Einheit",
-    "units": { "hours": "Stunden", "flat": "Pauschale", "piece": "Stück" },
+    "units": { "hours": "Stunden", "flat": "Pauschale", "piece": "Stück", "km": "km" },
     "finalize": "Finalisieren",
     "sendEmail": "Per E-Mail senden",
     "markSent": "Als gesendet markieren",

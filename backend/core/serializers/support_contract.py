@@ -31,6 +31,7 @@ class SupportContractSerializer(LockableNumberSerializer[SupportContract]):
             "end_date",
             "next_billing_date",
             "active",
+            "travel_included",
             "template",
             "created_at",
             "updated_at",

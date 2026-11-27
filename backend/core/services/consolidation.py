@@ -1,4 +1,3 @@
-import re
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
 from datetime import date, timedelta
@@ -23,12 +22,15 @@ from core.models import (
     DocumentTemplate,
     Invoice,
     InvoiceLineItem,
+    OnSiteVisit,
     Project,
     TimeEntry,
 )
 
+from .dates import format_date
 from .numbering import next_number
 from .rates import resolve_rate, round_up_minutes, rounding_increment
+from .travel import TravelLineSpec, travel_description, travel_lines
 
 
 class Line(TypedDict):
@@ -56,19 +58,6 @@ class EntryLineSpec(TypedDict):
 
     entry_ids: list[Any]
     description: str
-
-
-def _format_date(d: date, pattern: str) -> str:
-    """Render a date with the company's Day.js-style pattern (DD, MM, YYYY, ...)."""
-    tokens = {
-        "YYYY": f"{d.year:04d}",
-        "YY": f"{d.year % 100:02d}",
-        "MM": f"{d.month:02d}",
-        "DD": f"{d.day:02d}",
-        "M": str(d.month),
-        "D": str(d.day),
-    }
-    return re.sub(r"YYYY|YY|MM|DD|M|D", lambda m: tokens[m.group()], pattern)
 
 
 def _line_for_entries(
@@ -217,7 +206,7 @@ def build_lines(
     ):
         first = group[0]
         scope = first.project.name if first.project else customer.name
-        work_date = _format_date(
+        work_date = format_date(
             timezone.localdate(first.start_datetime),
             company.date_format if company else "DD.MM.YYYY",
         )
@@ -310,6 +299,7 @@ def preview(
     group_by: str = "entry",
     entry_lines: list[EntryLineSpec] | None = None,
     extra_lines: list[Line] | None = None,
+    travel: list[TravelLineSpec] | None = None,
     vat_rate: Decimal | None = None,
     invoice: Invoice | None = None,
 ) -> dict[str, Any]:
@@ -338,6 +328,21 @@ def preview(
             "default_description": item.get("default_description", item["line"]["description"]),
         }
         for item in built
+    ]
+    lines += [
+        {
+            **line,
+            "key": f"travel:{visit.id}",
+            "default_description": travel_description(visit),
+            "entry_ids": [],
+            "visit_id": visit.id,
+            "project_name": visit.project.name if visit.project else None,
+            "date_from": visit.date,
+            "date_to": visit.date,
+        }
+        for visit, line in travel_lines(
+            owner=owner, customer=customer, specs=travel or [], invoice=invoice
+        )
     ]
     lines += [{**line, "key": None, "entry_ids": []} for line in extra_lines or []]
     for line in lines:
@@ -373,6 +378,7 @@ def consolidate(
     bank_account: BankAccount | None = None,
     e_invoice_format: str | None = None,
     extra_lines: list[Line] | None = None,
+    travel: list[TravelLineSpec] | None = None,
     issue_date: date | None = None,
     due_date: date | None = None,
     notes: str = "",
@@ -386,7 +392,8 @@ def consolidate(
         entry_ids=spec_entry_ids(entry_lines, entry_ids),
     )
     entries = list(qs)
-    if not entries and not extra_lines:
+    trips = travel_lines(owner=owner, customer=customer, specs=travel or [])
+    if not entries and not extra_lines and not trips:
         raise ValidationError(_("No billable, uninvoiced time entries found."))
     lines = make_entry_lines(
         owner=owner, customer=customer, entries=entries, group_by=group_by, entry_lines=entry_lines
@@ -427,12 +434,18 @@ def consolidate(
         contacts if contacts is not None else customer.contacts.filter(is_invoice_contact=True)
     )
 
-    create_items(invoice, lines, extra_lines)
+    create_items(invoice, lines, extra_lines, trips)
     return invoice
 
 
-def create_items(invoice: Invoice, lines: list[EntryLine], extra_lines: list[Line] | None) -> None:
-    """Saves the lines in order, entry lines first, links their entries and totals up."""
+def create_items(
+    invoice: Invoice,
+    lines: list[EntryLine],
+    extra_lines: list[Line] | None,
+    trips: list[tuple[OnSiteVisit, dict[str, Any]]] | None = None,
+) -> None:
+    """Saves the lines in order (entries, trips, own lines), links what they bill and totals
+    up."""
     position = 0
     for built in lines:
         position += 1
@@ -441,6 +454,15 @@ def create_items(invoice: Invoice, lines: list[EntryLine], extra_lines: list[Lin
         )
         item.time_entries.add(*built["entries"])
         invoice.time_entries.add(*built["entries"])
+
+    for visit, trip_line in trips or []:
+        position += 1
+        item = InvoiceLineItem.objects.create(
+            owner=invoice.owner, invoice=invoice, position=position, **trip_line
+        )
+        visit.invoice = invoice
+        visit.invoice_item = item
+        visit.save(update_fields=["invoice", "invoice_item", "updated_at"])
 
     for line in extra_lines or []:
         position += 1

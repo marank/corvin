@@ -36,6 +36,7 @@ import { useFormattingStore } from '../../stores/formatting'
 import { useSettingsStore } from '../../stores/settings'
 import { currencies } from '../../currencies'
 import HourlyRateList from '../../components/HourlyRateList.vue'
+import TravelRateList from '../../components/TravelRateList.vue'
 import { tableStateKeys } from '../../tableStateKeys'
 import {
   currencyDisplayValues as currencyDisplays,
@@ -687,7 +688,10 @@ async function save() {
           </div>
         </TabPanel>
         <TabPanel value="rates">
-          <div class="max-w-3xl pt-4"><HourlyRateList /></div>
+          <div class="max-w-3xl pt-4 flex flex-col gap-8">
+            <HourlyRateList />
+            <TravelRateList />
+          </div>
         </TabPanel>
         <TabPanel value="timeTracking">
           <div class="flex flex-col gap-6 max-w-3xl pt-4">

@@ -49,8 +49,9 @@ class InvoiceLineItemViewSet(OwnedViewSet[InvoiceLineItem]):
     def perform_destroy(self, instance: InvoiceLineItem) -> None:
         invoice = instance.invoice
         _require_draft(invoice)
-        # The entries billed on this line become billable again.
+        # The entries and trips billed on this line become billable again.
         instance.time_entries.update(invoice=None, invoice_item=None)
+        instance.travel_visits.update(invoice=None, invoice_item=None)
         instance.delete()
         for position, item in enumerate(invoice.items.order_by("position", "id"), start=1):
             if item.position != position:

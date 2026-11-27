@@ -94,4 +94,5 @@ export const lineItemUnitValues = allValues<Schemas['UnitEnum']>()({
   hours: true,
   flat: true,
   piece: true,
+  km: true,
 })

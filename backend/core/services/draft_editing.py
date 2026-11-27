@@ -23,6 +23,7 @@ from core.models import (
     DocumentTemplate,
     Invoice,
     InvoiceLineItem,
+    OnSiteVisit,
     Project,
     TimeEntry,
 )
@@ -40,6 +41,7 @@ from .consolidation import (
     spec_entry_ids,
 )
 from .number_changes import validate_number_change
+from .travel import TravelLineSpec, travel_description, travel_lines
 
 # Tried in this order when recovering an older draft's grouping; the first with most
 # matches wins.
@@ -63,20 +65,42 @@ def _ids(entries: Iterable[TimeEntry]) -> frozenset[str]:
     return frozenset(str(e.id) for e in entries)
 
 
+class _DraftLines:
+    """A draft's lines by what they bill: entries (texts by their ids), trips (texts that
+    differ from the generated one, by line key) or nothing (own lines)."""
+
+    def __init__(self, invoice: Invoice) -> None:
+        self.texts: dict[frozenset[str], str] = {}
+        self.entries: list[TimeEntry] = []
+        self.trips: list[OnSiteVisit] = []
+        self.trip_texts: dict[str, str] = {}
+        self.own_lines: list[InvoiceLineItem] = []
+        items = invoice.items.order_by("position").prefetch_related(
+            "time_entries__project", "travel_visits__customer", "travel_visits__owner"
+        )
+        for item in items:
+            self._add(item)
+
+    def _add(self, item: InvoiceLineItem) -> None:
+        item_entries = list(item.time_entries.all())
+        item_trips = list(item.travel_visits.all())
+        if item_entries:
+            self.texts[_ids(item_entries)] = item.description
+            self.entries += item_entries
+        elif item_trips:
+            self.trips += item_trips
+            if item.description != travel_description(item_trips[0]):
+                self.trip_texts[f"travel:{item_trips[0].id}"] = item.description
+        else:
+            self.own_lines.append(item)
+
+
 def draft_state(invoice: Invoice) -> dict[str, Any]:
     """The entries a draft bills, the grouping its lines follow, the texts that differ from
     the generated ones (by line key), and its lines without entries."""
-    items = list(invoice.items.order_by("position").prefetch_related("time_entries__project"))
-    texts: dict[frozenset[str], str] = {}
-    own_lines: list[InvoiceLineItem] = []
-    entries: list[TimeEntry] = []
-    for item in items:
-        item_entries = list(item.time_entries.all())
-        if item_entries:
-            texts[_ids(item_entries)] = item.description
-            entries += item_entries
-        else:
-            own_lines.append(item)
+    lines_ = _DraftLines(invoice)
+    texts, entries, own_lines = lines_.texts, lines_.entries, lines_.own_lines
+    trips, trip_texts = lines_.trips, lines_.trip_texts
     entries.sort(key=lambda e: e.start_datetime)
 
     # Kept since the create page saves it; older drafts: the grouping that fits best.
@@ -93,6 +117,8 @@ def draft_state(invoice: Invoice) -> dict[str, Any]:
             for line in matched
             if "key" in line and texts[_ids(line["entries"])] != line.get("default_description")
         },
+        "trips": trips,
+        "trip_texts": trip_texts,
         "own_lines": own_lines,
     }
 
@@ -110,6 +136,7 @@ def update_draft(
     group_by: str = "entry",
     entry_lines: list[EntryLineSpec] | None = None,
     extra_lines: list[Line] | None = None,
+    travel: list[TravelLineSpec] | None = None,
     vat_rate: Decimal | None = None,
     template: DocumentTemplate | None = None,
     contacts: Iterable[Contact] | None = None,
@@ -144,11 +171,13 @@ def update_draft(
     lines = make_entry_lines(
         owner=owner, customer=customer, entries=entries, group_by=group_by, entry_lines=entry_lines
     )
-    if not lines and not extra_lines:
+    trips = travel_lines(owner=owner, customer=customer, specs=travel or [], invoice=invoice)
+    if not lines and not extra_lines and not trips:
         raise ValidationError(_("Invoice has no line items."))
 
     # Contract-covered entries stay linked to their contract's invoice (they are on no line).
     invoice.time_entries.filter(invoice_item__isnull=False).update(invoice=None, invoice_item=None)
+    invoice.travel_visits.update(invoice=None, invoice_item=None)
     invoice.items.all().delete()
 
     company: CompanySettings | None = getattr(owner, "company_settings", None)
@@ -166,5 +195,5 @@ def update_draft(
     invoice.save()
     if contacts is not None:
         invoice.contacts.set(contacts)
-    create_items(invoice, lines, extra_lines)
+    create_items(invoice, lines, extra_lines, trips)
     return invoice

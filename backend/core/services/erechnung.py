@@ -19,7 +19,7 @@ COUNTRY_IDS = {
     "niederlande": "NL",
 }
 
-UNIT_CODES = {"hours": "HUR", "flat": "C62", "piece": "H87"}
+UNIT_CODES = {"hours": "HUR", "flat": "C62", "piece": "H87", "km": "KMT"}
 
 
 def _country_id(name: str) -> str:

@@ -235,6 +235,30 @@
     "statuses": { "open": "Not invoiced", "invoiced": "Invoiced" },
     "entries": "{n} entry | {n} entries"
   },
+  "travel": {
+    "rates": "Travel rates",
+    "newRate": "New travel rate",
+    "editRate": "Edit travel rate",
+    "kind": "Kind",
+    "kinds": {
+      "flat": "Flat rate",
+      "km": "Per km"
+    },
+    "roundTrip": "There and back",
+    "perKm": " / km",
+    "distance": "Distance (km)",
+    "oneWay": "Distance",
+    "pricePerKm": "Price per km",
+    "total": "Total",
+    "included": "Travel included",
+    "billedOn": "Billed on",
+    "trips": "Trips",
+    "trip": "Travel",
+    "bill": "Bill",
+    "inContract": "Included in contract",
+    "noRate": "No travel rate",
+    "noDistance": "No distance"
+  },
   "visits": {
     "title": "On-site visits",
     "visit": "On-site visit",
@@ -348,7 +372,7 @@
     "manualLines": "Manual line items",
     "addLine": "Add line",
     "unit": "Unit",
-    "units": { "hours": "Hours", "flat": "Flat rate", "piece": "Piece" },
+    "units": { "hours": "Hours", "flat": "Flat rate", "piece": "Piece", "km": "km" },
     "finalize": "Finalize",
     "sendEmail": "Send via email",
     "markSent": "Mark as sent",

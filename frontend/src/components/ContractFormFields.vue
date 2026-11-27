@@ -58,6 +58,7 @@ const { t } = useI18n()
       ><InputNumber v-model="form.overage_rate" mode="currency" currency="EUR" class="w-full"
     /></AppFormField>
     <div v-else />
+    <AppCheckboxField v-model="form.travel_included" :label="t('travel.included')" />
     <AppCheckboxField v-model="form.active" :label="t('common.active')" />
   </div>
 </template>

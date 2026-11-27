@@ -37,6 +37,8 @@ export interface Customer {
   buyer_reference: string
   rounding_increment_minutes: number | null
   payment_terms_days: number | null
+  // One way, for travel billed per km.
+  travel_distance_km: number | null
   bank_account: string | null
   // Default for the customer's invoices.
   e_invoice_format: string
@@ -107,6 +109,13 @@ export interface Visit {
   arrival: string | null
   departure: string | null
   notes: string
+  bill_travel: boolean
+  // One way; empty: the customer's.
+  distance_km: number | null
+  travel_price: number | null
+  customer_distance_km: number | null
+  invoice: string | null
+  invoice_number: string | null
 }
 
 export interface TimeEntryBreak {
@@ -171,6 +180,7 @@ export interface SupportContract {
   end_date: string | null
   next_billing_date: string
   active: boolean
+  travel_included: boolean
   template: string | null
 }
 
@@ -382,6 +392,16 @@ export const visitsApi = {
   create: (d: Partial<Visit>) => api.post<Visit>(`${base}/visits/`, d),
   update: (id: string, d: Partial<Visit>) => api.put<Visit>(`${base}/visits/${id}/`, d),
   remove: (id: string) => api.delete(`${base}/visits/${id}/`),
+  // Trips an invoice may bill (params: customer, project, date_from, date_to, invoice).
+  billableTravel: (params: string) => api.get<Visit[]>(`${base}/visits/billable-travel/?${params}`),
+  travelTerms: (params: string) => api.get<TravelTerms>(`${base}/visits/travel-terms/?${params}`),
+}
+
+// The rate a visit's trip is billed at, whether a contract includes it, the customer's distance.
+export interface TravelTerms {
+  rate: Pick<TravelRate, 'kind' | 'amount' | 'round_trip'> | null
+  included: boolean
+  customer_distance_km: number | string | null
 }
 
 export const timeTrackingApi = {
@@ -400,6 +420,25 @@ export const timeTrackingApi = {
   stop: () => api.post<TimeEntry>(`${base}/time-tracking/stop/`),
   pause: () => api.post<RunningEntry>(`${base}/time-tracking/pause/`),
   resume: () => api.post<RunningEntry>(`${base}/time-tracking/resume/`),
+}
+
+export interface TravelRate {
+  id: string
+  customer: string | null
+  project: string | null
+  kind: 'flat' | 'km'
+  amount: number
+  round_trip: boolean
+  valid_from: string
+  valid_to: string | null
+}
+
+export const travelRatesApi = {
+  list: (params = '') => api.get<Page<TravelRate>>(`${base}/travel-rates/?${params}`),
+  create: (d: Partial<TravelRate>) => api.post<TravelRate>(`${base}/travel-rates/`, d),
+  update: (id: string, d: Partial<TravelRate>) =>
+    api.put<TravelRate>(`${base}/travel-rates/${id}/`, d),
+  remove: (id: string) => api.delete(`${base}/travel-rates/${id}/`),
 }
 
 export const ratesApi = {
@@ -433,6 +472,8 @@ export interface ConsolidateRequest {
   group_by: string
   // Lines put together from entries (the entries and their text); replaces the grouping.
   entry_lines?: { entry_ids: string[]; description: string }[]
+  // Trips to on-site visits, one line each (description empty: generated).
+  travel?: { visit_id: string; description?: string | null }[]
   e_invoice_format?: string
   extra_lines?: Partial<LineItem>[]
   // Omitted: today, issue date + payment terms, the company's rate, the assigned template.
@@ -457,6 +498,8 @@ export interface ConsolidatePreviewLine extends Pick<
   project_name?: string | null
   date_from?: string
   date_to?: string
+  // Trip lines: the visit.
+  visit_id?: string
 }
 
 export interface ConsolidatePreview {
@@ -473,6 +516,8 @@ export interface InvoiceDraftState {
   group_by: string
   entries: TimeEntry[]
   texts: Record<string, string>
+  trips: Visit[]
+  trip_texts: Record<string, string>
   own_lines: Pick<LineItem, 'description' | 'quantity' | 'unit' | 'unit_price'>[]
 }
 

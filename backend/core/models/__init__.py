@@ -21,6 +21,7 @@ from .task import Task
 from .text_block import TextBlock
 from .time_entry import TimeEntry
 from .time_entry_break import TimeEntryBreak
+from .travel_rate import TravelRate
 from .visit import OnSiteVisit
 
 __all__ = [
@@ -48,4 +49,5 @@ __all__ = [
     "TextBlock",
     "TimeEntry",
     "TimeEntryBreak",
+    "TravelRate",
 ]

@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Corvin\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-27 00:23+0100\n"
+"POT-Creation-Date: 2026-11-27 16:09+0100\n"
 "PO-Revision-Date: 2026-11-03 01:10+0100\n"
 "Last-Translator: Corvin\n"
 "Language-Team: German\n"
@@ -210,6 +210,21 @@ msgstr "Beschreibung"
 msgctxt "time report"
 msgid "Duration"
 msgstr "Dauer"
+
+#, python-format
+msgid "Travel %(date)s"
+msgstr "Anfahrt %(date)s"
+
+#, python-format
+msgid "No travel rate found for %(customer)s on %(date)s."
+msgstr "Kein Anfahrtssatz für %(customer)s am %(date)s."
+
+#, python-format
+msgid "No distance for the visit on %(date)s."
+msgstr "Keine Entfernung für den Termin am %(date)s."
+
+msgid "Some trips are not open (any more)."
+msgstr "Einige Anfahrten sind nicht (mehr) offen."
 
 msgid "Invalid credentials."
 msgstr "Benutzername oder Passwort ist falsch."

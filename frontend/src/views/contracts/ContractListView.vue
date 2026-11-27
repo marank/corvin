@@ -41,6 +41,7 @@ const emptyForm = (): Partial<SupportContract> => ({
   fixed_price: 0,
   bill_overage: false,
   active: true,
+  travel_included: false,
   start_date: isoDate(),
   next_billing_date: isoDate(),
 })

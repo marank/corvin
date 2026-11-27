@@ -30,6 +30,8 @@ class Customer(OwnedModel):
         null=True, blank=True, help_text="Round time entries up to this increment"
     )
     payment_terms_days = models.PositiveIntegerField(null=True, blank=True)
+    # One way, for travel billed per km.
+    travel_distance_km = models.DecimalField(max_digits=7, decimal_places=1, null=True, blank=True)
     bank_account = models.ForeignKey(
         "BankAccount",
         on_delete=models.SET_NULL,

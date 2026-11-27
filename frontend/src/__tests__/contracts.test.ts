@@ -92,6 +92,7 @@ describe('ContractListView', () => {
       bill_overage: true,
       overage_rate: 95,
       active: true,
+      travel_included: false,
       start_date: '2026-11-23',
       next_billing_date: '2026-11-23',
     })

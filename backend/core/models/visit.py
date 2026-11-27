@@ -20,6 +20,26 @@ class OnSiteVisit(OwnedModel):
     arrival = models.TimeField(null=True, blank=True)
     departure = models.TimeField(null=True, blank=True)
     notes = models.TextField(blank=True)
+    bill_travel = models.BooleanField(default=True)
+    # One way; empty: the customer's distance.
+    distance_km = models.DecimalField(max_digits=7, decimal_places=1, null=True, blank=True)
+    # Per km or per trip, as the travel rate counts; empty: the rate's amount.
+    travel_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    # The invoice line that bills the trip; released when the line leaves a draft.
+    invoice = models.ForeignKey(
+        "core.Invoice",
+        on_delete=models.SET_NULL,
+        related_name="travel_visits",
+        null=True,
+        blank=True,
+    )
+    invoice_item = models.ForeignKey(
+        "core.InvoiceLineItem",
+        on_delete=models.SET_NULL,
+        related_name="travel_visits",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         ordering = ["-date"]

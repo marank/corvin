@@ -201,6 +201,7 @@ SPECTACULAR_SETTINGS = {
         "TimeRoundingDirectionEnum": "core.models.CompanySettings.TimeRoundingDirection",
         "MailKindEnum": "core.models.MailTemplate.Kind",
         "InvoiceMailStatusEnum": "core.models.InvoiceMail.Status",
+        "TravelRateKindEnum": "core.models.TravelRate.Kind",
     },
 }
 

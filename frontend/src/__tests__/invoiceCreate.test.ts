@@ -22,6 +22,7 @@ import {
   project,
   template,
   timeEntry,
+  visit,
 } from './helpers/fixtures'
 import { render, settle, t } from './helpers/render'
 import { NOW } from './helpers/time'
@@ -63,6 +64,20 @@ function previewOf(call: ApiCall) {
       total: (minutes / 60) * 100,
     }
   })
+  for (const trip of body.travel ?? [])
+    lines.push({
+      key: `travel:${trip.visit_id}`,
+      entry_ids: [],
+      visit_id: trip.visit_id,
+      description: trip.description ?? 'Anfahrt 20.11.2026 (B-001)',
+      default_description: 'Anfahrt 20.11.2026 (B-001)',
+      date_from: '2026-11-20',
+      date_to: '2026-11-20',
+      quantity: 46,
+      unit: 'km',
+      unit_price: 0.5,
+      total: 23,
+    })
   for (const own of body.extra_lines ?? [])
     lines.push({
       key: null,
@@ -86,6 +101,7 @@ function previewOf(call: ApiCall) {
 
 function backend() {
   const api = mockApi()
+  api.get('/visits/billable-travel/', [])
   api.get('/customers/', page([customer(), customer({ id: 'cus-2', name: 'Beta AG' })]))
   api.get('/customers/cus-1/', customer({ e_invoice_format: 'zugferd' }))
   api.get('/customers/cus-2/', customer({ id: 'cus-2', name: 'Beta AG', payment_terms_days: 30 }))
@@ -198,6 +214,32 @@ describe('InvoiceCreateView', () => {
     expect(screen.rows().filter((row) => row[0] !== '')).toHaveLength(2)
   })
 
+  it('bills the open trips as lines of their own', async () => {
+    const api = backend()
+    api.get('/visits/billable-travel/', [visit()])
+    await open()
+    await click(screen.button(t('invoices.fetchPositions')))
+    const modal = dialog(t('invoices.fetchPositions'))
+    expect(api.requests('GET', '/visits/billable-travel/').at(-1)!.query.get('customer')).toBe(
+      'cus-1',
+    )
+    expect(modal.text()).toContain(t('travel.trips'))
+    expect(modal.row('B-001').textContent).toContain('Berlin')
+    await click(modal.button(t('invoices.takeOver')))
+    await waitForPreview()
+    expect(lastPreview(api).travel).toEqual([{ visit_id: 'vis-1', description: null }])
+    expect(lineText('Anfahrt 20.11.2026 (B-001)').value).toBe('Anfahrt 20.11.2026 (B-001)')
+
+    await type(lineText('Anfahrt 20.11.2026 (B-001)'), 'Fahrt Berlin')
+    await waitForPreview()
+    expect(lastPreview(api).travel).toEqual([{ visit_id: 'vis-1', description: 'Fahrt Berlin' }])
+
+    const row = lineText('Fahrt Berlin').closest('tr')!
+    await click(row.querySelector(`[aria-label="${t('common.delete')}"]`)!)
+    await waitForPreview()
+    expect(lastPreview(api).travel).toEqual([])
+  })
+
   it('creates the draft with the texts as edited and the general fields', async () => {
     const api = backend()
     api.post('/invoices/consolidate/', invoice({ id: 'inv-9' }))
@@ -213,6 +255,7 @@ describe('InvoiceCreateView', () => {
       bank_account_id: null,
       e_invoice_format: 'zugferd',
       entry_ids: ['te-1', 'te-2'],
+      travel: [],
       group_by: 'day',
       vat_rate: 19,
       issue_date: '2026-11-23',
@@ -392,6 +435,8 @@ describe('InvoiceCreateView', () => {
         group_by: 'entry',
         entries: [entries[0]],
         texts: { 'entry:te-1': 'Edited' },
+        trips: [],
+        trip_texts: {},
         own_lines: [{ description: 'Travel', quantity: '1.00', unit: 'flat', unit_price: '30.00' }],
       })
       api.post('/invoices/inv-1/draft_preview/', previewOf)

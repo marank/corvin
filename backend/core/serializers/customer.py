@@ -29,6 +29,7 @@ class CustomerSerializer(LockableNumberSerializer[Customer]):
             "buyer_reference",
             "rounding_increment_minutes",
             "payment_terms_days",
+            "travel_distance_km",
             "bank_account",
             "e_invoice_format",
             "is_active",

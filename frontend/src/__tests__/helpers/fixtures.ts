@@ -30,6 +30,7 @@ export const customer = (over: Partial<Customer> = {}): Customer => ({
   buyer_reference: '',
   rounding_increment_minutes: null,
   payment_terms_days: null,
+  travel_distance_km: null,
   bank_account: null,
   e_invoice_format: 'none',
   is_active: true,
@@ -197,6 +198,7 @@ export const contract = (over: Partial<SupportContract> = {}): SupportContract =
   end_date: null,
   next_billing_date: '2026-12-01',
   active: true,
+  travel_included: false,
   template: null,
   ...over,
 })
@@ -229,6 +231,12 @@ export const visit = (over: Partial<Visit> = {}): Visit => ({
   arrival: '09:00',
   departure: '12:00',
   notes: '',
+  bill_travel: true,
+  distance_km: null,
+  travel_price: null,
+  customer_distance_km: null,
+  invoice: null,
+  invoice_number: null,
   ...over,
 })
 

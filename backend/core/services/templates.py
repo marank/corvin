@@ -26,7 +26,7 @@ DEFAULT_BODY = """<div class="sender">{{ company.company_name }} · {{ company.s
 <tbody>
 {% for item in items %}
 <tr><td>{{ item.position }}</td><td>{{ item.description }}</td>
-<td>{% display_number item.quantity %} {% if item.unit == "hours" %}Std.{% elif item.unit == "flat" %}pauschal{% else %}Stk.{% endif %}</td>
+<td>{% display_number item.quantity %} {% if item.unit == "hours" %}Std.{% elif item.unit == "flat" %}pauschal{% elif item.unit == "km" %}km{% else %}Stk.{% endif %}</td>
 <td>{% display_money item.unit_price invoice.currency %}</td>
 <td>{% display_money item.total invoice.currency %}</td></tr>
 {% endfor %}

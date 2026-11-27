@@ -14,6 +14,7 @@ import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppFormTabs from '../../components/ui/AppFormTabs.vue'
+import VisitTravelFields from '../../components/VisitTravelFields.vue'
 import AppMarkdownEditor from '../../components/ui/AppMarkdownEditor.vue'
 import { firstLine } from '../../markdown'
 import AppFormField from '../../components/ui/AppFormField.vue'
@@ -41,10 +42,10 @@ function visitTime(visit: Visit): string {
 }
 const modal = ref<InstanceType<typeof AppModal>>()
 const saving = ref(false)
-const form = ref<Partial<Visit>>({ date: isoDate() })
+const form = ref<Partial<Visit>>({ date: isoDate(), bill_travel: true })
 
 function openNew() {
-  form.value = { date: isoDate() }
+  form.value = { date: isoDate(), bill_travel: true }
   modal.value?.open()
 }
 const preset = useQueryFilters()
@@ -86,7 +87,7 @@ async function save() {
     await visitsApi.create(form.value)
     modal.value?.close()
     notify.ok(t('common.created'))
-    form.value = { date: isoDate() }
+    form.value = { date: isoDate(), bill_travel: true }
     void load()
   } catch (e) {
     notify.error(e)
@@ -227,6 +228,14 @@ async function save() {
             <AppFormField field="location" :label="t('visits.location')"
               ><InputText v-model="form.location" class="w-full"
             /></AppFormField>
+            <VisitTravelFields
+              v-model:bill="form.bill_travel!"
+              v-model:distance="form.distance_km"
+              v-model:price="form.travel_price"
+              :customer="form.customer"
+              :project="form.project"
+              :date="form.date"
+            />
           </div>
         </template>
         <template #report="{ fill }">

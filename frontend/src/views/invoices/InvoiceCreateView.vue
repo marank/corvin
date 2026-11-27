@@ -6,7 +6,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
-import SelectButton from 'primevue/selectbutton'
 import Checkbox from 'primevue/checkbox'
 import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
@@ -17,6 +16,7 @@ import AppPageHeader from '../../components/ui/AppPageHeader.vue'
 import AppFormField from '../../components/ui/AppFormField.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
 import AppDateInput from '../../components/ui/AppDateInput.vue'
+import AppSegmented from '../../components/ui/AppSegmented.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import AppDurationDisplay from '../../components/ui/AppDurationDisplay.vue'
 import AppMoneyDisplay from '../../components/ui/AppMoneyDisplay.vue'
@@ -47,6 +47,7 @@ import { isoDate } from '../../dateTimeInput'
 import { useNotify } from '../../composables/useNotify'
 import { useUnsavedChanges } from '../../composables/useUnsavedChanges'
 import { tableStateKeys } from '../../tableStateKeys'
+import { useInvoiceTrips } from './useInvoiceTrips'
 import { lineItemUnitValues as units, eInvoiceFormatValues as formats } from '../../utils/enums'
 
 const { t } = useI18n()
@@ -127,12 +128,13 @@ const created = ref(false)
 // The entries the invoice bills, the grouping, and the user's texts by line key.
 const billed = ref<TimeEntry[]>([])
 const billedIds = computed(() => billed.value.map((entry) => entry.id))
+const trips = useInvoiceTrips()
 const groupBy = ref('day')
 const groupByOptions = computed(() =>
   ['entry', 'day', 'project'].map((value) => ({ value, label: t(`invoices.groupBys.${value}`) })),
 )
 const texts = ref<Record<string, string>>({})
-// SelectButton keeps its own selection; remounting it shows groupBy again after a cancel.
+// The segmented control keeps its own selection; remounting it shows groupBy again after a cancel.
 const groupByKey = ref(0)
 
 interface OwnLine {
@@ -172,6 +174,7 @@ watch(customerId, async (value) => {
   if (loadingDraft) return
   // Lines bill the previous customer's entries.
   billed.value = []
+  trips.billed.value = []
   texts.value = {}
   await loadCustomer(value)
 })
@@ -224,7 +227,8 @@ async function loadDraft(id: string) {
   groupByKey.value++
   billed.value = state.entries
   draftEntries.value = state.entries
-  texts.value = state.texts
+  trips.billed.value = state.trips
+  texts.value = { ...state.texts, ...state.trip_texts }
   ownLines.value = state.own_lines.map((line) => ({
     id: crypto.randomUUID(),
     description: line.description,
@@ -359,11 +363,26 @@ async function loadOpenEntries() {
   picked.value = new Set(offeredEntries.value.map((entry) => entry.id))
 }
 
-watch([fetchProjectId, dateFrom, dateTo], loadOpenEntries)
+function loadOpenTrips() {
+  if (!customerId.value) return
+  void trips.load({
+    customer: customerId.value,
+    project: fetchProjectId.value,
+    dateFrom: dateFrom.value,
+    dateTo: dateTo.value,
+    invoice: invoiceId,
+  })
+}
+
+watch([fetchProjectId, dateFrom, dateTo], () => {
+  void loadOpenEntries()
+  loadOpenTrips()
+})
 
 function openFetch() {
   fetchProjectId.value = projectId.value
   void loadOpenEntries()
+  loadOpenTrips()
   fetchModal.value?.open()
 }
 
@@ -372,6 +391,7 @@ function takeOver() {
     ...billed.value,
     ...offeredEntries.value.filter((entry) => picked.value.has(entry.id)),
   ]
+  trips.takeOver()
   fetchModal.value?.close()
 }
 
@@ -382,6 +402,7 @@ const previewRequestBody = computed<ConsolidateRequest | null>(() => {
     customer_id: customerId.value,
     // Always a list: omitted would mean every open entry.
     entry_ids: billedIds.value,
+    travel: trips.specs(texts.value),
     group_by: groupBy.value,
     vat_rate: vatRate.value,
     extra_lines: ownLines.value
@@ -405,7 +426,10 @@ watch(
   previewRequestBody,
   (value) => {
     clearTimeout(previewTimer)
-    if (!value || (!value.entry_ids?.length && !value.extra_lines?.length)) {
+    if (
+      !value ||
+      (!value.entry_ids?.length && !value.extra_lines?.length && !value.travel?.length)
+    ) {
       preview.value = null
       previewError.value = ''
       return
@@ -433,8 +457,11 @@ async function loadPreview(value: ConsolidateRequest) {
   }
 }
 
+// Lines from entries and trips: generated, their text editable.
 const entryLines = computed(() =>
-  (preview.value?.lines ?? []).filter((line) => line.key && line.entry_ids.length),
+  (preview.value?.lines ?? []).filter(
+    (line) => line.key && (line.entry_ids.length || line.visit_id),
+  ),
 )
 
 function lineText(key: string, generated: string) {
@@ -448,9 +475,24 @@ function setLineText(key: string, value: string | undefined, generated: string) 
   texts.value = next
 }
 
-function removeEntryLine(key: string, entryIds: string[]) {
+function removeEntryLine(key: string, entryIds: string[], visitId?: string) {
   billed.value = billed.value.filter((entry) => !entryIds.includes(entry.id))
+  if (visitId) trips.remove(visitId)
   setLineText(key, undefined, '')
+}
+
+// Both kinds of lines in one table: generated ones first, then the user's own.
+type PositionRow =
+  | { id: string; entry: (typeof entryLines.value)[number]; own?: undefined }
+  | { id: string; entry?: undefined; own: OwnLine }
+const positionRows = computed<PositionRow[]>(() => [
+  ...entryLines.value.map((entry) => ({ id: entry.key!, entry })),
+  ...ownLines.value.map((own) => ({ id: own.id, own })),
+])
+
+function removeLine(row: PositionRow) {
+  if (row.entry) removeEntryLine(row.entry.key!, row.entry.entry_ids, row.entry.visit_id)
+  else ownLines.value = ownLines.value.filter((line) => line.id !== row.own.id)
 }
 
 function ownTotal(line: OwnLine) {
@@ -472,6 +514,7 @@ const { markSaved } = useUnsavedChanges(
     notes: notes.value,
     groupBy: groupBy.value,
     billed: billedIds.value,
+    trips: trips.billedIds.value,
     texts: texts.value,
     own: ownLines.value,
   })),
@@ -498,10 +541,12 @@ const createBody = computed<ConsolidateRequest | null>(() => {
     template_id: templateId.value,
     notes: notes.value,
     ...(invoiceId && numberInput.value !== undefined ? { number: numberInput.value } : {}),
-    entry_lines: entryLines.value.map((line) => ({
-      entry_ids: line.entry_ids,
-      description: lineText(line.key!, line.description),
-    })),
+    entry_lines: entryLines.value
+      .filter((line) => line.entry_ids.length)
+      .map((line) => ({
+        entry_ids: line.entry_ids,
+        description: lineText(line.key!, line.description),
+      })),
   }
 })
 const canCreate = computed(
@@ -509,7 +554,9 @@ const canCreate = computed(
     !!createBody.value &&
     !!preview.value &&
     !previewError.value &&
-    (!!createBody.value.entry_lines?.length || !!createBody.value.extra_lines?.length),
+    (!!createBody.value.entry_lines?.length ||
+      !!createBody.value.travel?.length ||
+      !!createBody.value.extra_lines?.length),
 )
 
 async function create() {
@@ -650,13 +697,10 @@ async function create() {
           <h2 class="font-semibold">{{ t('invoices.positions') }}</h2>
           <div class="flex items-center gap-2 text-sm">
             <span class="text-surface-500">{{ t('invoices.groupBy') }}</span>
-            <SelectButton
+            <AppSegmented
               :key="groupByKey"
               :model-value="groupBy"
               :options="groupByOptions"
-              option-label="label"
-              option-value="value"
-              :allow-empty="false"
               size="small"
               @update:model-value="changeGroupBy"
             />
@@ -681,146 +725,167 @@ async function create() {
         </div>
         <Message v-if="previewError" severity="warn" class="mx-4 mb-3">{{ previewError }}</Message>
 
-        <table class="w-full text-sm">
-          <thead>
-            <tr
-              class="text-left text-surface-500 border-y border-surface-200 dark:border-surface-800"
-            >
-              <th class="font-medium px-4 py-2 w-12">{{ t('invoices.position') }}</th>
-              <th class="font-medium px-2 py-2">{{ t('time.description') }}</th>
-              <th class="font-medium px-2 py-2 w-40">{{ t('projects.project') }}</th>
-              <th class="font-medium px-2 py-2 w-44">{{ t('invoices.servicePeriod') }}</th>
-              <th class="font-medium px-2 py-2 w-24 text-right">{{ t('invoices.quantity') }}</th>
-              <th class="font-medium px-2 py-2 w-32">{{ t('invoices.unit') }}</th>
-              <th class="font-medium px-2 py-2 w-32 text-right">{{ t('invoices.unitPrice') }}</th>
-              <th class="font-medium px-2 py-2 w-28 text-right">{{ t('common.total') }}</th>
-              <th class="w-12"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="(line, index) in entryLines"
-              :key="line.key!"
-              class="align-top border-b border-surface-100 dark:border-surface-800"
-            >
-              <td class="px-4 py-2 pt-4 text-surface-500 tabular-nums">{{ index + 1 }}</td>
-              <td class="px-2 py-2">
+        <AppDataTable
+          :rows="positionRows"
+          :state-key="tableStateKeys.invoiceLines"
+          :page-size="1000"
+          :empty-message="customerId ? t('invoices.noLinesYet') : t('invoices.pickCustomer')"
+          class="px-4"
+        >
+          <Column
+            column-key="position"
+            :header="t('invoices.position')"
+            :reorderable-column="false"
+            header-style="width: 3.5rem"
+            ><template #body="{ index }"
+              ><span class="text-surface-500 tabular-nums">{{ index + 1 }}</span></template
+            ></Column
+          >
+          <Column
+            column-key="description"
+            :header="t('time.description')"
+            class="app-text"
+            header-style="min-width: 11rem"
+          >
+            <template #body="{ data }">
+              <template v-if="data.entry">
                 <Textarea
-                  :model-value="lineText(line.key!, line.description)"
+                  :model-value="lineText(data.entry.key, data.entry.description)"
                   rows="1"
                   auto-resize
                   fluid
                   :aria-label="t('time.description')"
                   @update:model-value="
                     (value: string | undefined) =>
-                      setLineText(line.key!, value, line.default_description ?? line.description)
+                      setLineText(
+                        data.entry.key,
+                        value,
+                        data.entry.default_description ?? data.entry.description,
+                      )
                   "
                 />
                 <div class="flex gap-2 text-xs text-surface-500 mt-0.5">
-                  <span>{{ t('invoices.entriesOnLine', line.entry_ids.length) }}</span>
+                  <span v-if="data.entry.entry_ids.length">{{
+                    t('invoices.entriesOnLine', data.entry.entry_ids.length)
+                  }}</span>
                   <button
-                    v-if="texts[line.key!] !== undefined"
+                    v-if="texts[data.entry.key] !== undefined"
                     type="button"
                     class="underline hover:text-primary"
-                    @click="setLineText(line.key!, undefined, '')"
+                    @click="setLineText(data.entry.key, undefined, '')"
                   >
                     {{ t('invoices.resetText') }}
                   </button>
                 </div>
-              </td>
-              <td class="px-2 py-2 pt-4">{{ line.project_name ?? '—' }}</td>
-              <td class="px-2 py-2 pt-4 tabular-nums whitespace-nowrap">
-                <AppDateTimeDisplay :value="line.date_from!" /><template
-                  v-if="line.date_to && line.date_to !== line.date_from"
-                  >–<AppDateTimeDisplay :value="line.date_to"
-                /></template>
-              </td>
-              <td class="px-2 py-2 pt-4 text-right tabular-nums">
-                <AppNumberDisplay :value="line.quantity" />
-              </td>
-              <td class="px-2 py-2 pt-4">{{ t(`invoices.units.${line.unit}`) }}</td>
-              <td class="px-2 py-2 pt-4 text-right tabular-nums">
-                <AppMoneyDisplay :amount="line.unit_price" />
-              </td>
-              <td class="px-2 py-2 pt-4 text-right tabular-nums font-medium">
-                <AppMoneyDisplay :amount="line.total" />
-              </td>
-              <td class="px-2 py-2 pt-3">
-                <AppIconButton
-                  icon="pi pi-trash"
-                  severity="danger"
-                  :label="t('common.delete')"
-                  @click="removeEntryLine(line.key!, line.entry_ids)"
-                />
-              </td>
-            </tr>
-            <tr
-              v-for="(line, index) in ownLines"
-              :key="line.id"
-              class="align-top border-b border-surface-100 dark:border-surface-800"
-            >
-              <td class="px-4 py-2 pt-4 text-surface-500 tabular-nums">
-                {{ entryLines.length + index + 1 }}
-              </td>
-              <td class="px-2 py-2">
-                <Textarea
-                  v-model="line.description"
-                  rows="1"
-                  auto-resize
-                  fluid
-                  :placeholder="t('invoices.ownLinePlaceholder')"
-                  :aria-label="t('time.description')"
-                />
-              </td>
-              <td class="px-2 py-2 pt-4 text-surface-500">—</td>
-              <td class="px-2 py-2 pt-4 text-surface-500">—</td>
-              <td class="px-2 py-2">
-                <InputNumber
-                  v-model="line.quantity"
-                  :min="0"
-                  :max-fraction-digits="2"
-                  fluid
-                  input-class="text-right"
-                  :pt="{ pcInputText: { root: { 'aria-label': t('invoices.quantity') } } }"
-                />
-              </td>
-              <td class="px-2 py-2">
-                <AppEnumSelect
-                  v-model="line.unit"
-                  :options="units"
-                  label-prefix="invoices.units"
-                  class="w-full"
-                />
-              </td>
-              <td class="px-2 py-2">
-                <InputNumber
-                  v-model="line.unit_price"
-                  mode="currency"
-                  currency="EUR"
-                  fluid
-                  input-class="text-right"
-                  :pt="{ pcInputText: { root: { 'aria-label': t('invoices.unitPrice') } } }"
-                />
-              </td>
-              <td class="px-2 py-2 pt-4 text-right tabular-nums font-medium">
-                <AppMoneyDisplay :amount="ownTotal(line)" />
-              </td>
-              <td class="px-2 py-2 pt-3">
-                <AppIconButton
-                  icon="pi pi-trash"
-                  severity="danger"
-                  :label="t('common.delete')"
-                  @click="ownLines.splice(index, 1)"
-                />
-              </td>
-            </tr>
-            <tr v-if="!entryLines.length && !ownLines.length">
-              <td colspan="9" class="px-4 py-6 text-center text-surface-500">
-                {{ customerId ? t('invoices.noLinesYet') : t('invoices.pickCustomer') }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </template>
+              <Textarea
+                v-else
+                v-model="data.own.description"
+                rows="1"
+                auto-resize
+                fluid
+                :placeholder="t('invoices.ownLinePlaceholder')"
+                :aria-label="t('time.description')"
+              />
+            </template>
+          </Column>
+          <Column
+            column-key="project"
+            :header="t('projects.project')"
+            class="app-optional"
+            header-style="width: 10rem"
+          >
+            <template #body="{ data }">{{ data.entry?.project_name ?? '—' }}</template>
+          </Column>
+          <Column
+            column-key="servicePeriod"
+            :header="t('invoices.servicePeriod')"
+            class="app-optional"
+            header-style="width: 11rem"
+          >
+            <template #body="{ data }">
+              <span v-if="data.entry?.date_from" class="tabular-nums whitespace-nowrap"
+                ><AppDateTimeDisplay :value="data.entry.date_from" /><template
+                  v-if="data.entry.date_to && data.entry.date_to !== data.entry.date_from"
+                  >–<AppDateTimeDisplay :value="data.entry.date_to" /></template
+              ></span>
+              <template v-else>—</template>
+            </template>
+          </Column>
+          <Column
+            column-key="quantity"
+            :header="t('invoices.quantity')"
+            class="app-num"
+            header-style="width: 5rem"
+          >
+            <template #body="{ data }">
+              <AppNumberDisplay v-if="data.entry" :value="data.entry.quantity" />
+              <InputNumber
+                v-else
+                v-model="data.own.quantity"
+                :min="0"
+                :max-fraction-digits="2"
+                fluid
+                input-class="text-right"
+                :pt="{ pcInputText: { root: { 'aria-label': t('invoices.quantity') } } }"
+              />
+            </template>
+          </Column>
+          <Column column-key="unit" :header="t('invoices.unit')" header-style="width: 6.5rem">
+            <template #body="{ data }">
+              <template v-if="data.entry">{{ t(`invoices.units.${data.entry.unit}`) }}</template>
+              <AppEnumSelect
+                v-else
+                v-model="data.own.unit"
+                :options="units"
+                label-prefix="invoices.units"
+                class="w-full"
+              />
+            </template>
+          </Column>
+          <Column
+            column-key="unitPrice"
+            :header="t('invoices.unitPrice')"
+            class="app-num"
+            header-style="width: 7rem"
+          >
+            <template #body="{ data }">
+              <AppMoneyDisplay v-if="data.entry" :amount="data.entry.unit_price" />
+              <InputNumber
+                v-else
+                v-model="data.own.unit_price"
+                mode="currency"
+                currency="EUR"
+                fluid
+                input-class="text-right"
+                :pt="{ pcInputText: { root: { 'aria-label': t('invoices.unitPrice') } } }"
+              />
+            </template>
+          </Column>
+          <Column
+            column-key="total"
+            :header="t('common.total')"
+            class="app-num"
+            header-style="width: 7rem"
+          >
+            <template #body="{ data }">
+              <AppMoneyDisplay
+                :amount="data.entry ? data.entry.total : ownTotal(data.own)"
+                class="font-medium"
+              />
+            </template>
+          </Column>
+          <Column column-key="actions" :reorderable-column="false">
+            <template #body="{ data }">
+              <AppIconButton
+                icon="pi pi-trash"
+                severity="danger"
+                :label="t('common.delete')"
+                @click="removeLine(data)"
+              />
+            </template>
+          </Column>
+        </AppDataTable>
 
         <div class="flex justify-end p-4">
           <div class="w-72 flex flex-col gap-1 text-sm tabular-nums">
@@ -917,6 +982,30 @@ async function create() {
             /></template>
           </Column>
         </AppDataTable>
+        <template v-if="trips.offered.value.length">
+          <h3 class="font-semibold mt-2">{{ t('travel.trips') }}</h3>
+          <AppDataTable
+            :rows="trips.offered.value"
+            :state-key="tableStateKeys.invoiceSourceTrips"
+            @row-click="trips.toggle"
+          >
+            <Column header-style="width: 3rem" :reorderable-column="false">
+              <template #body="{ data }"
+                ><Checkbox
+                  :model-value="trips.picked.value.has(data.id)"
+                  binary
+                  :pt="stopRowClick"
+                  @update:model-value="trips.toggle(data)"
+              /></template>
+            </Column>
+            <Column field="date" :header="t('common.date')"
+              ><template #body="{ data }"><AppDateTimeDisplay :value="data.date" /></template
+            ></Column>
+            <Column field="number" :header="t('common.numberShort')" />
+            <Column class="app-text" field="project_name" :header="t('projects.project')" />
+            <Column class="app-text" field="location" :header="t('visits.location')" />
+          </AppDataTable>
+        </template>
       </div>
     </AppModal>
   </div>

@@ -8056,6 +8056,322 @@
                 }
             }
         },
+        "/api/v1/travel-rates/": {
+            "get": {
+                "operationId": "travel_rates_list",
+                "description": "Scopes all queries to the requesting user.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "customer",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "customer__isnull",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "ordering",
+                        "required": false,
+                        "in": "query",
+                        "description": "Feld, das zum Sortieren der Ergebnisse verwendet werden soll.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "Eine Seitenzahl in der paginierten Ergebnismenge.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Anzahl der pro Seite zurückzugebenden Ergebnisse.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "project",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "project__isnull",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "required": false,
+                        "in": "query",
+                        "description": "Ein Suchbegriff.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "tags": [
+                    "travel-rates"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedTravelRateList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "travel_rates_create",
+                "description": "Scopes all queries to the requesting user.",
+                "tags": [
+                    "travel-rates"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TravelRateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TravelRateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TravelRateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TravelRate"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/travel-rates/{id}/": {
+            "get": {
+                "operationId": "travel_rates_retrieve",
+                "description": "Scopes all queries to the requesting user.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der travel rate identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "travel-rates"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TravelRate"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "put": {
+                "operationId": "travel_rates_update",
+                "description": "Scopes all queries to the requesting user.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der travel rate identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "travel-rates"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TravelRateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TravelRateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TravelRateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TravelRate"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "travel_rates_partial_update",
+                "description": "Scopes all queries to the requesting user.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der travel rate identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "travel-rates"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedTravelRateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedTravelRateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedTravelRateRequest"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TravelRate"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "travel_rates_destroy",
+                "description": "Scopes all queries to the requesting user.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Ein UUID-String, der travel rate identifiziert.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "travel-rates"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
         "/api/v1/visits/": {
             "get": {
                 "operationId": "visits_list",
@@ -8362,6 +8678,174 @@
                 "responses": {
                     "204": {
                         "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/v1/visits/billable-travel/": {
+            "get": {
+                "operationId": "visits_billable_travel_list",
+                "description": "The customer's trips an invoice may bill: not billed yet, not covered by a\ncontract.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "customer",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "date",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "date_from",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "date_to",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "invoice",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "A draft being edited"
+                    },
+                    {
+                        "name": "ordering",
+                        "required": false,
+                        "in": "query",
+                        "description": "Feld, das zum Sortieren der Ergebnisse verwendet werden soll.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "Eine Seitenzahl in der paginierten Ergebnismenge.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Anzahl der pro Seite zurückzugebenden Ergebnisse.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "project",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "required": false,
+                        "in": "query",
+                        "description": "Ein Suchbegriff.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "tags": [
+                    "visits"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedOnSiteVisitList"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/visits/travel-terms/": {
+            "get": {
+                "operationId": "visits_travel_terms_retrieve",
+                "description": "The travel rate that applies to a visit, whether a contract includes the trip, and the\ncustomer's distance.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "customer",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "date",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "project",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "tags": [
+                    "visits"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/_TravelTerms"
+                                }
+                            }
+                        },
+                        "description": ""
                     }
                 }
             }
@@ -9290,6 +9774,12 @@
                             "$ref": "#/components/schemas/EntryLineRequest"
                         }
                     },
+                    "travel": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TravelLineRequest"
+                        }
+                    },
                     "issue_date": {
                         "type": "string",
                         "format": "date",
@@ -9533,6 +10023,12 @@
                         "minimum": 0,
                         "nullable": true
                     },
+                    "travel_distance_km": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,1})?$",
+                        "nullable": true
+                    },
                     "bank_account": {
                         "type": "string",
                         "format": "uuid",
@@ -9674,6 +10170,12 @@
                         "type": "integer",
                         "maximum": 2147483647,
                         "minimum": 0,
+                        "nullable": true
+                    },
+                    "travel_distance_km": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,1})?$",
                         "nullable": true
                     },
                     "bank_account": {
@@ -10019,6 +10521,18 @@
                             "type": "string"
                         }
                     },
+                    "trips": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OnSiteVisit"
+                        }
+                    },
+                    "trip_texts": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
                     "own_lines": {
                         "type": "array",
                         "items": {
@@ -10030,7 +10544,9 @@
                     "entries",
                     "group_by",
                     "own_lines",
-                    "texts"
+                    "texts",
+                    "trip_texts",
+                    "trips"
                 ]
             },
             "EInvoiceFormatEnum": {
@@ -11173,6 +11689,37 @@
                     "notes": {
                         "type": "string"
                     },
+                    "bill_travel": {
+                        "type": "boolean"
+                    },
+                    "distance_km": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,1})?$",
+                        "nullable": true
+                    },
+                    "travel_price": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+                        "nullable": true
+                    },
+                    "customer_distance_km": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,1})?$",
+                        "readOnly": true
+                    },
+                    "invoice": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "invoice_number": {
+                        "type": "string",
+                        "readOnly": true
+                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
@@ -11187,9 +11734,12 @@
                 "required": [
                     "created_at",
                     "customer",
+                    "customer_distance_km",
                     "customer_name",
                     "date",
                     "id",
+                    "invoice",
+                    "invoice_number",
                     "project_name",
                     "updated_at"
                 ]
@@ -11231,6 +11781,21 @@
                     },
                     "notes": {
                         "type": "string"
+                    },
+                    "bill_travel": {
+                        "type": "boolean"
+                    },
+                    "distance_km": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,1})?$",
+                        "nullable": true
+                    },
+                    "travel_price": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+                        "nullable": true
                     }
                 },
                 "required": [
@@ -11897,6 +12462,37 @@
                     }
                 }
             },
+            "PaginatedTravelRateList": {
+                "type": "object",
+                "required": [
+                    "count",
+                    "results"
+                ],
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TravelRate"
+                        }
+                    }
+                }
+            },
             "PatchedAddressRequest": {
                 "type": "object",
                 "description": "Sets owner from the request and scopes FK fields to the owner.",
@@ -12150,6 +12746,12 @@
                         "type": "integer",
                         "maximum": 2147483647,
                         "minimum": 0,
+                        "nullable": true
+                    },
+                    "travel_distance_km": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,1})?$",
                         "nullable": true
                     },
                     "bank_account": {
@@ -12469,6 +13071,21 @@
                     },
                     "notes": {
                         "type": "string"
+                    },
+                    "bill_travel": {
+                        "type": "boolean"
+                    },
+                    "distance_km": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,1})?$",
+                        "nullable": true
+                    },
+                    "travel_price": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+                        "nullable": true
                     }
                 }
             },
@@ -12600,6 +13217,9 @@
                         "format": "date"
                     },
                     "active": {
+                        "type": "boolean"
+                    },
+                    "travel_included": {
                         "type": "boolean"
                     },
                     "template": {
@@ -12738,6 +13358,42 @@
                     },
                     "billable": {
                         "type": "boolean"
+                    }
+                }
+            },
+            "PatchedTravelRateRequest": {
+                "type": "object",
+                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "properties": {
+                    "customer": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "project": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/TravelRateKindEnum"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                    },
+                    "round_trip": {
+                        "type": "boolean"
+                    },
+                    "valid_from": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "valid_to": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
                     }
                 }
             },
@@ -12880,6 +13536,10 @@
                     "date_to": {
                         "type": "string",
                         "format": "date"
+                    },
+                    "visit_id": {
+                        "type": "string",
+                        "format": "uuid"
                     }
                 },
                 "required": [
@@ -13175,6 +13835,9 @@
                     "active": {
                         "type": "boolean"
                     },
+                    "travel_included": {
+                        "type": "boolean"
+                    },
                     "template": {
                         "type": "string",
                         "format": "uuid",
@@ -13267,6 +13930,9 @@
                         "format": "date"
                     },
                     "active": {
+                        "type": "boolean"
+                    },
+                    "travel_included": {
                         "type": "boolean"
                     },
                     "template": {
@@ -13775,14 +14441,148 @@
                     "config_url"
                 ]
             },
+            "TravelLineRequest": {
+                "type": "object",
+                "properties": {
+                    "visit_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true,
+                        "maxLength": 500
+                    }
+                },
+                "required": [
+                    "visit_id"
+                ]
+            },
+            "TravelRate": {
+                "type": "object",
+                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "customer": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "customer_name": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "project": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "project_name": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/TravelRateKindEnum"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                    },
+                    "round_trip": {
+                        "type": "boolean"
+                    },
+                    "valid_from": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "valid_to": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "amount",
+                    "created_at",
+                    "customer_name",
+                    "id",
+                    "project_name",
+                    "updated_at",
+                    "valid_from"
+                ]
+            },
+            "TravelRateKindEnum": {
+                "enum": [
+                    "flat",
+                    "km"
+                ],
+                "type": "string",
+                "description": "* `flat` - Flat rate per trip\n* `km` - Per kilometre"
+            },
+            "TravelRateRequest": {
+                "type": "object",
+                "description": "Sets owner from the request and scopes FK fields to the owner.",
+                "properties": {
+                    "customer": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "project": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/TravelRateKindEnum"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                    },
+                    "round_trip": {
+                        "type": "boolean"
+                    },
+                    "valid_from": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "valid_to": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "amount",
+                    "valid_from"
+                ]
+            },
             "UnitEnum": {
                 "enum": [
                     "hours",
                     "flat",
-                    "piece"
+                    "piece",
+                    "km"
                 ],
                 "type": "string",
-                "description": "* `hours` - Hours\n* `flat` - Flat rate\n* `piece` - Piece"
+                "description": "* `hours` - Hours\n* `flat` - Flat rate\n* `piece` - Piece\n* `km` - Kilometre"
             },
             "UserSession": {
                 "type": "object",
@@ -13802,6 +14602,52 @@
                     "current",
                     "expire_date",
                     "key"
+                ]
+            },
+            "_TravelTerms": {
+                "type": "object",
+                "properties": {
+                    "rate": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/_TravelTermsRate"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "included": {
+                        "type": "boolean"
+                    },
+                    "customer_distance_km": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,6}(?:\\.\\d{0,1})?$",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "customer_distance_km",
+                    "included",
+                    "rate"
+                ]
+            },
+            "_TravelTermsRate": {
+                "type": "object",
+                "properties": {
+                    "kind": {
+                        "$ref": "#/components/schemas/TravelRateKindEnum"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                    },
+                    "round_trip": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "amount"
                 ]
             }
         },

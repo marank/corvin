@@ -69,6 +69,7 @@ describe('VisitListView', () => {
       customer: 'cus-1',
       arrival: '08:30',
       location: 'Serverraum',
+      bill_travel: true,
     })
     expect(toasts()).toContain(t('common.created'))
   })

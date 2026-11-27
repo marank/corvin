@@ -23,6 +23,7 @@ import AppCheckboxField from '../../components/ui/AppCheckboxField.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import AppDataTable from '../../components/ui/AppDataTable.vue'
 import HourlyRateList from '../../components/HourlyRateList.vue'
+import TravelRateList from '../../components/TravelRateList.vue'
 import AttachmentList from '../../components/AttachmentList.vue'
 import RelatedOverview from '../../components/RelatedOverview.vue'
 import AppIconButton from '../../components/ui/AppIconButton.vue'
@@ -320,6 +321,13 @@ function removeAddress(a: Address) {
                 <AppFormField field="rounding_increment_minutes" :label="t('customers.rounding')"
                   ><InputNumber v-model="form.rounding_increment_minutes" :min="0" class="w-full"
                 /></AppFormField>
+                <AppFormField field="travel_distance_km" :label="t('travel.distance')"
+                  ><InputNumber
+                    v-model="form.travel_distance_km"
+                    :min="0"
+                    :max-fraction-digits="1"
+                    class="w-full"
+                /></AppFormField>
               </div>
             </fieldset>
           </div>
@@ -407,7 +415,10 @@ function removeAddress(a: Address) {
           </AppDataTable>
         </TabPanel>
         <TabPanel value="rates">
-          <div class="pt-4"><HourlyRateList :customer-id="id" /></div>
+          <div class="pt-4 flex flex-col gap-8">
+            <HourlyRateList :customer-id="id" />
+            <TravelRateList :customer-id="id" />
+          </div>
         </TabPanel>
         <TabPanel value="attachments">
           <div class="pt-4"><AttachmentList model="customer" :object-id="id" /></div>

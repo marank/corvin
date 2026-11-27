@@ -26,6 +26,7 @@ from core.serializers import (
     InvoiceMailDetailSerializer,
     InvoiceMailSerializer,
     InvoiceSerializer,
+    OnSiteVisitSerializer,
     TimeEntrySerializer,
 )
 from core.services.activity_report import render_activity_report_pdf
@@ -55,6 +56,14 @@ class EntryLineSerializer(serializers.Serializer[Any]):
     description = serializers.CharField(max_length=500)
 
 
+class TravelLineSerializer(serializers.Serializer[Any]):
+    visit_id = serializers.UUIDField()
+    # Empty: the generated text.
+    description = serializers.CharField(
+        max_length=500, required=False, allow_null=True, allow_blank=True
+    )
+
+
 class ConsolidateSerializer(serializers.Serializer[Any]):
     customer_id = serializers.UUIDField()
     # Bill only these of the matching entries; omitted = all of them.
@@ -71,6 +80,8 @@ class ConsolidateSerializer(serializers.Serializer[Any]):
     # Lines the user put together from entries (each: the entries and the text); replaces
     # the grouping. Omitted: lines are grouped by `group_by`.
     entry_lines = EntryLineSerializer(many=True, required=False)
+    # Trips to on-site visits, one line each.
+    travel = TravelLineSerializer(many=True, required=False)
     # Omitted: today, issue date + payment terms, the company's rate, the assigned template.
     issue_date = serializers.DateField(required=False, allow_null=True)
     due_date = serializers.DateField(required=False, allow_null=True)
@@ -98,6 +109,8 @@ class PreviewLineSerializer(ManualLineSerializer):
     project_name = serializers.CharField(allow_null=True, required=False)
     date_from = serializers.DateField(required=False)
     date_to = serializers.DateField(required=False)
+    # Trip lines: the visit.
+    visit_id = serializers.UUIDField(required=False)
 
 
 class ConsolidatePreviewSerializer(serializers.Serializer[Any]):
@@ -116,6 +129,8 @@ class DraftStateSerializer(serializers.Serializer[Any]):
     entries = TimeEntrySerializer(many=True)
     # The user's line texts by line key, where they differ from the generated ones.
     texts = serializers.DictField(child=serializers.CharField())
+    trips = OnSiteVisitSerializer(many=True)
+    trip_texts = serializers.DictField(child=serializers.CharField())
     own_lines = ManualLineSerializer(many=True)
 
 
@@ -300,6 +315,7 @@ class InvoiceViewSet(OwnedViewSet[Invoice]):
             "entry_ids": d.get("entry_ids"),
             "group_by": d["group_by"],
             "entry_lines": d.get("entry_lines"),
+            "travel": d.get("travel"),
             "contacts": contacts,
             "bank_account": bank_account,
             "e_invoice_format": d.get("e_invoice_format"),

@@ -58,6 +58,8 @@ class SupportContract(OwnedModel):
     end_date = models.DateField(null=True, blank=True)
     next_billing_date = models.DateField()
     active = models.BooleanField(default=True)
+    # Trips to on-site visits are covered by the fixed price.
+    travel_included = models.BooleanField(default=False)
     template = models.ForeignKey(
         "core.DocumentTemplate",
         on_delete=models.SET_NULL,

@@ -32,6 +32,7 @@ from core.views.support_contract import SupportContractViewSet
 from core.views.task import TaskViewSet
 from core.views.text_block import TextBlockViewSet
 from core.views.time_entry import TimeEntryViewSet
+from core.views.travel_rate import TravelRateViewSet
 from core.views.visit import OnSiteVisitViewSet
 
 router = DefaultRouter()
@@ -47,6 +48,7 @@ router.register("text-blocks", TextBlockViewSet, basename="text-block")
 router.register("visits", OnSiteVisitViewSet, basename="visit")
 router.register("time-tracking", TimeEntryViewSet, basename="time-tracking")
 router.register("hourly-rates", HourlyRateViewSet, basename="hourly-rate")
+router.register("travel-rates", TravelRateViewSet, basename="travel-rate")
 router.register("support-contracts", SupportContractViewSet, basename="support-contract")
 router.register("document-templates", DocumentTemplateViewSet, basename="document-template")
 router.register("mail-templates", MailTemplateViewSet, basename="mail-template")

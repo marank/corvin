@@ -11,6 +11,7 @@ class InvoiceLineItem(OwnedModel):
         HOURS = "hours", "Hours"
         FLAT = "flat", "Flat rate"
         PIECE = "piece", "Piece"
+        KM = "km", "Kilometre"
 
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="items")
     position = models.PositiveIntegerField(default=0)
