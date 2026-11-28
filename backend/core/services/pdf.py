@@ -152,7 +152,7 @@ html, body {{ margin: 0; }}
     display: flex;
     flex-direction: column;
     background: #fff;
-    border: 1px solid #9ca3af;
+    outline: 1px solid #9ca3af;  /* not border: it would narrow the page by 2px */
   }}
   #page-header {{ order: 0; min-height: {template.header_height}mm; }}
   #page-content {{ order: 1; flex: 1 1 auto; }}
