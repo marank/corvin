@@ -81,7 +81,7 @@ function confirmRunNow() {
   confirm.require({
     header: t('contracts.runNow'),
     message: t('contracts.runNowConfirm'),
-    icon: 'pi pi-file',
+    icon: 'iconify lucide--receipt',
     rejectLabel: t('common.cancel'),
     rejectProps: { text: true },
     acceptLabel: t('contracts.runNow'),
@@ -127,7 +127,7 @@ async function runNow() {
         <Button
           v-if="tab === 'overview'"
           :label="t('contracts.runNow')"
-          icon="pi pi-play"
+          icon="iconify lucide--play"
           :loading="running"
           @click="confirmRunNow"
         />

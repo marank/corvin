@@ -84,18 +84,23 @@ const activityReportUrl = computed(() => invoicesApi.activityReportUrl(id))
 // The documents to download, behind "Dokumente" in the header.
 const documentsMenu = ref<InstanceType<typeof Menu>>()
 const documents = computed(() => [
-  { label: t('invoices.documentPdf'), icon: 'pi pi-file-pdf', url: pdfUrl.value, target: '_blank' },
+  {
+    label: t('invoices.documentPdf'),
+    icon: 'iconify lucide--file-text',
+    url: pdfUrl.value,
+    target: '_blank',
+  },
   ...(invoice.value?.has_time_entries
     ? [
         {
           label: t('invoices.documentTimeReport'),
-          icon: 'pi pi-list',
+          icon: 'iconify lucide--list',
           url: timeReportUrl.value,
           target: '_blank',
         },
         {
           label: t('invoices.documentActivityReport'),
-          icon: 'pi pi-file-edit',
+          icon: 'iconify lucide--file-pen',
           url: activityReportUrl.value,
           target: '_blank',
         },
@@ -105,7 +110,7 @@ const documents = computed(() => [
     ? [
         {
           label: t('invoices.documentXml'),
-          icon: 'pi pi-code',
+          icon: 'iconify lucide--file-code',
           url: xmlUrl.value,
           target: '_blank',
         },
@@ -118,13 +123,13 @@ const moreMenu = ref<InstanceType<typeof Menu>>()
 const dangerItem = '[&_.p-menu-item-label]:text-danger [&_.p-menu-item-icon]:text-danger'
 const moreActions = computed(() => [
   ...(invoice.value?.status === 'issued'
-    ? [{ label: t('invoices.markSent'), icon: 'pi pi-envelope', command: openMarkSent }]
+    ? [{ label: t('invoices.markSent'), icon: 'iconify lucide--mail', command: openMarkSent }]
     : []),
   ...(canReceivePayment.value && Number(invoice.value?.remaining) > 0
     ? [
         {
           label: t('invoices.sendReminder'),
-          icon: 'pi pi-bell',
+          icon: 'iconify lucide--bell',
           command: () => void openEmail('payment_reminder'),
         },
       ]
@@ -133,7 +138,7 @@ const moreActions = computed(() => [
     ? [
         {
           label: t('common.delete'),
-          icon: 'pi pi-trash',
+          icon: 'iconify lucide--trash-2',
           class: dangerItem,
           command: () =>
             confirmDelete(async () => {
@@ -148,7 +153,7 @@ const moreActions = computed(() => [
     ? [
         {
           label: t('invoices.cancelInvoice'),
-          icon: 'pi pi-ban',
+          icon: 'iconify lucide--ban',
           class: dangerItem,
           command: confirmCancel,
         },
@@ -257,7 +262,7 @@ function confirmFinalize() {
   confirm.require({
     header: t('invoices.finalize'),
     message: t('invoices.finalizeConfirm'),
-    icon: 'pi pi-lock',
+    icon: 'iconify lucide--lock',
     rejectLabel: t('common.cancel'),
     rejectProps: { text: true },
     acceptLabel: t('invoices.finalize'),
@@ -269,7 +274,7 @@ function confirmCancel() {
   confirm.require({
     header: t('invoices.cancelInvoice'),
     message: t('invoices.cancelConfirm'),
-    icon: 'pi pi-ban',
+    icon: 'iconify lucide--ban',
     rejectLabel: t('common.cancel'),
     rejectProps: { text: true },
     acceptLabel: t('invoices.cancelInvoice'),
@@ -328,7 +333,7 @@ async function addPayment() {
       <template #actions>
         <Button
           :label="t('invoices.documents')"
-          icon="pi pi-chevron-down"
+          icon="iconify lucide--chevron-down"
           icon-pos="right"
           severity="secondary"
           outlined
@@ -340,33 +345,33 @@ async function addPayment() {
         <Button
           v-if="isDraft"
           :label="t('common.edit')"
-          icon="pi pi-pencil"
+          icon="iconify lucide--pencil"
           outlined
           @click="router.push(`/invoices/${id}/edit`)"
         />
         <Button
           v-if="isDraft"
           :label="t('invoices.finalize')"
-          icon="pi pi-lock"
+          icon="iconify lucide--lock"
           :loading="busy"
           @click="confirmFinalize"
         />
         <Button
           v-if="canReceivePayment"
           :label="t('invoices.sendEmail')"
-          icon="pi pi-send"
+          icon="iconify lucide--send"
           :loading="busy"
           @click="openEmail()"
         />
         <Button
           v-if="canReceivePayment && Number(invoice.remaining) > 0"
           :label="t('invoices.addPayment')"
-          icon="pi pi-money-bill"
+          icon="iconify lucide--banknote"
           @click="openPayment"
         />
         <template v-if="moreActions.length">
           <Button
-            icon="pi pi-ellipsis-v"
+            icon="iconify lucide--ellipsis-vertical"
             text
             severity="secondary"
             :aria-label="t('common.moreActions')"
@@ -588,7 +593,7 @@ async function addPayment() {
                 <Column :reorderable-column="false">
                   <template #body="{ data }"
                     ><AppIconButton
-                      icon="pi pi-trash"
+                      icon="iconify lucide--trash-2"
                       severity="danger"
                       @click.stop="
                         confirmDelete(async () => {

@@ -12,7 +12,7 @@ export function useConfirmDiscard() {
       confirm.require({
         header: t('common.unsavedTitle'),
         message: t('common.unsavedMessage'),
-        icon: 'pi pi-exclamation-triangle',
+        icon: 'iconify lucide--triangle-alert',
         rejectLabel: t('common.keepEditing'),
         rejectProps: { text: true },
         acceptLabel: t('common.discard'),

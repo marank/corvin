@@ -213,7 +213,7 @@ async function save() {
                 <Column :reorderable-column="false">
                   <template #body="{ data }"
                     ><AppIconButton
-                      icon="pi pi-times"
+                      icon="iconify lucide--x"
                       :label="t('visits.unlink')"
                       :title="t('visits.unlink')"
                       @click="setVisit([data], null)"
@@ -225,7 +225,7 @@ async function save() {
                   <h3 class="font-semibold">{{ t('visits.suggested') }}</h3>
                   <Button
                     :label="t('visits.linkAll')"
-                    icon="pi pi-plus"
+                    icon="iconify lucide--plus"
                     size="small"
                     text
                     :loading="linking"
@@ -249,7 +249,7 @@ async function save() {
                   <Column :reorderable-column="false">
                     <template #body="{ data }"
                       ><AppIconButton
-                        icon="pi pi-plus"
+                        icon="iconify lucide--plus"
                         :label="t('visits.link')"
                         :title="t('visits.link')"
                         @click="setVisit([data], id)"

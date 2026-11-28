@@ -120,7 +120,7 @@ async function toggleDone(task: Task) {
   <div>
     <AppPageHeader :title="t('tasks.title')">
       <template #actions>
-        <Button :label="t('tasks.new')" icon="pi pi-plus" @click="openEdit()" />
+        <Button :label="t('tasks.new')" icon="iconify lucide--plus" @click="openEdit()" />
       </template>
     </AppPageHeader>
 
@@ -186,7 +186,9 @@ async function toggleDone(task: Task) {
       <Column column-key="done" header-style="width: 3.5rem" :reorderable-column="false">
         <template #body="{ data }"
           ><AppIconButton
-            :icon="data.status === 'done' ? 'pi pi-check-circle' : 'pi pi-circle'"
+            :icon="
+              data.status === 'done' ? 'iconify lucide--circle-check' : 'iconify lucide--circle'
+            "
             :class="data.status === 'done' ? 'text-success! opacity-100!' : 'opacity-100!'"
             :label="data.status === 'done' ? t('tasks.reopen') : t('tasks.markDone')"
             :title="data.status === 'done' ? t('tasks.reopen') : t('tasks.markDone')"
@@ -249,7 +251,7 @@ async function toggleDone(task: Task) {
       <Column :reorderable-column="false">
         <template #body="{ data }"
           ><AppIconButton
-            icon="pi pi-trash"
+            icon="iconify lucide--trash-2"
             severity="danger"
             @click.stop="
               confirmDelete(async () => {
@@ -262,7 +264,9 @@ async function toggleDone(task: Task) {
       <template #card="{ row }">
         <div class="flex items-center gap-2">
           <AppIconButton
-            :icon="row.status === 'done' ? 'pi pi-check-circle' : 'pi pi-circle'"
+            :icon="
+              row.status === 'done' ? 'iconify lucide--circle-check' : 'iconify lucide--circle'
+            "
             :class="{ 'text-success!': row.status === 'done' }"
             :label="row.status === 'done' ? t('tasks.reopen') : t('tasks.markDone')"
             @click.stop="toggleDone(row)"

@@ -196,14 +196,19 @@ async function save() {
         <span :title="isDirty ? t('designer.exportSaveFirst') : undefined">
           <Button
             :label="t('designer.exportTemplate')"
-            icon="pi pi-download"
+            icon="iconify lucide--download"
             severity="secondary"
             :disabled="isDirty"
             @click="exportTemplate"
           />
         </span>
         <AppSegmented v-model="previewMode" :options="previewModes" />
-        <Button :label="t('common.save')" icon="pi pi-save" :loading="saving" @click="save" />
+        <Button
+          :label="t('common.save')"
+          icon="iconify lucide--save"
+          :loading="saving"
+          @click="save"
+        />
       </template>
     </AppPageHeader>
 
@@ -321,7 +326,9 @@ async function save() {
           t('designer.previewStale', { error: previewError })
         }}</Message>
         <div v-if="pdfLoading" class="flex flex-1 items-center justify-center text-surface-500">
-          <i class="pi pi-spin pi-spinner mr-2" />{{ t('designer.generatingPdf') }}
+          <i class="iconify lucide--loader-circle animate-spin mr-2" />{{
+            t('designer.generatingPdf')
+          }}
         </div>
         <InvoicePreviewFrame
           v-else

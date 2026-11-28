@@ -256,7 +256,7 @@ async function importTemplate(event: Event) {
         <template v-else-if="activeTab === 'templates'">
           <Button
             :label="t('designer.importTemplate')"
-            icon="pi pi-upload"
+            icon="iconify lucide--upload"
             @click="importInput?.click()"
           />
           <input
@@ -267,18 +267,22 @@ async function importTemplate(event: Event) {
             class="hidden"
             @change="importTemplate"
           />
-          <Button :label="t('designer.newTemplate')" icon="pi pi-plus" @click="openNewTemplate" />
+          <Button
+            :label="t('designer.newTemplate')"
+            icon="iconify lucide--plus"
+            @click="openNewTemplate"
+          />
         </template>
         <Button
           v-else-if="activeTab === 'mailTemplates'"
           :label="t('designer.newMailTemplate')"
-          icon="pi pi-plus"
+          icon="iconify lucide--plus"
           @click="openNewMail"
         />
         <Button
           v-else-if="activeTab === 'textBlocks'"
           :label="t('designer.newTextBlock')"
-          icon="pi pi-plus"
+          icon="iconify lucide--plus"
           @click="openTextBlock()"
         />
       </template>
@@ -347,12 +351,12 @@ async function importTemplate(event: Event) {
             <Column header-style="width: 7.5rem" :reorderable-column="false">
               <template #body="{ data }">
                 <AppIconButton
-                  icon="pi pi-copy"
+                  icon="iconify lucide--copy"
                   :label="t('designer.duplicate')"
                   @click.stop="duplicateTemplate(data)"
                 />
                 <AppIconButton
-                  icon="pi pi-download"
+                  icon="iconify lucide--download"
                   :href="templatesApi.exportUrl(data.id)"
                   download
                   :label="t('designer.exportTemplate')"
@@ -361,7 +365,7 @@ async function importTemplate(event: Event) {
                 <!-- At least one template has to stay; the backend refuses deleting the last one. -->
                 <AppIconButton
                   v-if="rows.length > 1"
-                  icon="pi pi-trash"
+                  icon="iconify lucide--trash-2"
                   severity="danger"
                   @click.stop="removeTemplate(data)"
                 />
@@ -392,14 +396,14 @@ async function importTemplate(event: Event) {
             <Column header-style="width: 5.5rem" :reorderable-column="false">
               <template #body="{ data }">
                 <AppIconButton
-                  icon="pi pi-copy"
+                  icon="iconify lucide--copy"
                   :label="t('designer.duplicate')"
                   @click.stop="duplicateMailTemplate(data)"
                 />
                 <!-- Assigned templates and bases of others stay; the backend refuses. -->
                 <AppIconButton
                   v-if="!data.assigned_kinds.length && !data.derived_count"
-                  icon="pi pi-trash"
+                  icon="iconify lucide--trash-2"
                   severity="danger"
                   @click.stop="removeMailTemplate(data)"
                 />
@@ -435,7 +439,7 @@ async function importTemplate(event: Event) {
             <Column :reorderable-column="false">
               <template #body="{ data }"
                 ><AppIconButton
-                  icon="pi pi-trash"
+                  icon="iconify lucide--trash-2"
                   severity="danger"
                   @click.stop="removeTextBlock(data)"
               /></template>

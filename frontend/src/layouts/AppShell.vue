@@ -48,24 +48,24 @@ onBeforeUnmount(() => {
 const accountItems = computed(() => [
   {
     label: t('settings.security'),
-    icon: 'pi pi-shield',
+    icon: 'iconify lucide--shield',
     command: () => router.push('/settings/security'),
   },
   { separator: true },
-  { label: t('auth.logout'), icon: 'pi pi-sign-out', command: logout },
+  { label: t('auth.logout'), icon: 'iconify lucide--log-out', command: logout },
 ])
 
 const items = computed(() => [
-  { to: '/', icon: 'pi pi-chart-bar', label: t('nav.dashboard'), exact: true },
-  { to: '/customers', icon: 'pi pi-users', label: t('nav.customers') },
-  { to: '/projects', icon: 'pi pi-briefcase', label: t('nav.projects') },
-  { to: '/tasks', icon: 'pi pi-check-square', label: t('nav.tasks') },
-  { to: '/time', icon: 'pi pi-clock', label: t('nav.timetracking') },
-  { to: '/visits', icon: 'pi pi-map-marker', label: t('nav.visits') },
-  { to: '/contracts', icon: 'pi pi-file', label: t('nav.contracts') },
-  { to: '/invoices', icon: 'pi pi-money-bill', label: t('nav.invoices') },
-  { to: '/templates', icon: 'pi pi-palette', label: t('nav.templates') },
-  { to: '/settings', icon: 'pi pi-cog', label: t('nav.settings') },
+  { to: '/', icon: 'iconify lucide--layout-dashboard', label: t('nav.dashboard'), exact: true },
+  { to: '/customers', icon: 'iconify lucide--users', label: t('nav.customers') },
+  { to: '/projects', icon: 'iconify lucide--briefcase', label: t('nav.projects') },
+  { to: '/tasks', icon: 'iconify lucide--list-checks', label: t('nav.tasks') },
+  { to: '/time', icon: 'iconify lucide--clock', label: t('nav.timetracking') },
+  { to: '/visits', icon: 'iconify lucide--map-pin', label: t('nav.visits') },
+  { to: '/contracts', icon: 'iconify lucide--file-signature', label: t('nav.contracts') },
+  { to: '/invoices', icon: 'iconify lucide--receipt', label: t('nav.invoices') },
+  { to: '/templates', icon: 'iconify lucide--palette', label: t('nav.templates') },
+  { to: '/settings', icon: 'iconify lucide--settings', label: t('nav.settings') },
 ])
 
 const locales = [
@@ -160,7 +160,7 @@ async function logout() {
         >
           <AppLogo />
           <AppIconButton
-            icon="pi pi-times"
+            icon="iconify lucide--x"
             class="ms-auto"
             :label="t('common.close')"
             @click="menuOpen = false"
@@ -193,7 +193,7 @@ async function logout() {
         class="h-14 shrink-0 flex items-center gap-2 px-3 lg:px-5 border-b border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900"
       >
         <AppIconButton
-          icon="pi pi-bars"
+          icon="iconify lucide--menu"
           class="nav:hidden"
           :label="t('common.menu')"
           @click="menuOpen = true"
@@ -210,17 +210,17 @@ async function logout() {
         >
           <template #value="{ value }">
             <span class="inline-flex items-center gap-1.5"
-              ><i class="pi pi-globe text-xs" />{{ String(value).toUpperCase() }}</span
+              ><i class="iconify lucide--globe text-xs" />{{ String(value).toUpperCase() }}</span
             >
           </template>
         </Select>
         <AppIconButton
-          :icon="dark ? 'pi pi-sun' : 'pi pi-moon'"
+          :icon="dark ? 'iconify lucide--sun' : 'iconify lucide--moon'"
           :label="t('common.toggleTheme')"
           @click="toggleDark"
         />
         <Button
-          icon="pi pi-user"
+          icon="iconify lucide--user"
           text
           severity="secondary"
           :label="auth.user?.username"

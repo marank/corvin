@@ -77,7 +77,7 @@ defineExpose({ open })
         :href="shown?.url"
         :download="shown?.name"
         :label="t('common.download')"
-        icon="pi pi-download"
+        icon="iconify lucide--download"
       />
     </template>
   </AppModal>

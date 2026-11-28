@@ -11,7 +11,7 @@ defineProps<{ title: string; subtitle?: string; backTo?: string; backLabel?: str
       :to="backTo"
       class="inline-flex items-center gap-1 text-sm text-surface-500 hover:text-primary mb-1"
     >
-      <i class="pi pi-arrow-left text-xs" />{{ backLabel }}
+      <i class="iconify lucide--arrow-left text-xs" />{{ backLabel }}
     </router-link>
     <div class="flex flex-wrap items-center gap-3">
       <div class="min-w-0">

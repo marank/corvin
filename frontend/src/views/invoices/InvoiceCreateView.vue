@@ -259,7 +259,7 @@ watch(projectId, (value, previous) => {
   confirm.require({
     header: t('invoices.otherProjectsTitle'),
     message: t('invoices.otherProjectsMessage', others.length),
-    icon: 'pi pi-exclamation-triangle',
+    icon: 'iconify lucide--triangle-alert',
     rejectLabel: t('common.cancel'),
     rejectProps: { text: true },
     acceptLabel: t('invoices.removeOtherProjects'),
@@ -282,7 +282,7 @@ function changeGroupBy(value: string) {
   confirm.require({
     header: t('invoices.regroupTitle'),
     message: t('invoices.regroupMessage'),
-    icon: 'pi pi-exclamation-triangle',
+    icon: 'iconify lucide--triangle-alert',
     rejectLabel: t('common.cancel'),
     rejectProps: { text: true },
     acceptLabel: t('invoices.regroup'),
@@ -587,7 +587,7 @@ async function create() {
         <Button :label="t('common.cancel')" text @click="router.push(backTo)" />
         <Button
           :label="invoiceId ? t('common.save') : t('invoices.createDraft')"
-          icon="pi pi-check"
+          icon="iconify lucide--check"
           :loading="creating"
           :disabled="!canCreate"
           @click="create"
@@ -630,7 +630,10 @@ async function create() {
           :aria-expanded="showMore"
           @click="showMore = !showMore"
         >
-          <i :class="showMore ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="text-xs" />
+          <i
+            :class="showMore ? 'iconify lucide--chevron-up' : 'iconify lucide--chevron-down'"
+            class="text-xs"
+          />
           {{ showMore ? t('invoices.showLess') : t('invoices.showMore') }}
         </button>
         <div v-if="showMore" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-4">
@@ -708,14 +711,14 @@ async function create() {
           <div class="flex gap-2 ms-auto">
             <Button
               :label="t('invoices.fetchPositions')"
-              icon="pi pi-download"
+              icon="iconify lucide--download"
               size="small"
               :disabled="!customerId"
               @click="openFetch"
             />
             <Button
               :label="t('invoices.addLine')"
-              icon="pi pi-plus"
+              icon="iconify lucide--plus"
               size="small"
               outlined
               :disabled="!customerId"
@@ -878,7 +881,7 @@ async function create() {
           <Column column-key="actions" :reorderable-column="false">
             <template #body="{ data }">
               <AppIconButton
-                icon="pi pi-trash"
+                icon="iconify lucide--trash-2"
                 severity="danger"
                 :label="t('common.delete')"
                 @click="removeLine(data)"

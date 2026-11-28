@@ -96,21 +96,25 @@ function entrySaved() {
     <template v-if="timer.running">
       <AppIconButton
         v-if="timer.running.is_paused"
-        icon="pi pi-play"
+        icon="iconify lucide--play"
         :label="t('time.resumeTimer')"
         @click="run(timer.resume)"
       />
       <AppIconButton
         v-else
-        icon="pi pi-pause"
+        icon="iconify lucide--pause"
         :label="t('time.pauseTimer')"
         @click="run(timer.pause)"
       />
-      <AppIconButton icon="pi pi-stop" :label="t('time.stopTimer')" @click="run(timer.stop)" />
+      <AppIconButton
+        icon="iconify lucide--square"
+        :label="t('time.stopTimer')"
+        @click="run(timer.stop)"
+      />
     </template>
     <AppIconButton
       v-else
-      icon="pi pi-play"
+      icon="iconify lucide--play"
       :label="t('time.startTimer')"
       @click="timer.requestStart()"
     />

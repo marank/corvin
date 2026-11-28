@@ -7,7 +7,7 @@ const { t } = useI18n()
 
 <template>
   <div class="flex flex-col items-center justify-center py-12 text-surface-400 gap-2">
-    <i :class="icon ?? 'pi pi-inbox'" style="font-size: 2rem" />
+    <i :class="icon ?? 'iconify lucide--inbox'" style="font-size: 2rem" />
     <p class="text-sm">{{ message ?? t('common.empty') }}</p>
     <slot />
   </div>

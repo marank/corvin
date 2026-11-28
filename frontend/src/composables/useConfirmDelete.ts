@@ -11,7 +11,7 @@ export function useConfirmDelete() {
     confirm.require({
       header: t('common.delete'),
       message: t('common.deleteConfirm'),
-      icon: 'pi pi-trash',
+      icon: 'iconify lucide--trash-2',
       rejectLabel: t('common.cancel'),
       rejectProps: { text: true },
       acceptLabel: t('common.delete'),

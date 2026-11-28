@@ -101,7 +101,7 @@ async function save() {
   <div>
     <AppPageHeader :title="t('visits.title')">
       <template #actions>
-        <Button :label="t('visits.new')" icon="pi pi-plus" @click="openNew" />
+        <Button :label="t('visits.new')" icon="iconify lucide--plus" @click="openNew" />
       </template>
     </AppPageHeader>
 
@@ -186,7 +186,7 @@ async function save() {
       <Column :reorderable-column="false">
         <template #body="{ data }"
           ><AppIconButton
-            icon="pi pi-trash"
+            icon="iconify lucide--trash-2"
             severity="danger"
             @click.stop="
               confirmDelete(async () => {

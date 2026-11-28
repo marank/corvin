@@ -480,7 +480,7 @@ async function save() {
             <div class="flex justify-end mb-3">
               <Button
                 :label="t('settings.newBankAccount')"
-                icon="pi pi-plus"
+                icon="iconify lucide--plus"
                 size="small"
                 @click="openBankAccount()"
               />
@@ -511,10 +511,10 @@ async function save() {
                 :reorderable-column="false"
               >
                 <template #body="{ data }">
-                  <i v-if="form.default_bank_account === data.id" class="pi pi-check" />
+                  <i v-if="form.default_bank_account === data.id" class="iconify lucide--check" />
                   <Button
                     v-else-if="data.is_active"
-                    icon="pi pi-star"
+                    icon="iconify lucide--star"
                     text
                     size="small"
                     @click.stop="setDefaultBankAccount(data)"
@@ -524,7 +524,7 @@ async function save() {
               <Column :reorderable-column="false">
                 <template #body="{ data }"
                   ><AppIconButton
-                    icon="pi pi-trash"
+                    icon="iconify lucide--trash-2"
                     severity="danger"
                     @click.stop="removeBankAccount(data)"
                 /></template>
@@ -537,7 +537,7 @@ async function save() {
             <div class="flex justify-end mb-3">
               <Button
                 :label="t('settings.newCompanyContact')"
-                icon="pi pi-plus"
+                icon="iconify lucide--plus"
                 size="small"
                 @click="openContact()"
               />
@@ -556,7 +556,7 @@ async function save() {
               <Column :reorderable-column="false">
                 <template #body="{ data }"
                   ><AppIconButton
-                    icon="pi pi-trash"
+                    icon="iconify lucide--trash-2"
                     severity="danger"
                     @click.stop="removeContact(data)"
                 /></template>
@@ -586,7 +586,7 @@ async function save() {
                 </div>
                 <div class="flex gap-2">
                   <label class="p-button p-component p-button-sm cursor-pointer">
-                    <i class="pi pi-upload mr-2" />{{ t('settings.uploadImage') }}
+                    <i class="iconify lucide--upload mr-2" />{{ t('settings.uploadImage') }}
                     <input
                       type="file"
                       accept="image/*"
@@ -596,7 +596,7 @@ async function save() {
                   </label>
                   <AppIconButton
                     v-if="imageFor(kind)"
-                    icon="pi pi-trash"
+                    icon="iconify lucide--trash-2"
                     severity="danger"
                     @click="removeImage(imageFor(kind)!)"
                   />
@@ -609,7 +609,7 @@ async function save() {
                 <h3 class="font-medium">{{ t('settings.additionalImages') }}</h3>
                 <Button
                   :label="t('settings.addImage')"
-                  icon="pi pi-plus"
+                  icon="iconify lucide--plus"
                   size="small"
                   @click="openAdditionalImage"
                 />
@@ -624,7 +624,7 @@ async function save() {
                   <div class="font-medium text-sm truncate">{{ image.name }}</div>
                   <code class="text-xs text-surface-500">{{ image.key }}</code>
                   <AppIconButton
-                    icon="pi pi-trash"
+                    icon="iconify lucide--trash-2"
                     severity="danger"
                     class="float-right"
                     @click="removeImage(image)"

@@ -166,7 +166,12 @@ function remove() {
           severity="danger"
           @click="remove"
         />
-        <Button :label="t('common.save')" icon="pi pi-save" :loading="saving" @click="save" />
+        <Button
+          :label="t('common.save')"
+          icon="iconify lucide--save"
+          :loading="saving"
+          @click="save"
+        />
       </template>
     </AppPageHeader>
 

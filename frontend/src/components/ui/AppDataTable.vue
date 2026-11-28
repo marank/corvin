@@ -9,7 +9,6 @@ import {
   watch,
   type VNode,
 } from 'vue'
-import { ArrowRightFromLine, Columns3Cog, Rows3, Rows4, UnfoldHorizontal } from '@lucide/vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import DataTable, {
@@ -89,8 +88,6 @@ const columnPrefs = useColumnPrefs(props.stateKey)
 const root = ref<HTMLElement>()
 const chooser = ref<InstanceType<typeof Popover>>()
 const fitted = computed(() => !!columnPrefs.prefs.value.fit)
-// The toolbar's icons: one size and stroke, never squeezed by the button.
-const toolIcon = { size: 16, strokeWidth: 1.75, class: 'shrink-0' }
 const onMediaChange = (e: MediaQueryListEvent) => {
   isDesktop.value = e.matches
 }
@@ -335,9 +332,9 @@ function toggleSortOrder() {
         :aria-label="t('table.columns')"
         :title="t('table.columns')"
         aria-haspopup="true"
+        icon="iconify lucide--columns-3-cog"
         @click="chooser?.toggle($event)"
-        ><template #icon><Columns3Cog v-bind="toolIcon" /></template
-      ></Button>
+      />
       <Popover ref="chooser">
         <div class="flex flex-col gap-1 min-w-48 max-h-96 overflow-y-auto">
           <div class="text-xs font-semibold text-surface-500 mb-1">{{ t('table.columns') }}</div>
@@ -356,7 +353,7 @@ function toggleSortOrder() {
           </label>
           <Button
             :label="t('table.resetColumns')"
-            icon="pi pi-refresh"
+            icon="iconify lucide--rotate-ccw"
             size="small"
             text
             severity="secondary"
@@ -374,14 +371,11 @@ function toggleSortOrder() {
         severity="secondary"
         :aria-label="fitted ? t('table.freeWidth') : t('table.fitWidth')"
         :title="fitted ? t('table.freeWidth') : t('table.fitWidth')"
+        :icon="
+          fitted ? 'iconify lucide--arrow-right-from-line' : 'iconify lucide--unfold-horizontal'
+        "
         @click="columnPrefs.setFit(!fitted, columns)"
-      >
-        <template #icon
-          ><ArrowRightFromLine v-if="fitted" v-bind="toolIcon" /><UnfoldHorizontal
-            v-else
-            v-bind="toolIcon"
-        /></template>
-      </Button>
+      />
       <Button
         v-if="isDesktop"
         size="small"
@@ -389,12 +383,9 @@ function toggleSortOrder() {
         severity="secondary"
         :aria-label="density === 'compact' ? t('table.comfortable') : t('table.compact')"
         :title="density === 'compact' ? t('table.comfortable') : t('table.compact')"
+        :icon="density === 'compact' ? 'iconify lucide--rows-3' : 'iconify lucide--rows-4'"
         @click="density = density === 'compact' ? 'comfortable' : 'compact'"
-      >
-        <template #icon
-          ><Rows3 v-if="density === 'compact'" v-bind="toolIcon" /><Rows4 v-else v-bind="toolIcon"
-        /></template>
-      </Button>
+      />
     </div>
 
     <DataTable
@@ -456,7 +447,11 @@ function toggleSortOrder() {
           @update:model-value="updateMobileSort"
         />
         <Button
-          :icon="localSortOrder === 1 ? 'pi pi-sort-amount-up' : 'pi pi-sort-amount-down'"
+          :icon="
+            localSortOrder === 1
+              ? 'iconify lucide--arrow-up-narrow-wide'
+              : 'iconify lucide--arrow-down-wide-narrow'
+          "
           :aria-label="localSortOrder === 1 ? t('table.ascending') : t('table.descending')"
           severity="secondary"
           outlined

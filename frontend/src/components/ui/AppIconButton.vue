@@ -21,9 +21,9 @@ const { t } = useI18n()
 const accessibleName = computed(
   () =>
     props.label ??
-    (props.icon.includes('pi-trash')
+    (props.icon.includes('lucide--trash-2')
       ? t('common.delete')
-      : props.icon.includes('pi-pencil')
+      : props.icon.includes('lucide--pencil')
         ? t('common.edit')
         : undefined),
 )

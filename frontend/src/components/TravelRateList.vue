@@ -77,7 +77,7 @@ function remove(rate: TravelRate) {
       <h3 class="font-semibold">{{ t('travel.rates') }}</h3>
       <Button
         :label="t('travel.newRate')"
-        icon="pi pi-plus"
+        icon="iconify lucide--plus"
         size="small"
         class="ms-auto"
         @click="open()"
@@ -116,7 +116,7 @@ function remove(rate: TravelRate) {
       <Column :reorderable-column="false">
         <template #body="{ data }">
           <AppIconButton
-            icon="pi pi-trash"
+            icon="iconify lucide--trash-2"
             severity="danger"
             :label="t('common.delete')"
             @click.stop="remove(data)"

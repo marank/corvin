@@ -221,10 +221,10 @@ describe('SettingsProfileView', () => {
       const { api } = backend()
       await open('/settings?tab=bankAccounts')
       const row = activeTab().row('Tagesgeld')
-      await click(row.querySelector('.pi-star')!.closest('button')!)
+      await click(row.querySelector('.lucide--star')!.closest('button')!)
       expect(api.lastBody('PUT', '/settings/')).toEqual({ default_bank_account: 'bank-2' })
-      expect(activeTab().row('Tagesgeld').querySelector('.pi-check')).not.toBeNull()
-      expect(activeTab().row('Hausbank').querySelector('.pi-check')).toBeNull()
+      expect(activeTab().row('Tagesgeld').querySelector('.lucide--check')).not.toBeNull()
+      expect(activeTab().row('Hausbank').querySelector('.lucide--check')).toBeNull()
     })
 
     it('forgets the default when its account is deleted', async () => {

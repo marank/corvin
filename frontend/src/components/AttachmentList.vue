@@ -67,12 +67,12 @@ function remove(a: Attachment) {
       :disabled="uploading"
       @uploader="onUpload"
       :choose-label="t('common.upload')"
-      choose-icon="pi pi-upload"
+      choose-icon="iconify lucide--upload"
     />
     <AppEmptyState v-if="!items.length" />
     <ul v-else class="mt-3 divide-y divide-surface-200 dark:divide-surface-800">
       <li v-for="a in items" :key="a.id" class="flex items-center gap-3 py-2">
-        <i class="pi pi-paperclip" />
+        <i class="iconify lucide--paperclip" />
         <button
           v-if="a.preview"
           type="button"
@@ -89,7 +89,7 @@ function remove(a: Attachment) {
           :value="a.uploaded_at"
           type="datetime"
         />
-        <AppIconButton icon="pi pi-trash" severity="danger" @click="remove(a)" />
+        <AppIconButton icon="iconify lucide--trash-2" severity="danger" @click="remove(a)" />
       </li>
     </ul>
     <AttachmentPreview ref="preview" />

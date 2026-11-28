@@ -171,7 +171,7 @@ async function run(action: () => Promise<unknown>) {
           <Button
             v-if="timer.running.is_paused"
             :label="t('time.resumeTimer')"
-            icon="pi pi-play"
+            icon="iconify lucide--play"
             severity="secondary"
             outlined
             @click="run(timer.resume)"
@@ -179,14 +179,14 @@ async function run(action: () => Promise<unknown>) {
           <Button
             v-else
             :label="t('time.pauseTimer')"
-            icon="pi pi-pause"
+            icon="iconify lucide--pause"
             severity="secondary"
             outlined
             @click="run(timer.pause)"
           />
           <Button
             :label="t('time.stopTimer')"
-            icon="pi pi-stop"
+            icon="iconify lucide--square"
             severity="danger"
             @click="run(timer.stop)"
           />
@@ -194,10 +194,10 @@ async function run(action: () => Promise<unknown>) {
         <Button
           v-else
           :label="t('time.startTimer')"
-          icon="pi pi-play"
+          icon="iconify lucide--play"
           @click="timer.requestStart()"
         />
-        <Button :label="t('time.new')" icon="pi pi-plus" @click="openEdit()" />
+        <Button :label="t('time.new')" icon="iconify lucide--plus" @click="openEdit()" />
       </template>
     </AppPageHeader>
 
@@ -301,7 +301,7 @@ async function run(action: () => Promise<unknown>) {
         <template #body="{ data }"
           ><i
             v-if="data.report"
-            class="pi pi-file-edit text-surface-500 mr-1.5 text-xs"
+            class="iconify lucide--file-pen text-surface-500 mr-1.5 text-xs"
             role="img"
             :aria-label="t('time.hasReport')"
             :title="t('time.hasReport')"
@@ -333,7 +333,7 @@ async function run(action: () => Promise<unknown>) {
       </Column>
       <Column field="billable" :header="t('time.billable')" header-style="width: 6.5rem">
         <template #body="{ data }">
-          <i v-if="data.billable" class="pi pi-check" />
+          <i v-if="data.billable" class="iconify lucide--check" />
         </template>
       </Column>
       <Column field="invoice_number" :header="t('time.invoiced')" header-style="width: 7rem">
@@ -358,7 +358,7 @@ async function run(action: () => Promise<unknown>) {
         <template #body="{ data }"
           ><AppIconButton
             v-if="!data.invoice"
-            icon="pi pi-trash"
+            icon="iconify lucide--trash-2"
             severity="danger"
             @click.stop="
               confirmDelete(async () => {
@@ -374,7 +374,7 @@ async function run(action: () => Promise<unknown>) {
             <div class="font-medium">
               <i
                 v-if="row.report"
-                class="pi pi-file-edit text-surface-500 mr-1 text-xs"
+                class="iconify lucide--file-pen text-surface-500 mr-1 text-xs"
                 role="img"
                 :aria-label="t('time.hasReport')"
               />{{ row.description || row.project_name || '—' }}

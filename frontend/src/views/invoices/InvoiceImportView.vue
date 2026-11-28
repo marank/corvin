@@ -145,7 +145,7 @@ async function save() {
         <Button :label="t('common.cancel')" text @click="router.push('/invoices')" />
         <Button
           :label="t('invoices.importSave')"
-          icon="pi pi-check"
+          icon="iconify lucide--check"
           :loading="saving"
           :disabled="!canSave"
           @click="save"
@@ -213,7 +213,7 @@ async function save() {
             <div class="flex items-center gap-2 min-w-0">
               <Button
                 :label="t('common.chooseFile')"
-                icon="pi pi-file-pdf"
+                icon="iconify lucide--file-text"
                 severity="secondary"
                 outlined
                 @click="pdfInput?.click()"
@@ -233,7 +233,7 @@ async function save() {
             <div class="flex items-center gap-2 min-w-0">
               <Button
                 :label="t('common.chooseFile')"
-                icon="pi pi-code"
+                icon="iconify lucide--file-code"
                 severity="secondary"
                 outlined
                 @click="xmlInput?.click()"

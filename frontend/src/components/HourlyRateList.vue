@@ -96,7 +96,7 @@ function remove(rate: HourlyRate) {
       </p>
       <Button
         :label="customerId ? t('customers.newRate') : t('rates.newDefault')"
-        icon="pi pi-plus"
+        icon="iconify lucide--plus"
         size="small"
         class="ms-auto"
         @click="open()"
@@ -125,7 +125,7 @@ function remove(rate: HourlyRate) {
       <Column :reorderable-column="false">
         <template #body="{ data }">
           <AppIconButton
-            icon="pi pi-trash"
+            icon="iconify lucide--trash-2"
             severity="danger"
             :label="t('common.delete')"
             @click.stop="remove(data)"

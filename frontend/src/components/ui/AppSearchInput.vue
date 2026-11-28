@@ -26,7 +26,7 @@ onBeforeUnmount(() => clearTimeout(timer))
 
 <template>
   <IconField>
-    <InputIcon class="pi pi-search" />
+    <InputIcon class="iconify lucide--search" />
     <InputText
       v-model="text"
       :placeholder="t('common.search')"

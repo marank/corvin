@@ -173,7 +173,7 @@ const pieOpts = computed(() => ({
           <AppEmptyState
             v-else
             :message="t('dashboard.noRevenue')"
-            icon="pi pi-chart-bar"
+            icon="iconify lucide--chart-column"
             class="h-full"
           />
         </div>
@@ -191,7 +191,7 @@ const pieOpts = computed(() => ({
           <AppEmptyState
             v-else
             :message="t('dashboard.noHours')"
-            icon="pi pi-clock"
+            icon="iconify lucide--clock"
             class="h-full"
           />
         </div>

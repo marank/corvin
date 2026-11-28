@@ -87,7 +87,7 @@ function revokeOthers() {
   confirm.require({
     header: t('settings.revokeOthers'),
     message: t('settings.revokeOthersConfirm'),
-    icon: 'pi pi-sign-out',
+    icon: 'iconify lucide--log-out',
     rejectLabel: t('common.cancel'),
     rejectProps: { text: true },
     acceptLabel: t('settings.revokeOthers'),

@@ -2,8 +2,19 @@
 @layer theme, base, primevue, components, utilities;
 
 @import 'tailwindcss';
-@import 'primeicons/primeicons.css';
+/* Lucide icons as classes: `iconify lucide--<name>`; only the used ones are built. */
+@plugin '@iconify/tailwind4' {
+  prefixes: lucide;
+  scale: 1.15;
+}
 @import '@fontsource/space-grotesk/latin-600.css';
+
+@layer base {
+  .iconify {
+    flex-shrink: 0;
+    vertical-align: -0.2em;
+  }
+}
 
 @custom-variant dark (&:where(.dark, .dark *));
 

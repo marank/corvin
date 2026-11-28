@@ -50,7 +50,7 @@ const Host = defineComponent({
               { reorderableColumn: false },
               {
                 body: ({ data }: { data: Row }) => [
-                  h(AppIconButton, { icon: 'pi pi-pencil', label: `edit ${data.name}` }),
+                  h(AppIconButton, { icon: 'iconify lucide--pencil', label: `edit ${data.name}` }),
                 ],
               },
             ),

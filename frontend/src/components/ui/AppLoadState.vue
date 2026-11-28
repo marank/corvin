@@ -11,9 +11,13 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <AppEmptyState v-if="failed" icon="pi pi-exclamation-circle" :message="t('common.loadFailed')">
+  <AppEmptyState
+    v-if="failed"
+    icon="iconify lucide--circle-alert"
+    :message="t('common.loadFailed')"
+  >
     <router-link :to="backTo"
-      ><Button :label="backLabel" icon="pi pi-arrow-left" text size="small"
+      ><Button :label="backLabel" icon="iconify lucide--arrow-left" text size="small"
     /></router-link>
   </AppEmptyState>
   <div v-else class="flex justify-center py-16">

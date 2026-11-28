@@ -86,7 +86,7 @@ async function save() {
         <Button
           v-if="tab === 'overview'"
           :label="t('overview.createInvoice')"
-          icon="pi pi-file"
+          icon="iconify lucide--receipt"
           @click="router.push(`/invoices/new?customer=${project.customer}&project=${id}`)"
         />
         <Button

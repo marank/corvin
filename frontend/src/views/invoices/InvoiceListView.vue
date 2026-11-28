@@ -32,7 +32,7 @@ const moreMenu = ref<InstanceType<typeof Menu>>()
 const moreActions = computed(() => [
   {
     label: t('invoices.importExternal'),
-    icon: 'pi pi-upload',
+    icon: 'iconify lucide--upload',
     command: () => void router.push('/invoices/import'),
   },
 ])
@@ -98,11 +98,11 @@ async function load() {
       <template #actions>
         <Button
           :label="t('invoices.new')"
-          icon="pi pi-plus"
+          icon="iconify lucide--plus"
           @click="router.push('/invoices/new')"
         />
         <Button
-          icon="pi pi-ellipsis-v"
+          icon="iconify lucide--ellipsis-vertical"
           text
           severity="secondary"
           :aria-label="t('common.moreActions')"
@@ -246,7 +246,7 @@ async function load() {
         <template #body="{ data }">
           <AppIconButton
             v-if="data.status === 'draft'"
-            icon="pi pi-trash"
+            icon="iconify lucide--trash-2"
             severity="danger"
             @click.stop="
               confirmDelete(async () => {

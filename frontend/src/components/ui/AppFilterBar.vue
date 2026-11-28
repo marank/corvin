@@ -23,7 +23,7 @@ const popover = ref<InstanceType<typeof Popover>>()
   <div class="flex flex-wrap items-center gap-2">
     <Button
       :label="t('common.filter')"
-      icon="pi pi-filter"
+      icon="iconify lucide--funnel"
       size="small"
       severity="secondary"
       outlined
@@ -37,7 +37,7 @@ const popover = ref<InstanceType<typeof Popover>>()
         <Button
           v-if="active.length"
           :label="t('common.clearFilters')"
-          icon="pi pi-filter-slash"
+          icon="iconify lucide--funnel-x"
           text
           size="small"
           class="self-start"

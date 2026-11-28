@@ -88,7 +88,7 @@ const picked = computed({
         @keydown.esc="show(props.modelValue)"
       />
       <Button
-        icon="pi pi-calendar"
+        icon="iconify lucide--calendar"
         severity="secondary"
         class="picker-button"
         :aria-label="t('time.pickDate')"

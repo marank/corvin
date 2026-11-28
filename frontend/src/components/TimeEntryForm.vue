@@ -306,7 +306,7 @@ defineExpose({ save, saving, state })
             <span class="text-sm font-medium">{{ t('time.breaks') }}</span>
             <Button
               :label="t('time.addBreak')"
-              icon="pi pi-plus"
+              icon="iconify lucide--plus"
               size="small"
               text
               @click="addBreak"
@@ -327,7 +327,7 @@ defineExpose({ save, saving, state })
               <AppDateTimeInput v-model="b.end_datetime" :reference="b.start_datetime" />
             </AppFormField>
             <AppIconButton
-              icon="pi pi-trash"
+              icon="iconify lucide--trash-2"
               severity="danger"
               :label="t('common.delete')"
               @click="removeBreak(index)"

@@ -9,7 +9,7 @@ const global = { plugins: [i18n] }
 describe('AppIconButton', () => {
   it('is a named button that reports clicks', async () => {
     const wrapper = mount(AppIconButton, {
-      props: { icon: 'pi pi-play', label: 'Start', title: 'Start timer' },
+      props: { icon: 'iconify lucide--play', label: 'Start', title: 'Start timer' },
       global,
     })
     const button = wrapper.get('button')
@@ -20,13 +20,18 @@ describe('AppIconButton', () => {
   })
 
   it('names the common icons itself', () => {
-    const wrapper = mount(AppIconButton, { props: { icon: 'pi pi-trash' }, global })
+    const wrapper = mount(AppIconButton, { props: { icon: 'iconify lucide--trash-2' }, global })
     expect(wrapper.get('button').attributes('aria-label')).toBe(i18n.global.t('common.delete'))
   })
 
   it('renders a download link with href', () => {
     const wrapper = mount(AppIconButton, {
-      props: { icon: 'pi pi-download', label: 'Export', href: '/export.json', download: true },
+      props: {
+        icon: 'iconify lucide--download',
+        label: 'Export',
+        href: '/export.json',
+        download: true,
+      },
       global,
     })
     const link = wrapper.get('a')

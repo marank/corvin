@@ -148,9 +148,15 @@ function removeContact(c: Contact) {
 // column stays narrow with all three set.
 function addressRoles(address: Address) {
   return [
-    address.is_primary && { icon: 'pi pi-star-fill', label: t('customers.primary') },
-    address.is_invoice_address && { icon: 'pi pi-file', label: t('customers.invoiceAddress') },
-    address.is_delivery_address && { icon: 'pi pi-truck', label: t('customers.deliveryAddress') },
+    address.is_primary && { icon: 'iconify lucide--star', label: t('customers.primary') },
+    address.is_invoice_address && {
+      icon: 'iconify lucide--receipt',
+      label: t('customers.invoiceAddress'),
+    },
+    address.is_delivery_address && {
+      icon: 'iconify lucide--truck',
+      label: t('customers.deliveryAddress'),
+    },
   ].filter((role) => role !== false)
 }
 
@@ -220,7 +226,7 @@ function removeAddress(a: Address) {
         <Button
           v-if="tab === 'overview'"
           :label="t('overview.createInvoice')"
-          icon="pi pi-file"
+          icon="iconify lucide--receipt"
           @click="router.push(`/invoices/new?customer=${id}`)"
         />
         <Button
@@ -336,7 +342,7 @@ function removeAddress(a: Address) {
           <div class="flex justify-end pt-4 mb-2">
             <Button
               :label="t('customers.newContact')"
-              icon="pi pi-plus"
+              icon="iconify lucide--plus"
               size="small"
               @click="openContact()"
             />
@@ -354,14 +360,14 @@ function removeAddress(a: Address) {
             <Column class="app-text" field="phone" :header="t('common.phone')" sortable />
             <Column :header="t('customers.forInvoices')">
               <template #body="{ data }"
-                ><i v-if="data.is_invoice_contact" class="pi pi-check"
+                ><i v-if="data.is_invoice_contact" class="iconify lucide--check"
               /></template>
             </Column>
             <Column header-style="width: 5.5rem" :reorderable-column="false">
               <template #body="{ data }">
-                <AppIconButton icon="pi pi-pencil" @click.stop="openContact(data)" />
+                <AppIconButton icon="iconify lucide--pencil" @click.stop="openContact(data)" />
                 <AppIconButton
-                  icon="pi pi-trash"
+                  icon="iconify lucide--trash-2"
                   severity="danger"
                   @click.stop="removeContact(data)"
                 />
@@ -373,7 +379,7 @@ function removeAddress(a: Address) {
           <div class="flex justify-end pt-4 mb-2">
             <Button
               :label="t('customers.newAddress')"
-              icon="pi pi-plus"
+              icon="iconify lucide--plus"
               size="small"
               @click="openAddress()"
             />
@@ -404,9 +410,9 @@ function removeAddress(a: Address) {
             </Column>
             <Column header-style="width: 5.5rem" :reorderable-column="false">
               <template #body="{ data }">
-                <AppIconButton icon="pi pi-pencil" @click.stop="openAddress(data)" />
+                <AppIconButton icon="iconify lucide--pencil" @click.stop="openAddress(data)" />
                 <AppIconButton
-                  icon="pi pi-trash"
+                  icon="iconify lucide--trash-2"
                   severity="danger"
                   @click.stop="removeAddress(data)"
                 />

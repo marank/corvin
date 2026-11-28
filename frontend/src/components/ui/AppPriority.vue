@@ -5,9 +5,9 @@ import { useI18n } from 'vue-i18n'
 defineProps<{ priority: string }>()
 const { t } = useI18n()
 const look: Record<string, { icon: string; class: string }> = {
-  low: { icon: 'pi pi-angle-down', class: 'text-surface-500' },
-  medium: { icon: 'pi pi-minus', class: 'text-surface-700 dark:text-surface-300' },
-  high: { icon: 'pi pi-angle-double-up', class: 'text-danger font-medium' },
+  low: { icon: 'iconify lucide--chevron-down', class: 'text-surface-500' },
+  medium: { icon: 'iconify lucide--minus', class: 'text-surface-700 dark:text-surface-300' },
+  high: { icon: 'iconify lucide--chevrons-up', class: 'text-danger font-medium' },
 }
 </script>
 
