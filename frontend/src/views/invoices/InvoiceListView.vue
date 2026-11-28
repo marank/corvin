@@ -181,7 +181,7 @@ async function load() {
         sortable
       />
       <Column
-        class="app-text"
+        class="app-text app-fill"
         field="customer_name"
         sort-field="customer__name"
         :header="t('projects.customer')"

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { h } from 'vue'
 import Column from 'primevue/column'
-import { layoutColumns, readColumns, toPx } from '../components/ui/tableColumns'
+import { layoutColumns, readColumns, restColumn, toPx } from '../components/ui/tableColumns'
 
 const REM = 16
 const columns = readColumns([
@@ -30,17 +30,15 @@ describe('readColumns', () => {
     ])
   })
 
-  it('reads optional columns and a minimum width for free text', () => {
-    const [note, date] = readColumns([
-      h(Column, { field: 'note', class: 'app-text', headerStyle: 'min-width: 11rem' }),
-      h(Column, { field: 'date', class: 'app-optional', headerStyle: 'width: 8rem' }),
+  it('reads the fill marker, and a width among other styles', () => {
+    const [note] = readColumns([
+      h(Column, {
+        field: 'note',
+        class: 'app-text app-fill',
+        headerStyle: 'min-width: 2rem; width: 9rem',
+      }),
     ])
-    expect([note!.minWidth, note!.defaultWidth, note!.optional]).toEqual([
-      '11rem',
-      undefined,
-      false,
-    ])
-    expect([date!.minWidth, date!.defaultWidth, date!.optional]).toEqual([undefined, '8rem', true])
+    expect([note!.fill, note!.defaultWidth]).toEqual([true, '9rem'])
   })
 
   it('takes `hidden` as hidden by default', () => {
@@ -49,10 +47,35 @@ describe('readColumns', () => {
   })
 })
 
+describe('restColumn', () => {
+  const read = (...specs: Record<string, unknown>[]) =>
+    readColumns(specs.map((spec) => h(Column, spec)))
+
+  it('is the column marked app-fill', () => {
+    const cols = read({ field: 'a', class: 'app-text app-fill' }, { field: 'b', class: 'app-text' })
+    expect(restColumn(cols)?.key).toBe('a')
+  })
+
+  it('else the last free-text column without a width of its own', () => {
+    const cols = read(
+      { field: 'a', class: 'app-text' },
+      { field: 'b', class: 'app-text' },
+      { field: 'c', class: 'app-text', headerStyle: 'width: 9rem' },
+      { field: 'd', class: 'app-num' },
+    )
+    expect(restColumn(cols)?.key).toBe('b')
+  })
+
+  it('else the last content column', () => {
+    const cols = read({ field: 'a' }, { field: 'b' }, { header: 'x', reorderableColumn: false })
+    expect(restColumn(cols)?.key).toBe('b')
+  })
+})
+
 describe('layoutColumns', () => {
-  it('gives free text without a width the rest of the row', () => {
-    const layout = layoutColumns(columns, noPrefs, 1200, REM)
-    // 6rem, 12rem, (fills), num 7rem, actions 3.5rem
+  it('gives every column its width, the rest column none: it takes the spare width', () => {
+    const layout = layoutColumns(columns, noPrefs, REM)
+    // 6rem, 12rem, (rest), num 7rem, actions 3.5rem
     expect(widths(layout)).toEqual({
       number: 96,
       customer: 192,
@@ -60,34 +83,19 @@ describe('layoutColumns', () => {
       total: 112,
       'col-4': 56,
     })
-    expect(layout.minWidth).toBe(96 + 192 + 128 + 112 + 56)
+    // The rest column at the text default, 12rem.
+    expect(layout.minWidth).toBe(96 + 192 + 192 + 112 + 56)
   })
 
-  it('narrows free-text defaults before the table has to scroll', () => {
-    const layout = layoutColumns(columns, noPrefs, 500, REM)
-    expect(widths(layout).customer).toBe(128)
-    expect(layout.minWidth).toBe(96 + 128 + 128 + 112 + 56)
-  })
-
-  it("keeps the user's widths once set: nothing fills, the table is their sum", () => {
-    const prefs = { widths: { note: 300 }, visible: {} }
-    const layout = layoutColumns(columns, prefs, 500, REM)
-    expect(widths(layout)).toEqual({
-      number: 96,
-      customer: 192,
-      note: 300,
-      total: 112,
-      'col-4': 56,
-    })
-    expect(layout.width).toBe(96 + 192 + 300 + 112 + 56)
-    expect(layout.minWidth).toBe(layout.width)
-  })
-
-  it('keeps free text at its own minimum', () => {
-    const [note] = readColumns([
-      h(Column, { field: 'note', class: 'app-text', headerStyle: 'min-width: 11rem' }),
-    ])
-    expect(layoutColumns([note!], noPrefs, 100, REM).minWidth).toBe(176)
+  it("takes the user's widths; the rest column's is its least", () => {
+    const layout = layoutColumns(
+      columns,
+      { widths: { customer: 100, note: 300 }, visible: {} },
+      REM,
+    )
+    expect(widths(layout).customer).toBe(100)
+    expect(widths(layout).note).toBeUndefined()
+    expect(layout.minWidth).toBe(96 + 100 + 300 + 112 + 56)
   })
 
   it('reads rem and px', () => {

@@ -747,8 +747,8 @@ async function create() {
           <Column
             column-key="description"
             :header="t('time.description')"
-            class="app-text"
-            header-style="min-width: 11rem"
+            class="app-text app-fill"
+            header-style="width: 11rem"
           >
             <template #body="{ data }">
               <template v-if="data.entry">
@@ -792,18 +792,12 @@ async function create() {
               />
             </template>
           </Column>
-          <Column
-            column-key="project"
-            :header="t('projects.project')"
-            class="app-optional"
-            header-style="width: 10rem"
-          >
+          <Column column-key="project" :header="t('projects.project')" header-style="width: 10rem">
             <template #body="{ data }">{{ data.entry?.project_name ?? '—' }}</template>
           </Column>
           <Column
             column-key="servicePeriod"
             :header="t('invoices.servicePeriod')"
-            class="app-optional"
             header-style="width: 11rem"
           >
             <template #body="{ data }">

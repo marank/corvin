@@ -190,7 +190,7 @@ async function runNow() {
                       ><AppDateTimeDisplay :value="data.start_datetime" /></template
                   ></Column>
                   <Column
-                    class="app-text"
+                    class="app-text app-fill"
                     field="description"
                     :header="t('time.description')"
                     sortable

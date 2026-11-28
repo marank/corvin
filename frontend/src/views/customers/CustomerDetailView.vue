@@ -352,7 +352,7 @@ function removeAddress(a: Address) {
             :state-key="tableStateKeys.customerContacts"
             @row-click="openContact"
           >
-            <Column class="app-text" field="last_name" :header="t('common.name')" sortable>
+            <Column class="app-text app-fill" field="last_name" :header="t('common.name')" sortable>
               <template #body="{ data }">{{ data.first_name }} {{ data.last_name }}</template>
             </Column>
             <Column class="app-text" field="role" :header="t('customers.role')" sortable />
@@ -386,7 +386,12 @@ function removeAddress(a: Address) {
           </div>
           <AppDataTable :rows="addresses" :state-key="tableStateKeys.customerAddresses">
             <Column class="app-text" field="label" :header="t('customers.addressLabel')" sortable />
-            <Column class="app-text" field="street" :header="t('customers.street')" sortable />
+            <Column
+              class="app-text app-fill"
+              field="street"
+              :header="t('customers.street')"
+              sortable
+            />
             <Column
               class="app-text"
               :header="t('customers.postalCode') + ' / ' + t('customers.city')"

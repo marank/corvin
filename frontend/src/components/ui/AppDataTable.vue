@@ -1,14 +1,5 @@
 <script setup lang="ts" generic="T extends { id: string }">
-import {
-  computed,
-  getCurrentInstance,
-  onMounted,
-  onUnmounted,
-  ref,
-  useSlots,
-  watch,
-  type VNode,
-} from 'vue'
+import { computed, getCurrentInstance, onUnmounted, ref, useSlots, watch, type VNode } from 'vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import DataTable, {
@@ -21,10 +12,11 @@ import Popover from 'primevue/popover'
 import Select from 'primevue/select'
 import AppEmptyState from './AppEmptyState.vue'
 import {
-  MIN_WIDTH_PX,
+  columnWidth,
   layoutColumns,
-  leastWidth,
   readColumns,
+  restColumn,
+  toPx,
   useColumnPrefs,
   useColumnResize,
   type TableColumn,
@@ -87,7 +79,6 @@ const density = useTableDensity()
 const columnPrefs = useColumnPrefs(props.stateKey)
 const root = ref<HTMLElement>()
 const chooser = ref<InstanceType<typeof Popover>>()
-const fitted = computed(() => !!columnPrefs.prefs.value.fit)
 const onMediaChange = (e: MediaQueryListEvent) => {
   isDesktop.value = e.matches
 }
@@ -99,50 +90,24 @@ const slots = useSlots()
 // The view's <Column>s (see tableColumns.ts): which are shown, and how wide.
 const columns = computed(() => readColumns(slots.default?.()))
 const choosable = computed(() => columns.value.filter((column) => !column.utility))
-// Measured so free-text columns can give way before the table has to scroll.
-const available = ref(Number.POSITIVE_INFINITY)
-const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
-// The table's border.
-const layoutOf = (shown: TableColumn[]) =>
-  layoutColumns(shown, columnPrefs.prefs.value, available.value - 2, remPx)
-// Optional columns the user left alone drop out when the row is too narrow for all (as long
-// as the table fits its row; once sized by the user, it scrolls instead).
-const visibleColumns = computed(() => {
-  const chosen = columns.value.filter(columnPrefs.isVisible)
-  const all = layoutOf(chosen)
-  if (all.width !== undefined || all.minWidth <= available.value - 2) return chosen
-  return chosen.filter(
-    (column) => !column.optional || columnPrefs.prefs.value.visible[column.key] !== undefined,
-  )
-})
+const visibleColumns = computed(() => columns.value.filter(columnPrefs.isVisible))
 const isShown = (column: TableColumn) => visibleColumns.value.includes(column)
-const layout = computed(() => layoutOf(visibleColumns.value))
-useColumnResize(root, columnPrefs.setWidth, {
-  fit: () => !!columnPrefs.prefs.value.fit,
-  leastOf: (key) => {
-    const column = columns.value.find((c) => c.key === key)
-    return column ? leastWidth(column, remPx) : MIN_WIDTH_PX
+const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+const layout = computed(() => layoutColumns(visibleColumns.value, columnPrefs.prefs.value, remPx))
+useColumnResize(root, {
+  setWidth: columnPrefs.setWidth,
+  restKey: () => restColumn(visibleColumns.value)?.key,
+  restLeast: () => {
+    const rest = restColumn(visibleColumns.value)
+    return rest ? toPx(columnWidth(rest, columnPrefs.prefs.value), remPx) : 0
   },
-  pin: () =>
-    columns.value
-      .filter((column) => column.optional && !isShown(column))
-      .forEach((column) => columnPrefs.setVisible(column, false)),
 })
 function headerStyle(column: TableColumn) {
   const px = layout.value.widths.get(column.key)
   return px === undefined ? undefined : { width: `${px}px` }
 }
-const tableStyle = computed(() => ({
-  minWidth: `${layout.value.minWidth}px`,
-  ...(layout.value.width === undefined ? {} : { width: `${layout.value.width}px` }),
-}))
-// jsdom (tests) has no ResizeObserver.
-const observer =
-  typeof ResizeObserver === 'function'
-    ? new ResizeObserver(([entry]) => (available.value = entry!.contentRect.width))
-    : undefined
-onMounted(() => root.value && observer?.observe(root.value))
-onUnmounted(() => observer?.disconnect())
+// The row's width, or the columns' when they don't fit: then it scrolls.
+const tableStyle = computed(() => ({ width: '100%', minWidth: `${layout.value.minWidth}px` }))
 // What AppDataTable adds to each of the view's <Column>s.
 function columnBindings(column: TableColumn) {
   return {
@@ -363,19 +328,7 @@ function toggleSortOrder() {
           />
         </div>
       </Popover>
-      <!-- Layout switches: icon and label name what a click switches to. -->
-      <Button
-        v-if="isDesktop"
-        size="small"
-        text
-        severity="secondary"
-        :aria-label="fitted ? t('table.freeWidth') : t('table.fitWidth')"
-        :title="fitted ? t('table.freeWidth') : t('table.fitWidth')"
-        :icon="
-          fitted ? 'iconify lucide--arrow-right-from-line' : 'iconify lucide--unfold-horizontal'
-        "
-        @click="columnPrefs.setFit(!fitted, columns)"
-      />
+      <!-- Icon and label name what a click switches to. -->
       <Button
         v-if="isDesktop"
         size="small"
@@ -409,10 +362,7 @@ function toggleSortOrder() {
       paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
       :current-page-report-template="t('table.pageReport')"
       class="app-data-table border border-surface-200 dark:border-surface-800"
-      :class="{
-        'app-table-comfortable': density === 'comfortable',
-        'app-table-fit': columnPrefs.prefs.value.fit,
-      }"
+      :class="{ 'app-table-comfortable': density === 'comfortable' }"
       :row-class="() => (hasRowClickListener ? 'cursor-pointer' : '')"
       :row-group-mode="groupField ? 'subheader' : undefined"
       :group-rows-by="groupField"

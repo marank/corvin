@@ -141,11 +141,18 @@ body {
     border-right: 2px solid transparent;
     transition: border-color 0.1s ease;
   }
-  .app-data-table th[data-col-key]:hover::after {
-    border-right-color: var(--p-surface-300);
+  /* Over the header row every edge shows lightly, the one under the mouse clearer. */
+  .app-data-table thead tr:hover th[data-col-key]::after {
+    border-right-color: var(--p-surface-200);
   }
-  /* Fitted to width, the last content column's right edge is the table's own. */
-  .app-table-fit th[data-col-key]:not(:has(+ th[data-col-key]))::after {
+  .dark .app-data-table thead tr:hover th[data-col-key]::after {
+    border-right-color: var(--p-surface-700);
+  }
+  .app-data-table thead tr:hover th[data-col-key]:hover::after {
+    border-right-color: var(--p-surface-400);
+  }
+  /* The last column's right edge is the table's own: nothing to drag. */
+  .app-data-table th[data-col-key]:not(:has(~ th[data-col-key]))::after {
     display: none;
   }
   .app-col-resizing .app-data-table th[data-col-key]::after {

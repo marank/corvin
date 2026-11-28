@@ -490,7 +490,7 @@ async function save() {
               :state-key="tableStateKeys.settingsBankAccounts"
               @row-click="openBankAccount"
             >
-              <Column class="app-text" field="name" :header="t('common.name')" sortable />
+              <Column class="app-text app-fill" field="name" :header="t('common.name')" sortable />
               <Column
                 class="app-text"
                 field="bank_name"
@@ -547,7 +547,12 @@ async function save() {
               :state-key="tableStateKeys.settingsCompanyContacts"
               @row-click="openContact"
             >
-              <Column class="app-text" field="last_name" :header="t('common.name')" sortable>
+              <Column
+                class="app-text app-fill"
+                field="last_name"
+                :header="t('common.name')"
+                sortable
+              >
                 <template #body="{ data }">{{ data.first_name }} {{ data.last_name }}</template>
               </Column>
               <Column class="app-text" field="role" :header="t('customers.role')" sortable />

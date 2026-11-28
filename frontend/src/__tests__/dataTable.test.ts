@@ -28,6 +28,8 @@ const Host = defineComponent({
     pageSize: { type: Number, default: 50 },
     stateKey: { type: String, default: undefined },
     onOpen: { type: Function as PropType<(row: Row) => void>, default: undefined },
+    // Name as free text: then it is the rest column, left of the others.
+    textName: { type: Boolean, default: false },
   },
   setup(props) {
     return () =>
@@ -41,7 +43,12 @@ const Host = defineComponent({
             onRowClick: props.onOpen,
           },
           () => [
-            h(Column, { field: 'name', header: 'Name', sortable: true }),
+            h(Column, {
+              field: 'name',
+              header: 'Name',
+              sortable: true,
+              class: props.textName ? 'app-text' : undefined,
+            }),
             h(Column, { field: 'hours', header: 'Hours', sortable: true }),
             h(Column, { field: 'city.name', header: 'City' }),
             h(Column, { field: 'name', columnKey: 'nick', header: 'Nick', hidden: true }),
@@ -168,63 +175,79 @@ describe('AppDataTable', () => {
       mouse('mouseup', document, to)
     }
 
-    it('resizes only the dragged column, pinning the others, without sorting', async () => {
+    it('resizes only the dragged column, without sorting', async () => {
       await render(Host, { props: { stateKey: 'people' } })
-      header('name', 200, 128)
+      // City, the rest column, has room to give.
+      header('city.name', 600, 300)
       const th = header('hours', 300, 100)
-      header('city.name', 500, 200)
       drag(th, 297, 347)
       await click(th)
       expect(th.style.width).toBe('150px')
-      expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({
-        name: 128,
-        hours: 150,
-        'city.name': 200,
-      })
+      expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({ hours: 150 })
       expect(names()).toEqual(['Bravo', 'Alpha', 'Charlie 10', 'Charlie 9'])
       th.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, clientX: 299 }))
       await click(document.body)
-      expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({
-        name: 128,
-        'city.name': 200,
-      })
+      expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({})
     })
 
-    describe('fitted to width', () => {
-      const fit = async () => click(screen.button(t('table.fitWidth')))
+    const saved = () =>
+      JSON.parse(localStorage.getItem('people:columns') ?? 'null') as {
+        widths: Record<string, number>
+      } | null
 
-      it('trades width between the two columns at the dragged edge', async () => {
-        await render(Host, { props: { stateKey: 'people' } })
-        await fit()
-        const th = header('name', 200, 128)
-        header('hours', 312, 112)
-        drag(th, 198, 298)
-        await click(document.body)
-        // Hours gives up what Name gains, but no more than down to 48px.
-        expect(JSON.parse(localStorage.getItem('people:columns')!)).toEqual({
-          widths: { name: 192, hours: 48 },
-          visible: {},
-          fit: true,
-        })
-      })
+    // Name is the rest column here, at least 12rem (192px).
+    it('with the rest column on the left, resizes the column right of the edge', async () => {
+      await render(Host, { props: { stateKey: 'people', textName: true } })
+      header('name', 400, 400)
+      header('city.name', 500, 200)
+      drag(header('hours', 300, 100), 298, 268)
+      await click(document.body)
+      // City grows, Hours keeps its width and moves left with the edge, Name gives way.
+      expect(saved()!.widths).toEqual({ 'city.name': 230 })
+    })
 
-      it("has no handle on the last content column's right edge", async () => {
-        await render(Host, { props: { stateKey: 'people' } })
-        await fit()
-        drag(header('city.name', 500, 200), 498, 400)
-        await click(document.body)
-        expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({})
-      })
+    it('stops where the rest column reaches its least width', async () => {
+      await render(Host, { props: { stateKey: 'people', textName: true } })
+      header('name', 202, 202)
+      header('city.name', 500, 200)
+      drag(header('hours', 300, 100), 298, 268)
+      await click(document.body)
+      // Name had 10px to spare.
+      expect(saved()!.widths).toEqual({ 'city.name': 210 })
+    })
 
-      it('drops the widths dragged in the other mode', async () => {
-        await render(Host, { props: { stateKey: 'people' } })
-        header('name', 200, 128)
-        drag(header('hours', 300, 100), 297, 347)
-        await click(document.body)
-        expect(JSON.parse(localStorage.getItem('people:columns')!).widths).not.toEqual({})
-        await fit()
-        expect(JSON.parse(localStorage.getItem('people:columns')!).widths).toEqual({})
-      })
+    it('stops where the changed column reaches 48px', async () => {
+      await render(Host, { props: { stateKey: 'people', textName: true } })
+      header('name', 400, 400)
+      header('city.name', 500, 200)
+      drag(header('hours', 300, 100), 298, 498)
+      await click(document.body)
+      expect(saved()!.widths).toEqual({ 'city.name': 48 })
+    })
+
+    it('with the rest column right of the edge, stops at its least width too', async () => {
+      await render(Host, { props: { stateKey: 'people' } })
+      // City is the rest column here (8rem, 128px).
+      header('city.name', 500, 150)
+      drag(header('hours', 300, 100), 298, 398)
+      await click(document.body)
+      expect(saved()!.widths).toEqual({ hours: 122 })
+    })
+
+    it('stores nothing for a drag that cannot move', async () => {
+      await render(Host, { props: { stateKey: 'people', textName: true } })
+      header('name', 192, 192)
+      header('city.name', 500, 200)
+      drag(header('hours', 300, 100), 298, 268)
+      await click(document.body)
+      expect(saved()).toBeNull()
+    })
+
+    it("has no handle on the last column's right edge", async () => {
+      await render(Host, { props: { stateKey: 'people' } })
+      drag(header('city.name', 500, 200), 498, 400)
+      await click(document.body)
+      expect(saved()).toBeNull()
     })
   })
 

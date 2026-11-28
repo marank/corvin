@@ -147,7 +147,7 @@ async function save() {
         header-style="width: 6.5rem"
         sortable
       />
-      <Column class="app-text" field="name" :header="t('common.name')" sortable />
+      <Column class="app-text app-fill" field="name" :header="t('common.name')" sortable />
       <Column class="app-text" column-key="place" :header="t('customers.place')">
         <template #body="{ data }">{{
           data.primary_address

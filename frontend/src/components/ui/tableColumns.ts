@@ -1,14 +1,13 @@
 import { Fragment, computed, onMounted, onUnmounted, ref, watch, type Ref, type VNode } from 'vue'
 import Column from 'primevue/column'
 
-// Column model of AppDataTable. The table lays out with `table-layout: fixed`: every column
-// has a width (its default, or what the user dragged it to), except the free-text columns
-// (<Column class="app-text">) left at their default, which share the rest of the row. That
-// keeps the layout still while paging, sorting and filtering, and a dragged edge moves
-// exactly as far as the mouse. Views give defaults with `header-style="width: 7rem"`;
-// `hidden` on a <Column> means "hidden until the user shows it" in the column chooser, and
-// <Column class="app-optional"> "hidden while the table is too narrow for it", unless the user
-// chose otherwise.
+// Column model of AppDataTable, one rule for every table: each column has a width (its
+// default, or what the user dragged it to); a dragged edge follows the mouse (see dragOf). One
+// column, the rest column, also takes the row's spare width: <Column class="app-fill">, else
+// the last free-text column (class="app-text") without a default width, else the last
+// column. When the columns don't fit, the table scrolls sideways. Views give defaults with
+// `header-style="width: 7rem"`; `hidden` on a <Column> means "hidden until the user shows it"
+// in the column chooser.
 
 export interface TableColumn {
   key: string
@@ -16,25 +15,21 @@ export interface TableColumn {
   node: VNode
   // Row actions, checkboxes: always shown, never resized or offered in the chooser.
   utility: boolean
-  // Free text (app-text): without a width of its own it fills the row.
+  // Free text (app-text).
   text: boolean
+  // Takes the row's spare width (app-fill).
+  fill: boolean
   defaultWidth: string | undefined
   defaultHidden: boolean
-  // Left out when the row is too narrow for all columns.
-  optional: boolean
-  // Free text: the least it may shrink to (`header-style="min-width: 11rem"`).
-  minWidth: string | undefined
 }
 
 export interface ColumnPrefs {
   widths: Record<string, number>
   visible: Record<string, boolean>
-  // "Fit to width": the table always fills its row, dragged edges trade width between columns.
-  fit?: boolean
 }
 
 export const MIN_WIDTH_PX = 48
-const TEXT_MIN = '8rem'
+const TEXT_DEFAULT = '12rem'
 const NUM_DEFAULT = '7rem'
 const OTHER_DEFAULT = '8rem'
 const UTILITY_DEFAULT = '3.5rem'
@@ -58,13 +53,13 @@ function flag(value: unknown): boolean {
   return value === '' || value === true || value === 'true'
 }
 
-function fromStyle(style: unknown, camel: string, kebab: string): string | undefined {
+function fromStyle(style: unknown, name: string): string | undefined {
   if (style && typeof style === 'object') {
-    const value = (style as Record<string, unknown>)[camel]
+    const value = (style as Record<string, unknown>)[name]
     return typeof value === 'string' ? value : undefined
   }
   if (typeof style !== 'string') return undefined
-  return new RegExp(`(?:^|;)\\s*${kebab}\\s*:\\s*([^;]+)`).exec(style)?.[1]?.trim()
+  return new RegExp(`(?:^|;)\\s*${name}\\s*:\\s*([^;]+)`).exec(style)?.[1]?.trim()
 }
 
 function classes(value: unknown): string {
@@ -90,10 +85,9 @@ function toColumn(node: VNode, index: number): TableColumn {
     node,
     utility: reorderable === false || reorderable === 'false',
     text: cls.includes(' app-text '),
-    defaultWidth: fromStyle(prop(p, 'headerStyle', 'header-style'), 'width', 'width'),
+    fill: cls.includes(' app-fill '),
+    defaultWidth: fromStyle(prop(p, 'headerStyle', 'header-style'), 'width'),
     defaultHidden: flag(p.hidden),
-    optional: cls.includes(' app-optional '),
-    minWidth: fromStyle(prop(p, 'headerStyle', 'header-style'), 'minWidth', 'min-width'),
   }
 }
 
@@ -116,7 +110,7 @@ function load(stateKey: string | undefined): ColumnPrefs {
     const saved = JSON.parse(
       localStorage.getItem(storageKey(stateKey)) ?? 'null',
     ) as Partial<ColumnPrefs> | null
-    return { widths: saved?.widths ?? {}, visible: saved?.visible ?? {}, fit: saved?.fit }
+    return { widths: saved?.widths ?? {}, visible: saved?.visible ?? {} }
   } catch {
     return empty
   }
@@ -152,19 +146,12 @@ export function useColumnPrefs(stateKey: string | undefined) {
     else prefs.value.widths[key] = Math.max(MIN_WIDTH_PX, Math.round(px))
   }
 
-  // Widths dragged in the other mode don't carry over; optional columns go back to automatic.
-  function setFit(fit: boolean, columns: TableColumn[]) {
-    prefs.value.fit = fit
-    prefs.value.widths = {}
-    for (const column of columns) if (column.optional) delete prefs.value.visible[column.key]
-  }
-
   const customized = computed(
     () => Object.keys(prefs.value.widths).length > 0 || Object.keys(prefs.value.visible).length > 0,
   )
 
   function reset() {
-    prefs.value = { widths: {}, visible: {}, fit: prefs.value.fit }
+    prefs.value = { widths: {}, visible: {} }
     if (stateKey) {
       try {
         const state = JSON.parse(localStorage.getItem(stateKey) ?? 'null') as Props | null
@@ -181,169 +168,126 @@ export function useColumnPrefs(stateKey: string | undefined) {
     tableKey.value++
   }
 
-  return { prefs, tableKey, isVisible, setVisible, setWidth, setFit, customized, reset }
+  return { prefs, tableKey, isVisible, setVisible, setWidth, customized, reset }
 }
 
 export type ColumnPrefsApi = ReturnType<typeof useColumnPrefs>
 
-// The width a column asks for: the user's, its default, or none (free text: fills the row).
-export function columnWidth(column: TableColumn, prefs: ColumnPrefs): string | undefined {
+// A column's width: the user's, its default, or the default of its kind.
+export function columnWidth(column: TableColumn, prefs: ColumnPrefs): string {
   const px = prefs.widths[column.key]
   if (px) return `${px}px`
   if (column.defaultWidth) return column.defaultWidth
-  if (column.text) return undefined
   if (column.utility) return UTILITY_DEFAULT
+  if (column.text) return TEXT_DEFAULT
   const cls = ` ${classes(column.node.props?.class)} `
   return cls.includes(' app-num ') ? NUM_DEFAULT : OTHER_DEFAULT
 }
 
-// "7rem", "120px" → px; anything else (%, calc) counts as the text minimum.
+// "7rem", "120px" → px; anything else (%, calc) counts as the text default.
 export function toPx(width: string, remPx: number): number {
   const match = /^([\d.]+)(rem|px)$/.exec(width.trim())
-  if (!match) return toPx(TEXT_MIN, remPx)
+  if (!match) return toPx(TEXT_DEFAULT, remPx)
   return match[2] === 'rem' ? Number(match[1]) * remPx : Number(match[1])
 }
 
-export interface ColumnLayout {
-  // px per column; undefined: the column takes what is left of the row.
-  widths: Map<string, number | undefined>
-  // Below this the table scrolls sideways instead of squeezing its columns.
-  minWidth: number
-  // Set once the user sized a column: the table is exactly as wide as its columns.
-  width?: number
+// The column taking the row's spare width (see the top of this file).
+export function restColumn(columns: TableColumn[]): TableColumn | undefined {
+  const content = columns.filter((column) => !column.utility)
+  return (
+    content.find((column) => column.fill) ??
+    content.filter((column) => column.text && !column.defaultWidth).at(-1) ??
+    content.at(-1)
+  )
 }
 
-// Until the user sizes a column (always, when fitted to width), the table fits its row: free-text columns at their default
-// share the free width (without any, the last content column fills it), and when the row is
-// too narrow, free-text columns with a default width give way first (down to their minimum);
-// only then does the table scroll. Once sized, each column keeps its width.
+export interface ColumnLayout {
+  // px per column; undefined for the rest column, which takes what is left of the row.
+  widths: Map<string, number | undefined>
+  // All columns at their widths: below this the table scrolls sideways.
+  minWidth: number
+}
+
 export function layoutColumns(
   columns: TableColumn[],
   prefs: ColumnPrefs,
-  available: number,
   remPx: number,
 ): ColumnLayout {
-  const textMin = toPx(TEXT_MIN, remPx)
-  const least = (column: TableColumn) => (column.minWidth ? toPx(column.minWidth, remPx) : textMin)
-  // Sized by the user (unless fitted): every column at its own width, nothing fills or gives way.
-  if (!prefs.fit && columns.some((column) => prefs.widths[column.key])) {
-    const widths = new Map(
-      columns.map((column) => {
-        const width = columnWidth(column, prefs)
-        return [column.key, width ? toPx(width, remPx) : least(column)] as const
-      }),
-    )
-    const width = Math.ceil([...widths.values()].reduce((sum, px) => sum + px, 0))
-    return { widths, minWidth: width, width }
-  }
-  const asked = columns.map((column) => {
-    const width = columnWidth(column, prefs)
-    return { column, px: width ? toPx(width, remPx) : undefined }
-  })
-  const fill = new Set(asked.filter((a) => a.px === undefined).map((a) => a.column.key))
-  if (!fill.size) {
-    const last = columns.filter((column) => !column.utility).at(-1)
-    if (last) fill.add(last.key)
-  }
-  const needed = (a: { column: TableColumn; px: number | undefined }) =>
-    fill.has(a.column.key) ? Math.max(a.px ?? 0, least(a.column)) : a.px!
-  const total = asked.reduce((sum, a) => sum + needed(a), 0)
-  const yielding = asked.filter(
-    (a) => !fill.has(a.column.key) && a.column.text && !prefs.widths[a.column.key],
-  )
-  const room = yielding.reduce((sum, a) => sum + a.px! - Math.min(a.px!, textMin), 0)
-  const cut = Math.min(Math.max(0, total - available), room)
+  const rest = restColumn(columns)
   const widths = new Map<string, number | undefined>()
-  for (const a of asked) {
-    if (fill.has(a.column.key)) widths.set(a.column.key, undefined)
-    else if (yielding.includes(a) && room > 0)
-      widths.set(a.column.key, a.px! - (cut * (a.px! - Math.min(a.px!, textMin))) / room)
-    else widths.set(a.column.key, a.px)
+  let minWidth = 0
+  for (const column of columns) {
+    const px = toPx(columnWidth(column, prefs), remPx)
+    minWidth += px
+    widths.set(column.key, column === rest ? undefined : px)
   }
-  return { widths, minWidth: Math.ceil(total - cut) }
+  return { widths, minWidth: Math.ceil(minWidth) }
 }
 
-// The least a column may be dragged to while fitted: free text keeps its minimum.
-export function leastWidth(column: TableColumn, remPx: number): number {
-  if (!column.text) return MIN_WIDTH_PX
-  return toPx(column.minWidth ?? TEXT_MIN, remPx)
+export interface ResizeTarget {
+  setWidth: (key: string, px: number | undefined) => void
+  // The rest column's key, and the least it may shrink to: its own width.
+  restKey: () => string | undefined
+  restLeast: () => number
 }
 
-export interface ResizeMode {
-  // Fitted to width: the edge between two columns moves, what one gains the other gives up
-  // (a column filling the row takes up the difference by itself).
-  fit: () => boolean
-  leastOf: (key: string) => number
-  // Otherwise only the dragged column changes, and the table grows, shrinks or scrolls. The
-  // first drag pins every column as it is: `pin` keeps the automatic layout's hidden columns.
-  pin: () => void
+const widthOf = (th: HTMLElement) => th.getBoundingClientRect().width
+const keyOf = (th: HTMLElement) => th.dataset.colKey!
+
+// What a drag of the edge between `th` and the next column changes. The line follows the
+// mouse: the column on the far side from the rest column changes, the rest column evens it out
+// and the columns between them move along unchanged. The drag stops where the rest column
+// reaches its least width or the changed column 48px.
+function dragOf(th: HTMLElement, headers: HTMLElement[], target: ResizeTarget) {
+  const index = headers.indexOf(th)
+  const rest = headers.find((h) => keyOf(h) === target.restKey())
+  const spare = rest ? Math.max(0, widthOf(rest) - target.restLeast()) : 0
+  const clamp = (dx: number, least: number, most: number) => Math.min(Math.max(dx, least), most)
+  // A column gets a width of its own only once the drag actually moved it.
+  let moved = false
+  const set = (h: HTMLElement, px: number, start: number) => {
+    moved ||= px !== start
+    if (moved) target.setWidth(keyOf(h), px)
+  }
+  if (!rest || headers.indexOf(rest) > index) {
+    const left = widthOf(th)
+    return (dx: number) => set(th, left + clamp(dx, MIN_WIDTH_PX - left, spare), left)
+  }
+  const next = headers[index + 1]!
+  const right = widthOf(next)
+  return (dx: number) => set(next, right - clamp(dx, -spare, right - MIN_WIDTH_PX), right)
 }
 
-interface Handle {
-  th: HTMLTableCellElement
-  key: string
-  next: HTMLTableCellElement | undefined
-}
-
-// Dragging the right edge of a header cell, listened for on the table's root.
-export function useColumnResize(
-  root: Ref<HTMLElement | undefined>,
-  setWidth: (key: string, px: number | undefined) => void,
-  mode: ResizeMode,
-) {
+// Dragging the right edge of a header cell (not the last one's: that is the table's own),
+// listened for on the table's root.
+export function useColumnResize(root: Ref<HTMLElement | undefined>, target: ResizeTarget) {
   const HANDLE_PX = 8
   const resizing = ref(false)
 
-  function handleOf(event: MouseEvent): Handle | undefined {
+  const headersOf = (th: HTMLElement) => [
+    ...(th.parentElement?.querySelectorAll<HTMLElement>('th[data-col-key]') ?? []),
+  ]
+
+  function handleOf(event: MouseEvent): HTMLTableCellElement | undefined {
     const th = (event.target as HTMLElement).closest<HTMLTableCellElement>('th[data-col-key]')
     if (!th || !root.value?.contains(th)) return undefined
-    const sibling = th.nextElementSibling
-    const next =
-      sibling instanceof HTMLTableCellElement && sibling.dataset.colKey ? sibling : undefined
-    // Fitted, the last content column's right edge is the table's: nothing to trade with.
-    if (mode.fit() && !next) return undefined
+    if (headersOf(th).at(-1) === th) return undefined
     const rect = th.getBoundingClientRect()
     // No layout (jsdom): no edge to grab.
     if (!rect.width) return undefined
     if (event.clientX < rect.right - HANDLE_PX || event.clientX > rect.right + 2) return undefined
-    return { th, key: th.dataset.colKey!, next }
-  }
-
-  const widthOf = (th: HTMLElement) => th.getBoundingClientRect().width
-
-  function tradeWith(handle: Handle, next: HTMLTableCellElement) {
-    const nextKey = next.dataset.colKey!
-    const [left, right] = [widthOf(handle.th), widthOf(next)]
-    // A header without a width of its own is the one filling the row.
-    const fills = (th: HTMLElement) => !th.style.width
-    return (dx: number) => {
-      const delta = Math.min(
-        Math.max(dx, mode.leastOf(handle.key) - left),
-        right - mode.leastOf(nextKey),
-      )
-      if (!fills(handle.th)) setWidth(handle.key, left + delta)
-      if (!fills(next)) setWidth(nextKey, right - delta)
-    }
-  }
-
-  function grow(handle: Handle) {
-    const start = widthOf(handle.th)
-    mode.pin()
-    handle.th.parentElement
-      ?.querySelectorAll<HTMLElement>('th[data-col-key]')
-      .forEach((th) => setWidth(th.dataset.colKey!, widthOf(th)))
-    return (dx: number) => setWidth(handle.key, start + dx)
+    return th
   }
 
   // Capture phase: PrimeVue must neither start a column drag nor sort on this click.
   function onMouseDown(event: MouseEvent) {
     if (event.button !== 0) return
-    const handle = handleOf(event)
-    if (!handle) return
+    const th = handleOf(event)
+    if (!th) return
     event.preventDefault()
     event.stopPropagation()
+    const apply = dragOf(th, headersOf(th), target)
     const startX = event.clientX
-    const apply = mode.fit() && handle.next ? tradeWith(handle, handle.next) : grow(handle)
     resizing.value = true
     document.body.classList.add('app-col-resizing')
     const move = (e: MouseEvent) => apply(e.clientX - startX)
@@ -366,10 +310,10 @@ export function useColumnResize(
 
   // Double-click on the edge: back to the column's default width.
   function onDoubleClick(event: MouseEvent) {
-    const handle = handleOf(event)
-    if (!handle) return
+    const th = handleOf(event)
+    if (!th) return
     event.stopPropagation()
-    setWidth(handle.key, undefined)
+    target.setWidth(keyOf(th), undefined)
   }
 
   // Native capture listeners, not template ones: Vue skips handlers attached after an event's
