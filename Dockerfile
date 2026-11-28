@@ -68,10 +68,15 @@ RUN apt-get update \
  && find / -xdev -perm /6000 -type f -exec chmod a-s {} +
 
 # --- project: system packages ---
-# WeasyPrint's native libraries (Pango and friends).
+# WeasyPrint's native libraries (Pango and friends) and the fonts document templates can use.
+# fc-cache at build time: the root filesystem is read-only at runtime.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 libjpeg62-turbo libopenjp2-7 \
+      fontconfig fonts-liberation fonts-crosextra-carlito fonts-crosextra-caladea \
+      fonts-roboto-unhinted fonts-open-sans fonts-lato fonts-adobe-sourcesans3 \
+      fonts-ebgaramond fonts-quicksand fonts-league-spartan \
+ && fc-cache -f \
  && rm -rf /var/lib/apt/lists/* \
  && find / -xdev -perm /6000 -type f -exec chmod a-s {} +
 # --- end ---

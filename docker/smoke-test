@@ -27,6 +27,11 @@ case "$role" in
     probe /favicon.svg 200
     asset=$(cd /srv/spa && ls assets/*.js | head -n 1)
     probe "/$asset" 200
+    # Document fonts are installed and Helvetica maps to a metric-compatible font.
+    for font in Roboto Lato Carlito "Liberation Sans"; do
+      fc-match "$font" | grep -q "$font" || fail "font $font is missing"
+    done
+    fc-match Helvetica | grep -q "Liberation Sans" || fail "Helvetica has no substitute"
     # Login without CSRF token is refused.
     python - <<'EOF' || fail "login without CSRF token was not refused"
 import os, sys, urllib.error, urllib.request
